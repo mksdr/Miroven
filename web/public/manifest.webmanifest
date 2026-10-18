@@ -1,0 +1,25 @@
+{
+  "name": "Miroven",
+  "short_name": "Miroven",
+  "description": "나만 볼 수 있는 암호화 저널 · A private encrypted journal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f1419",
+  "lang": "ko-KR",
+  "categories": ["lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

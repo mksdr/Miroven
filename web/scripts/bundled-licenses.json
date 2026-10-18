@@ -1,0 +1,19 @@
+[
+  {
+    "name": "libheif", "version": "1.22.2", "author": "Dirk Farin and contributors",
+    "license": "LGPL-3.0-or-later", "parent": "heic-to", "parentVersion": "1.5.2",
+    "markerFile": "src/lib/libheif.js", "marker": "libheif 1.22.2",
+    "source": "https://github.com/strukturag/libheif/tree/v1.22.2"
+  },
+  {
+    "name": "libde265", "version": "1.0.16", "author": "struktur AG, Dirk Farin and contributors",
+    "license": "LGPL-3.0-or-later", "parent": "heic-to", "parentVersion": "1.5.2",
+    "markerFile": "src/lib/libheif.js", "marker": "LIBDE265_VERSION=1.0.16",
+    "source": "https://github.com/strukturag/libde265/tree/v1.0.16"
+  },
+  {
+    "name": "libwebp", "version": "bundled", "license": "BSD-3-Clause",
+    "parent": "@jsquash/webp", "parentVersion": "1.5.0", "noticeFile": "codec/LICENSE.codec.md",
+    "source": "https://github.com/jamsinclair/jSquash/tree/main/packages/webp"
+  }
+]

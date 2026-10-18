@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Web Unit & Local E2E Verification
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Full verification
+        run: npm run verify:full
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-local
+          path: web/playwright-report/
+          retention-days: 14
+
+      - name: Upload license verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-verification
+          path: web/license-reports/report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  integration-e2e:
+    name: Full-stack API & Sync E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Miroven
+        uses: actions/checkout@v4
+        with:
+          path: Miroven
+
+      - name: Check out Miroven-API
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/Miroven-API
+          path: Miroven-API
+          token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Inspect API availability
+        id: check-api
+        run: |
+          if [ -d "Miroven-API" ] && [ -f "Miroven-API/compose.yaml" ]; then
+            echo "has_api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_api=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.check-api.outputs.has_api == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        if: steps.check-api.outputs.has_api == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+          cache-dependency-path: Miroven/web/package-lock.json
+
+      - name: Install Miroven dependencies & Chromium
+        if: steps.check-api.outputs.has_api == 'true'
+        working-directory: Miroven/web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Start Combined Docker Stack
+        if: steps.check-api.outputs.has_api == 'true'
+        working-directory: Miroven-API
+        run: |
+          python -m pip install uv==0.13.1
+          uv sync --locked
+          uv run python scripts/bootstrap_local.py
+          docker compose -f compose.yaml -f compose.web.yaml up -d --build --wait --wait-timeout 180
+
+      - name: Run Full-stack E2E (api-sync.spec.ts)
+        if: steps.check-api.outputs.has_api == 'true'
+        working-directory: Miroven/web
+        env:
+          MIROVEN_INTEGRATION_URL: "http://localhost:8080"
+          MIROVEN_MAILPIT_URL: "http://localhost:8025"
+        run: |
+          npx playwright test tests/e2e/api-sync.spec.ts --project=chromium
+
+      - name: Upload Docker logs on failure
+        if: failure() && steps.check-api.outputs.has_api == 'true'
+        working-directory: Miroven-API
+        run: |
+          docker compose -f compose.yaml -f compose.web.yaml logs --tail 100
+
+      - name: Upload Playwright integration report on failure
+        if: failure() && steps.check-api.outputs.has_api == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-integration
+          path: Miroven/web/playwright-report/
+          retention-days: 14
+
+      - name: Tear down Combined Docker Stack
+        if: always() && steps.check-api.outputs.has_api == 'true'
+        working-directory: Miroven-API
+        run: |
+          docker compose -f compose.yaml -f compose.web.yaml down

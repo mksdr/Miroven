@@ -1,0 +1,192 @@
+/* App Shell & Core Rails */
+.app-shell {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 600px) 350px;
+  gap: 24px;
+  width: min(100%, 1282px);
+  min-height: 100vh;
+  margin: 0 auto;
+}
+
+.left-rail,
+.right-rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+/* Left Rail Navigation */
+.left-rail {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 8px 12px 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: max-content;
+  min-height: 52px;
+  margin-bottom: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+.brand:hover { background: var(--hover); }
+
+.brand-mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 1.3125rem;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+}
+.brand-word { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.04em; }
+
+.rail-nav { display: grid; gap: 2px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: max-content;
+  max-width: 100%;
+  min-height: 52px;
+  padding: 0 14px 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+.nav-item:hover { background: var(--hover); }
+.nav-item.active { font-weight: 750; }
+
+.nav-symbol,
+.nav-icon-svg {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  font-size: 1.6875rem;
+  font-weight: 400;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.nav-label { font-size: 1.25rem; letter-spacing: -0.02em; }
+
+.compose-rail-button {
+  display: grid;
+  width: calc(100% - 22px);
+  min-height: 52px;
+  margin: 14px 10px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--btn-accent-bg, var(--accent));
+  color: var(--accent-text, #ffffff);
+  font-size: 1.0625rem;
+  font-weight: 750;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+.compose-rail-button:hover { background: var(--accent-hover); }
+
+.rail-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  margin-top: auto;
+  padding: 10px;
+  border-radius: 999px;
+  transition: background 150ms ease;
+}
+.rail-profile:hover { background: var(--hover); }
+
+.profile-copy { min-width: 0; flex: 1; }
+.profile-copy strong,
+.profile-copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-copy strong { font-size: 0.875rem; }
+.profile-copy span { margin-top: 2px; color: var(--muted); font-size: 0.875rem; }
+
+.online-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent);
+}
+.online-dot.offline { background: var(--faint); box-shadow: none; }
+
+/* Right Rail Container & Cards Base */
+.right-rail {
+  display: grid;
+  gap: 16px;
+  max-height: 100vh;
+  padding: 12px 0 40px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.right-rail::-webkit-scrollbar { display: none; }
+
+.side-card,
+.mobile-side-card {
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  scroll-margin-top: 64px;
+}
+.side-card h2,
+.mobile-side-card h2 {
+  margin: 5px 0 6px;
+  font-size: 1.125rem;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+.side-card p,
+.mobile-side-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.side-card-description {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0 10px;
+}
+
+.side-card-button {
+  width: 100%;
+}
+
+.mobile-side-card { display: none; }
+.mobile-nav { display: none; }

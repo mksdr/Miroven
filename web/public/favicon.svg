@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f242d" />
+      <stop offset="100%" stop-color="#090a0f" />
+    </linearGradient>
+    <linearGradient id="m-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e5e9f0" />
+    </linearGradient>
+  </defs>
+
+  <!-- High-contrast dark squircle background -->
+  <rect x="0" y="0" width="512" height="512" rx="116" ry="116" fill="url(#bg-grad)" />
+
+  <!-- Crisp geometric Miroven M monogram -->
+  <path fill="url(#m-grad)" d="M 124 380 L 124 132 L 182 132 L 256 262 L 330 132 L 388 132 L 388 380 L 334 380 L 334 220 L 272 330 L 240 330 L 178 220 L 178 380 Z" />
+</svg>

@@ -1,0 +1,52 @@
+{
+  "name": "miroven",
+  "version": "1.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "author": "Miroven Project",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "notices:generate": "node scripts/generate-notices.mjs",
+    "check:licenses": "node scripts/check-licenses.mjs",
+    "api:generate": "node scripts/sync-api-contract.mjs",
+    "api:check": "node scripts/sync-api-contract.mjs --check",
+    "dev": "next dev",
+    "build": "next build && node scripts/finalize-csp.mjs && node scripts/finalize-sw.mjs",
+    "start": "npx serve out",
+    "test": "npm run check:secrets && npm run test:unit && npm run test:rendered",
+    "test:unit": "vitest run",
+    "test:browser": "playwright test",
+    "test:browser:local": "playwright test tests/e2e/local-vault.spec.ts tests/e2e/images.spec.ts tests/e2e/keyboard-a11y.spec.ts tests/e2e/quotes.spec.ts tests/e2e/persona.spec.ts",
+    "test:integration": "playwright test tests/e2e/api-sync.spec.ts",
+    "test:rendered": "npm run build && npm run test:rendered:built",
+    "test:rendered:built": "node --test tests/rendered-html.test.mjs",
+    "verify:fast": "npm run check:secrets && npm run lint && npm run test:unit",
+    "verify:full": "npm run check:licenses && npm run verify:fast && npm run build && npm run check:csp && npm run check:sw && npm run check:secrets && npm run check:bundle && npm run test:rendered:built && npm run test:browser",
+    "check:bundle": "node scripts/check-bundle-budget.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "check:csp": "node scripts/finalize-csp.mjs --check",
+    "check:sw": "node scripts/finalize-sw.mjs --check",
+    "lint": "eslint . --ignore-pattern .next"
+  },
+  "dependencies": {
+    "@jsquash/webp": "1.5.0",
+    "heic-to": "1.5.2",
+    "next": "16.4.2",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.4.2",
+    "fake-indexeddb": "^6.2.5",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "type": "module"
+}
