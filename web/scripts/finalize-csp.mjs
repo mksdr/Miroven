@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import nextEnv from "@next/env";
+import { validatePagesHeaders } from "./header-rules.mjs";
 
 const webDirectory = fileURLToPath(new URL("../", import.meta.url));
 nextEnv.loadEnvConfig(webDirectory, false);
@@ -64,18 +65,9 @@ function replaceStyleSources(csp, hashes) {
 const htmlFiles = await listHtmlFiles(outDirectory);
 if (htmlFiles.length === 0) throw new Error("No exported HTML files found. Run next build first.");
 
-const scriptHashes = new Set();
-const styleHashes = new Set();
-for (const htmlPath of htmlFiles) {
-  const html = await readFile(htmlPath, "utf8");
-  for (const hash of collectInlineScriptHashes(html)) scriptHashes.add(hash);
-  for (const hash of collectInlineStyleHashes(html)) styleHashes.add(hash);
-}
-const sortedScriptHashes = [...scriptHashes].sort();
-const sortedStyleHashes = [...styleHashes].sort();
-
-const headers = await readFile(headersPath, "utf8");
-const cspLinePattern = /^(\s*Content-Security-Policy:\s*)(.+)$/m;
+// Always generate from the source template, so repeated runs are deterministic.
+const headers = (await readFile(path.join(webDirectory, "public", "_headers"), "utf8")).replace(/\r\n/g, "\n");
+const cspLinePattern = /^([\t ]*Content-Security-Policy:[\t ]*)([^\r\n]+)$/m;
 const match = headers.match(cspLinePattern);
 if (!match) throw new Error(`${headersPath} is missing Content-Security-Policy.`);
 if (/script-src\s+[^;]*'unsafe-inline'/i.test(match[2])) {
@@ -85,8 +77,6 @@ if (/style-src\s+[^;]*'unsafe-inline'/i.test(match[2])) {
   throw new Error("style-src must not contain 'unsafe-inline'.");
 }
 
-let finalizedCsp = replaceScriptSources(match[2], sortedScriptHashes);
-finalizedCsp = replaceStyleSources(finalizedCsp, sortedStyleHashes);
 const apiBase = process.env.NEXT_PUBLIC_MIROVEN_API_URL;
 let connectSources = "'self'";
 if (apiBase && !apiBase.startsWith("/")) {
@@ -99,15 +89,71 @@ if (apiBase && !apiBase.startsWith("/")) {
   connectSources += ` ${api.origin}`;
 }
 if (apiBase?.startsWith("//")) throw new Error("Use an explicit HTTPS API URL.");
-finalizedCsp = finalizedCsp.replace(/connect-src\s+[^;]*/i, `connect-src ${connectSources}`);
-const finalizedHeaders = headers.replace(cspLinePattern, `${match[1]}${finalizedCsp}`);
+const baseCsp = match[2].replace(/connect-src\s+[^;]*/i, `connect-src ${connectSources}`);
+const unique = (hashes) => [...new Set(hashes)].sort();
+function policyFor(pages) {
+  let csp = replaceScriptSources(baseCsp, unique(pages.flatMap((page) => collectInlineScriptHashes(page.html))));
+  csp = replaceStyleSources(csp, unique(pages.flatMap((page) => collectInlineStyleHashes(page.html))));
+  return csp;
+}
+const cspLine = (csp) => `  Content-Security-Policy: ${csp}`;
+const pages = [];
+for (const htmlPath of htmlFiles.sort()) {
+  pages.push({ htmlPath, html: await readFile(htmlPath, "utf8") });
+}
+
+// Keep the fallback policy within Pages' limit too. It covers static assets and
+// custom 404 responses at arbitrary URLs. Exact page rules below further restrict
+// hashes; Cloudflare joins overlapping CSP headers into intersecting policies.
+while (cspLine(policyFor(pages)).length > 2000) {
+  const candidate = pages
+    .filter((page) => [...page.html.matchAll(/<script>([\s\S]*?)<\/script\s*>/gi)]
+      .some(([, content]) => content.length > 0))
+    .sort((a, b) => collectInlineScriptHashes(b.html).length - collectInlineScriptHashes(a.html).length)[0];
+  if (!candidate) throw new Error("CSP exceeds Cloudflare Pages' 2,000-character line limit even after extracting scripts.");
+  if (checkOnly) throw new Error("CSP requires script extraction. Run npm run build.");
+  const scriptsDirectory = path.join(outDirectory, "_next", "static", "csp");
+  await mkdir(scriptsDirectory, { recursive: true });
+  const assets = [];
+  // Only extract classic scripts without attributes. Preserve their position and
+  // parser-blocking execution order; JSON-LD and module scripts remain untouched.
+  candidate.html = candidate.html.replace(/<script>([\s\S]*?)<\/script\s*>/gi, (tag, content) => {
+    if (!content) return tag;
+    const digest = createHash("sha256").update(content, "utf8").digest("hex");
+    assets.push({ digest, content });
+    return `<script src="/_next/static/csp/${digest}.js"></script>`;
+  });
+  for (const { digest, content } of assets) {
+    await writeFile(path.join(scriptsDirectory, `${digest}.js`), content, "utf8");
+  }
+  await writeFile(candidate.htmlPath, candidate.html, "utf8");
+}
+
+let finalizedHeaders = headers.replace(cspLinePattern, cspLine(policyFor(pages))).trimEnd();
+for (const page of pages) {
+  const relativePath = path.relative(outDirectory, page.htmlPath).split(path.sep).join("/");
+  const route = relativePath === "index.html" ? "/" : `/${relativePath.replace(/(?:\/index)?\.html$/, "")}`;
+  const aliases = new Set([route, `/${relativePath}`]);
+  if (route !== "/") aliases.add(`${route}/`);
+  for (const alias of aliases) finalizedHeaders += `\n\n${alias}\n${cspLine(policyFor([page]))}`;
+}
+finalizedHeaders += "\n";
+const { ruleCount, longestLine } = validatePagesHeaders(finalizedHeaders);
+for (const page of pages) {
+  for (const [, digest] of page.html.matchAll(/<script src="\/_next\/static\/csp\/([a-f0-9]{64})\.js"><\/script>/g)) {
+    const content = await readFile(path.join(outDirectory, "_next", "static", "csp", `${digest}.js`));
+    if (createHash("sha256").update(content).digest("hex") !== digest) {
+      throw new Error(`Extracted CSP script ${digest}.js does not match its content hash. Run npm run build.`);
+    }
+  }
+}
 
 if (checkOnly) {
-  if (headers !== finalizedHeaders) {
+  if (await readFile(headersPath, "utf8") !== finalizedHeaders) {
     throw new Error("Exported CSP hashes do not match the inline scripts/styles. Run npm run build.");
   }
-  console.log(`CSP covers ${sortedScriptHashes.length} unique inline scripts and ${sortedStyleHashes.length} unique inline styles across ${htmlFiles.length} HTML files.`);
+  console.log(`Verified page CSPs for ${pages.length} HTML files; ${ruleCount} rules; longest line: ${longestLine} characters.`);
 } else {
   await writeFile(headersPath, finalizedHeaders, "utf8");
-  console.log(`Added ${sortedScriptHashes.length} script hashes and ${sortedStyleHashes.length} style hashes for ${htmlFiles.length} exported HTML files.`);
+  console.log(`Generated page CSPs for ${pages.length} HTML files; ${ruleCount} rules; longest line: ${longestLine} characters.`);
 }

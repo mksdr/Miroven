@@ -6,6 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import nextEnv from "@next/env";
+import { headersForPath, parseHeaderRules, validatePagesHeaders } from "../scripts/header-rules.mjs";
 
 const outDirectory = fileURLToPath(new URL("../out", import.meta.url));
 nextEnv.loadEnvConfig(fileURLToPath(new URL("../", import.meta.url)), false);
@@ -15,6 +16,8 @@ const originPattern = appOrigin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 test("exported CSP permits only hashed inline scripts and styles without unsafe-inline", () => {
   const headers = fs.readFileSync(path.join(outDirectory, "_headers"), "utf8");
+  assert.doesNotMatch(headers, /\r/, "generated headers should use consistent LF line endings");
+  validatePagesHeaders(headers);
   const csp = headers.match(/^\s*Content-Security-Policy:\s*(.+)$/m)?.[1] ?? "";
   const scriptSources = csp.match(/(?:^|;\s*)script-src\s+([^;]*)/i)?.[1] ?? "";
   assert.ok(scriptSources, "the exported headers should define script-src");
@@ -33,6 +36,18 @@ test("exported CSP permits only hashed inline scripts and styles without unsafe-
 
   for (const htmlFile of htmlFiles) {
     const html = fs.readFileSync(htmlFile, "utf8");
+    const route = path.basename(htmlFile) === "index.html" ? "/" : `/${path.basename(htmlFile, ".html")}`;
+    const rules = parseHeaderRules(headers);
+    const pageRule = rules.find((rule) => rule.path === route);
+    assert.ok(pageRule, `${route} should have its own CSP`);
+    const policies = headersForPath(rules, route)["content-security-policy"].split(", ");
+    assert.equal(policies.length, 2, `${route} should inherit the fallback and page policies`);
+    const pageScripts = pageRule.headers["content-security-policy"].match(/script-src\s+([^;]*)/i)[1];
+    assert.equal((pageScripts.match(/'sha256-[^']+'/g) ?? []).length,
+      new Set([...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
+        .filter(([, attributes, content]) => !/\bsrc\s*=/i.test(attributes) && content)
+        .map(([, , content]) => createHash("sha256").update(content).digest("base64"))).size,
+      `${route} must only allow its own inline script hashes`);
 
     // Static HTML must not have inline style attributes
     const inlineStyleAttr = html.match(/<[a-z0-9-]+\b[^>]*\sstyle\s*=\s*["'][^"']*["'][^>]*>/i);
@@ -46,6 +61,7 @@ test("exported CSP permits only hashed inline scripts and styles without unsafe-
     for (const [, attributes, content] of inlineScripts) {
       if (/\bsrc\s*=/i.test(attributes) || content.length === 0) continue;
       const digest = createHash("sha256").update(content, "utf8").digest("base64");
+      for (const policy of policies) assert.ok(policy.includes(`'sha256-${digest}'`), `${route}: every policy must allow the script`);
       assert.match(scriptSources, new RegExp(`(?:^|\\s)'sha256-${digest.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}'(?:\\s|$)`));
     }
 
@@ -53,8 +69,26 @@ test("exported CSP permits only hashed inline scripts and styles without unsafe-
     for (const [, , content] of inlineStyles) {
       if (content.length === 0) continue;
       const digest = createHash("sha256").update(content, "utf8").digest("base64");
+      for (const policy of policies) assert.ok(policy.includes(`'sha256-${digest}'`), `${route}: every policy must allow the style`);
       assert.match(styleSources, new RegExp(`(?:^|\\s)'sha256-${digest.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}'(?:\\s|$)`));
     }
+  }
+});
+
+test("Cloudflare header validation enforces line and rule limits", () => {
+  assert.doesNotThrow(() => validatePagesHeaders(`/*\n  X-Test: ${"a".repeat(1990)}`));
+  assert.throws(() => validatePagesHeaders(`/*\n  X-Test: ${"a".repeat(1991)}`), /2,000-character/);
+  assert.doesNotThrow(() => validatePagesHeaders(Array.from({ length: 100 }, (_, i) => `/page-${i}\n  X-Test: ok`).join("\n")));
+  assert.throws(() => validatePagesHeaders(Array.from({ length: 101 }, (_, i) => `/page-${i}\n  X-Test: ok`).join("\n")), /100-rule/);
+});
+
+test("large license page extracts scripts into content-addressed static assets", () => {
+  const html = fs.readFileSync(path.join(outDirectory, "notice.html"), "utf8");
+  const assets = [...html.matchAll(/<script src="(\/_next\/static\/csp\/([a-f0-9]{64})\.js)"><\/script>/g)];
+  assert.ok(assets.length > 0, "the license page should extract scripts to keep CSP short");
+  for (const [, url, digest] of assets) {
+    const content = fs.readFileSync(path.join(outDirectory, url));
+    assert.equal(createHash("sha256").update(content).digest("hex"), digest);
   }
 });
 

@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFileSync, existsSync, createReadStream, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { headersForPath, parseHeaderRules } from "./header-rules.mjs";
 
 const root = fileURLToPath(new URL("../out", import.meta.url));
 const port = Number(process.env.PORT || 3100);
@@ -13,17 +14,8 @@ if (!existsSync(path.join(root, "index.html"))) {
 }
 
 // Parse headers from out/_headers if available (specifically for Content-Security-Policy and security headers)
-const customHeaders = {};
 const headersPath = path.join(root, "_headers");
-if (existsSync(headersPath)) {
-  const content = readFileSync(headersPath, "utf8");
-  for (const line of content.split(/\r?\n/)) {
-    const match = line.match(/^\s+([^:]+):\s*(.*)$/);
-    if (match) {
-      customHeaders[match[1].toLowerCase()] = match[2];
-    }
-  }
-}
+const headerRules = existsSync(headersPath) ? parseHeaderRules(readFileSync(headersPath, "utf8")) : [];
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -45,6 +37,7 @@ const mimeTypes = {
 const server = createServer((req, res) => {
   const parsedUrl = new URL(req.url ?? "/", `http://${host}:${port}`);
   let pathname = decodeURIComponent(parsedUrl.pathname);
+  let customHeaders = headersForPath(headerRules, pathname);
   if (pathname.endsWith("/")) {
     pathname += "index.html";
   }
@@ -62,6 +55,7 @@ const server = createServer((req, res) => {
   if (!filePath.startsWith(root) || !existsSync(filePath) || statSync(filePath).isDirectory()) {
     const notFoundPath = path.join(root, "404.html");
     if (existsSync(notFoundPath)) {
+      customHeaders = headersForPath(headerRules, "/404");
       res.writeHead(404, { "Content-Type": "text/html; charset=utf-8", ...customHeaders });
       createReadStream(notFoundPath).pipe(res);
       return;
