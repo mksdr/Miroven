@@ -98,6 +98,7 @@ jobs:
         working-directory: Miroven/web
         run: |
           npm ci
+          npm run build
           npx playwright install --with-deps chromium
 
       - name: Start Combined Docker Stack
