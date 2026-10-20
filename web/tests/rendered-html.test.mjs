@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
-import http from "node:http";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -127,42 +126,9 @@ test("extracted CSP scripts use content-addressed static assets", () => {
   }
 });
 
-test("server-renders the Miroven journal shell", async (context) => {
-  const port = 32000 + (process.pid % 1000);
-  const server = http.createServer((req, res) => {
-    const reqPath = (req.url ?? "/").split("?")[0];
-    let filePath = path.join(outDirectory, reqPath === "/" ? "index.html" : reqPath);
-    if (!fs.existsSync(filePath) && fs.existsSync(`${filePath}.html`)) {
-      filePath = `${filePath}.html`;
-    }
-    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      const ext = path.extname(filePath);
-      const mimeTypes = {
-        ".html": "text/html; charset=utf-8",
-        ".js": "application/javascript; charset=utf-8",
-        ".css": "text/css; charset=utf-8",
-        ".json": "application/json; charset=utf-8",
-        ".png": "image/png",
-        ".txt": "text/plain; charset=utf-8",
-        ".xml": "application/xml; charset=utf-8",
-      };
-      const contentType = mimeTypes[ext] || "application/octet-stream";
-      res.writeHead(200, { "Content-Type": contentType });
-      fs.createReadStream(filePath).pipe(res);
-    } else {
-      res.writeHead(404, { "Content-Type": "text/plain" });
-      res.end("Not Found");
-    }
-  });
-
-  await new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));
-  context.after(() => new Promise((resolve) => server.close(resolve)));
-
-  const response = await fetch(`http://127.0.0.1:${port}/`);
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
-
-  const html = await response.text();
+test("static export renders the Miroven journal shell", () => {
+  // Inspect the build's server-rendered HTML directly; HTTP delivery is covered by Playwright.
+  const html = fs.readFileSync(path.join(outDirectory, "index.html"), "utf8");
   const elements = collectElements(html);
   assert.match(html, /<title>Miroven<\/title>/i);
   assert.match(html, new RegExp(`<link\\s+rel="canonical"\\s+href="${originPattern}"\\s*/?>`, "i"));
@@ -189,7 +155,6 @@ test("server-renders the Miroven journal shell", async (context) => {
   assert.equal(getAttr(rasterIcon, "type"), "image/png");
 
   const faviconPath = path.join(outDirectory, "favicon-48x48.png");
-  assert.ok(fs.existsSync(faviconPath), "the static export should contain the raster favicon");
   const favicon = fs.readFileSync(faviconPath);
   assert.deepEqual([...favicon.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.equal(favicon.readUInt32BE(16), 48);
@@ -222,14 +187,12 @@ test("does not export the informational pages moved to the website", () => {
 });
 
 test("exports an optimized Open Graph PNG", () => {
-  const ogImagePath = path.join(outDirectory, "og.png");
-  assert.ok(fs.existsSync(ogImagePath), "the static export should contain og.png");
+  const ogImage = fs.readFileSync(path.join(outDirectory, "og.png"));
   assert.ok(
-    fs.statSync(ogImagePath).size <= 300 * 1024,
+    ogImage.length <= 300 * 1024,
     "og.png should not exceed 300 KiB",
   );
 
-  const ogImage = fs.readFileSync(ogImagePath);
   assert.deepEqual([...ogImage.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.equal(ogImage.readUInt32BE(16), 1536);
   assert.equal(ogImage.readUInt32BE(20), 1024);
@@ -237,7 +200,6 @@ test("exports an optimized Open Graph PNG", () => {
 
 test("exports 404 page with clean title and noindex", () => {
   const notFoundPath = path.join(outDirectory, "404.html");
-  assert.ok(fs.existsSync(notFoundPath), "the static export should include /404");
 
   const html = fs.readFileSync(notFoundPath, "utf8");
   assert.match(html, /<title>404: 페이지를 찾을 수 없습니다 · Miroven<\/title>/i);
@@ -247,7 +209,6 @@ test("exports 404 page with clean title and noindex", () => {
 
 test("exported Service Worker defines automated build cache name matching static artifacts", () => {
   const swPath = path.join(outDirectory, "sw.js");
-  assert.ok(fs.existsSync(swPath), "the static export should contain sw.js");
 
   const content = fs.readFileSync(swPath, "utf8");
   const match = content.match(/const\s+CACHE_NAME\s*=\s*["']([^"']+)["'];/);
@@ -269,7 +230,6 @@ test("exported Service Worker defines automated build cache name matching static
 
 test("exports sitemap.xml and links it from robots.txt", () => {
   const sitemapPath = path.join(outDirectory, "sitemap.xml");
-  assert.ok(fs.existsSync(sitemapPath), "the static export should contain sitemap.xml");
 
   const sitemapContent = fs.readFileSync(sitemapPath, "utf8");
   assert.match(sitemapContent, /<urlset\b[^>]*xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9"/i);
@@ -281,7 +241,6 @@ test("exports sitemap.xml and links it from robots.txt", () => {
   assert.match(sitemapContent, /<priority>1(?:\.0)?<\/priority>/i);
 
   const robotsPath = path.join(outDirectory, "robots.txt");
-  assert.ok(fs.existsSync(robotsPath), "the static export should contain robots.txt");
   const robotsContent = fs.readFileSync(robotsPath, "utf8");
   assert.match(robotsContent, new RegExp(`^Sitemap:\\s*${originPattern}/sitemap\\.xml$`, "m"));
 });
