@@ -11,7 +11,10 @@ describe("entry hashtags with search highlighting", () => {
     const markup = render("안녕 #일상,\n#test_2! #");
     expect(markup).toContain('<span class="entry-hashtag">#일상</span>');
     expect(markup).toContain('<span class="entry-hashtag">#test_2</span>');
-    expect(markup.replace(/<[^>]+>/g, "")).toBe("안녕 #일상,\n#test_2! #");
+    expect(markup).toBe(
+      '<span>안녕 </span><span class="entry-hashtag">#일상</span><span>,\n</span>' +
+      '<span class="entry-hashtag">#test_2</span><span>! #</span>',
+    );
   });
 
   it("keeps the whole hashtag blue when only part of it matches a query", () => {
@@ -24,7 +27,10 @@ describe("entry hashtags with search highlighting", () => {
     const markup = render("Hello #test world", "#test world");
     expect(markup).toContain('<span class="entry-hashtag"><mark class="search-highlight">#test</mark></span>');
     expect(markup).toContain('<mark class="search-highlight"> world</mark>');
-    expect(markup.replace(/<[^>]+>/g, "")).toBe("Hello #test world");
+    expect(markup).toBe(
+      '<span>Hello </span><span class="entry-hashtag"><mark class="search-highlight">#test</mark></span>' +
+      '<span><mark class="search-highlight"> world</mark></span>',
+    );
   });
 
   it("escapes literal search patterns and keeps choseong searches unmarked", () => {

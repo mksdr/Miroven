@@ -6,6 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import nextEnv from "@next/env";
+import { parse } from "parse5";
 import { headersForPath, parseHeaderRules, validatePagesHeaders } from "../scripts/header-rules.mjs";
 
 const outDirectory = fileURLToPath(new URL("../out", import.meta.url));
@@ -13,6 +14,31 @@ nextEnv.loadEnvConfig(fileURLToPath(new URL("../", import.meta.url)), false);
 const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL || "https://miroven-app.mksdr.bid";
 const appOrigin = new URL(/^https?:\/\//i.test(configuredOrigin) ? configuredOrigin : `https://${configuredOrigin}`).origin;
 const originPattern = appOrigin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+function collectElements(html) {
+  const elements = [];
+  const document = parse(html, { scriptingEnabled: true });
+  function visit(node) {
+    if (node.tagName) {
+      const content = (node.childNodes ?? [])
+        .filter((child) => child.nodeName === "#text")
+        .map((child) => child.value)
+        .join("");
+      elements.push({ ...node, content });
+    }
+    for (const child of node.childNodes ?? []) visit(child);
+  }
+  visit(document);
+  return elements;
+}
+
+function getAttr(element, name) {
+  return element.attrs?.find((attr) => attr.name === name)?.value;
+}
+
+function hasAttr(element, name) {
+  return Boolean(element.attrs?.some((attr) => attr.name === name));
+}
 
 test("exported CSP permits only hashed inline scripts and styles without unsafe-inline", () => {
   const headers = fs.readFileSync(path.join(outDirectory, "_headers"), "utf8");
@@ -36,6 +62,7 @@ test("exported CSP permits only hashed inline scripts and styles without unsafe-
 
   for (const htmlFile of htmlFiles) {
     const html = fs.readFileSync(htmlFile, "utf8");
+    const elements = collectElements(html);
     const route = path.basename(htmlFile) === "index.html" ? "/" : `/${path.basename(htmlFile, ".html")}`;
     const rules = parseHeaderRules(headers);
     const pageRule = rules.find((rule) => rule.path === route);
@@ -43,31 +70,33 @@ test("exported CSP permits only hashed inline scripts and styles without unsafe-
     const policies = headersForPath(rules, route)["content-security-policy"].split(", ");
     assert.equal(policies.length, 2, `${route} should inherit the fallback and page policies`);
     const pageScripts = pageRule.headers["content-security-policy"].match(/script-src\s+([^;]*)/i)[1];
-    assert.equal((pageScripts.match(/'sha256-[^']+'/g) ?? []).length,
-      new Set([...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
-        .filter(([, attributes, content]) => !/\bsrc\s*=/i.test(attributes) && content)
-        .map(([, , content]) => createHash("sha256").update(content).digest("base64"))).size,
-      `${route} must only allow its own inline script hashes`);
-
-    // Static HTML must not have inline style attributes
-    const inlineStyleAttr = html.match(/<[a-z0-9-]+\b[^>]*\sstyle\s*=\s*["'][^"']*["'][^>]*>/i);
+    const inlineScripts = elements.filter(
+      (element) => element.tagName === "script" && !hasAttr(element, "src") && element.content.length > 0,
+    );
     assert.equal(
-      inlineStyleAttr,
-      null,
-      `HTML file ${path.basename(htmlFile)} should not contain inline style attributes: ${inlineStyleAttr?.[0]}`
+      (pageScripts.match(/'sha256-[^']+'/g) ?? []).length,
+      new Set(inlineScripts.map(({ content }) => createHash("sha256").update(content, "utf8").digest("base64"))).size,
+      `${route} must only allow its own inline script hashes`,
     );
 
-    const inlineScripts = html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi);
-    for (const [, attributes, content] of inlineScripts) {
-      if (/\bsrc\s*=/i.test(attributes) || content.length === 0) continue;
+    // Static HTML must not have inline style attributes
+    const inlineStyleElement = elements.find((element) => hasAttr(element, "style"));
+    assert.equal(
+      inlineStyleElement,
+      undefined,
+      `HTML file ${path.basename(htmlFile)} should not contain inline style attributes: <${inlineStyleElement?.tagName} style="${getAttr(inlineStyleElement ?? {}, "style")}">`,
+    );
+
+    for (const { content } of inlineScripts) {
       const digest = createHash("sha256").update(content, "utf8").digest("base64");
       for (const policy of policies) assert.ok(policy.includes(`'sha256-${digest}'`), `${route}: every policy must allow the script`);
       assert.match(scriptSources, new RegExp(`(?:^|\\s)'sha256-${digest.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}'(?:\\s|$)`));
     }
 
-    const inlineStyles = html.matchAll(/<style\b([^>]*)>([\s\S]*?)<\/style\s*>/gi);
-    for (const [, , content] of inlineStyles) {
-      if (content.length === 0) continue;
+    const inlineStyles = elements.filter(
+      (element) => element.tagName === "style" && element.content.length > 0,
+    );
+    for (const { content } of inlineStyles) {
       const digest = createHash("sha256").update(content, "utf8").digest("base64");
       for (const policy of policies) assert.ok(policy.includes(`'sha256-${digest}'`), `${route}: every policy must allow the style`);
       assert.match(styleSources, new RegExp(`(?:^|\\s)'sha256-${digest.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}'(?:\\s|$)`));
@@ -88,8 +117,10 @@ test("extracted CSP scripts use content-addressed static assets", () => {
   const htmlFiles = fs.readdirSync(outDirectory).filter((name) => name.endsWith(".html"));
   for (const htmlFile of htmlFiles) {
     const html = fs.readFileSync(path.join(outDirectory, htmlFile), "utf8");
-    const assets = [...html.matchAll(/<script src="(\/_next\/static\/csp\/([a-f0-9]{64})\.js)"><\/script>/g)];
-    for (const [, url, digest] of assets) {
+    for (const element of collectElements(html).filter((node) => node.tagName === "script")) {
+      const url = getAttr(element, "src");
+      const digest = url?.match(/^\/_next\/static\/csp\/([a-f0-9]{64})\.js$/)?.[1];
+      if (!digest) continue;
       const content = fs.readFileSync(path.join(outDirectory, url));
       assert.equal(createHash("sha256").update(content).digest("hex"), digest);
     }
@@ -132,12 +163,13 @@ test("server-renders the Miroven journal shell", async (context) => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
+  const elements = collectElements(html);
   assert.match(html, /<title>Miroven<\/title>/i);
   assert.match(html, new RegExp(`<link\\s+rel="canonical"\\s+href="${originPattern}"\\s*/?>`, "i"));
   assert.match(html, /<h1\s+class="sr-only">Miroven - 나만 볼 수 있는 암호화 저널<\/h1>/i);
-  const jsonLdSource = html.match(
-    /<script\s+type="application\/ld\+json">([^<]+)<\/script>/i,
-  )?.[1];
+  const jsonLdSource = elements.find(
+    (element) => element.tagName === "script" && getAttr(element, "type") === "application/ld+json",
+  )?.content;
   assert.ok(jsonLdSource, "the home page should include JSON-LD structured data");
   const jsonLd = JSON.parse(jsonLdSource);
   assert.equal(jsonLd["@context"], "https://schema.org");
@@ -147,12 +179,14 @@ test("server-renders the Miroven journal shell", async (context) => {
   );
   assert.equal(jsonLd["@graph"][0].url, `${appOrigin}/`);
   assert.equal(jsonLd["@graph"][1].isPartOf["@id"], `${appOrigin}/#website`);
-  const rasterIconTag = html.match(/<link\b[^>]*>/gi)?.find(
-    (tag) => /rel="icon"/i.test(tag) && /href="\/favicon-48x48\.png"/i.test(tag),
+  const rasterIcon = elements.find(
+    (element) => element.tagName === "link"
+      && getAttr(element, "rel") === "icon"
+      && getAttr(element, "href") === "/favicon-48x48.png",
   );
-  assert.ok(rasterIconTag, "the home page should register the raster favicon");
-  assert.match(rasterIconTag, /sizes="48x48"/i);
-  assert.match(rasterIconTag, /type="image\/png"/i);
+  assert.ok(rasterIcon, "the home page should register the raster favicon");
+  assert.equal(getAttr(rasterIcon, "sizes"), "48x48");
+  assert.equal(getAttr(rasterIcon, "type"), "image/png");
 
   const faviconPath = path.join(outDirectory, "favicon-48x48.png");
   assert.ok(fs.existsSync(faviconPath), "the static export should contain the raster favicon");
@@ -164,14 +198,19 @@ test("server-renders the Miroven journal shell", async (context) => {
   assert.match(html, /나만 볼 수 있는 타임라인/);
   assert.match(html, /암호화됨/);
   assert.match(html, /표시 설정/);
-  const viewport = html.match(/<meta\s+name="viewport"\s+content="([^"]+)"\s*\/?>/i)?.[1] ?? "";
+  const viewport = getAttr(
+    elements.find((element) => element.tagName === "meta" && getAttr(element, "name") === "viewport") ?? {},
+    "content",
+  ) ?? "";
   assert.match(viewport, /(?:^|,\s*)width=device-width(?:,|$)/i);
   assert.match(viewport, /(?:^|,\s*)initial-scale=1(?:,|$)/i);
   assert.doesNotMatch(viewport, /maximum-scale/i);
   assert.doesNotMatch(viewport, /user-scalable\s*=\s*no/i);
-  const postButton = html.match(/<button class="post-button"[^>]*>/i)?.[0] ?? "";
+  const postButton = elements.find(
+    (element) => element.tagName === "button" && (getAttr(element, "class") ?? "").split(/\s+/).includes("post-button"),
+  );
   assert.ok(postButton, "the journal post button should be server-rendered");
-  assert.doesNotMatch(postButton, /\bdisabled\b/i);
+  assert.ok(!hasAttr(postButton, "disabled"));
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 
