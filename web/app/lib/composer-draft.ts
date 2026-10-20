@@ -1,11 +1,15 @@
 /** A single app instance owns this store; plain text never enters global state. */
 export function createComposerDraft() {
   let text = "";
+  let revision = 0;
   const listeners = new Set<() => void>();
   return {
     getSnapshot: () => text,
     getServerSnapshot: () => "",
+    getRevision: () => revision,
     set: (next: string) => {
+      // Explicit resets also invalidate an outstanding asynchronous restore.
+      revision++;
       if (text === next) return;
       text = next;
       listeners.forEach((listener) => listener());

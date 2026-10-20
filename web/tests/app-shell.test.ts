@@ -36,6 +36,11 @@ describe("App Shell presentation components", () => {
       expect(markup).toContain(t.display);
     });
 
+    it("keeps profile editing disabled until the profile read completes", () => {
+      const markup = renderToStaticMarkup(createElement(LeftRail, { ...baseProps, personaLoading: true }));
+      expect(markup).toMatch(/class="rail-profile"[^>]*disabled=""[^>]*aria-busy="true"/);
+    });
+
     it("reflects search tab active state and offline indicator", () => {
       const markup = renderToStaticMarkup(
         createElement(LeftRail, {

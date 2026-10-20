@@ -83,6 +83,10 @@ const baseProps: ComponentProps<typeof JournalWorkspace> = {
 };
 
 describe("journal workspace presentation", () => {
+  it("keeps the mobile profile trigger disabled during profile loading", () => {
+    const markup = renderToStaticMarkup(createElement(JournalWorkspace, { ...baseProps, personaLoading: true }));
+    expect(markup).toMatch(/class="persona-composer-button"[^>]*disabled=""[^>]*aria-busy="true"/);
+  });
   it("renders editing and local photo-preview states", () => {
     const markup = renderToStaticMarkup(
       createElement(JournalWorkspace, {

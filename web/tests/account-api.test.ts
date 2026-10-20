@@ -21,6 +21,22 @@ describe("Miroven account lifecycle", () => {
   });
   afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
+  it("reads the effective plan and quotas with account scoping and no response cache", async () => {
+    const usage = { plan: "pro", subscription_status: "trialing", current_period_end: null,
+      cancel_at_period_end: false, storage_bytes: 100, storage_limit_bytes: 999,
+      entries: 3, entry_limit: 400, blob_max_bytes: 200 };
+    const fetcher = vi.fn().mockResolvedValue(json(usage));
+    vi.stubGlobal("fetch", fetcher);
+    const client = await import("../app/lib/remote/client");
+    client.publishSession(session);
+    expect(await (await import("../app/lib/remote/account")).getAccountUsage("owner")).toEqual(usage);
+    const [url, options] = fetcher.mock.calls[0];
+    expect(new URL(url).pathname).toBe("/api/v1/account/usage");
+    expect(options.headers.get("X-Miroven-User-ID")).toBe("owner");
+    expect(options.credentials).toBe("include");
+    expect(options.cache).toBe("no-store");
+  });
+
   it("deletes only the asserted account with a fresh code, then publishes sign-out", async () => {
     const fetcher = vi.fn().mockResolvedValue(json(receipt, 202));
     vi.stubGlobal("fetch", fetcher);

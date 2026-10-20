@@ -59,12 +59,14 @@ export function useDraftAutosave({
   useEffect(() => {
     if (isRestoredRef.current) return;
     isRestoredRef.current = true;
+    const restoreRevision = composerDraft.getRevision();
     void getStoredDraft()
       .then((stored) => {
         if (
           stored &&
           (stored.text.trim() || stored.quotedEntryId) &&
           !vaultLockedRef.current &&
+          composerDraft.getRevision() === restoreRevision &&
           !composerDraft.getSnapshot() &&
           !quotedEntryIdRef.current
         ) {

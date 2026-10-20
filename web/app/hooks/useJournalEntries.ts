@@ -381,6 +381,10 @@ export function useJournalEntries({
         if (entries.length === 0) setFirstEntrySaved(true);
         const summary = await journalReader.summary(entry.id, undefined, entry);
         if (vaultLockedRef.current) return;
+        // Finish deleting the old draft before publishing the saved entry: the
+        // user may reload as soon as it appears in the feed.
+        const draftCleared = await clearComposerDraft().then(() => true, () => false);
+        if (vaultLockedRef.current) return;
         setDraft("");
         changeQuote(undefined);
         clearImages();
@@ -391,15 +395,18 @@ export function useJournalEntries({
           ]),
         );
         setPendingSyncCount((await getSyncSnapshot()).pending);
-        void clearComposerDraft();
         showToast(
-          language === "ko"
-            ? localEnvelope
-              ? "암호화해 저장하고 동기화 대기열에 추가했습니다."
-              : "기기에 암호화해 저장했습니다."
-            : localEnvelope
-              ? "Encrypted, saved, and added to the sync queue."
-              : "Encrypted and saved on this device.",
+          !draftCleared
+            ? language === "ko"
+              ? "기록은 저장했지만 임시 저장 글을 지우지 못했습니다."
+              : "Entry saved, but the stored draft could not be cleared."
+            : language === "ko"
+              ? localEnvelope
+                ? "암호화해 저장하고 동기화 대기열에 추가했습니다."
+                : "기기에 암호화해 저장했습니다."
+              : localEnvelope
+                ? "Encrypted, saved, and added to the sync queue."
+                : "Encrypted and saved on this device.",
         );
       }
       void runSync();

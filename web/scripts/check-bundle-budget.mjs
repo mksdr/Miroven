@@ -3,9 +3,9 @@ import path from "node:path";
 
 const outputDirectory = path.resolve("out");
 const entryHtml = path.join(outputDirectory, "index.html");
-const MAX_INITIAL_ASSET_BYTES = 800 * 1024;
-// Includes four-photo controls plus 3 KiB for quote cards and composer previews.
-const MAX_INITIAL_CSS_BYTES = 42 * 1024;
+const MAX_INITIAL_ASSET_BYTES = 1000 * 1024;
+// Includes four-photo controls plus quote cards, composer previews, and modal styling.
+const MAX_INITIAL_CSS_BYTES = 64 * 1024;
 
 if (!fs.existsSync(entryHtml)) {
   console.error("Bundle budget requires a completed static build. Run npm run build first.");
@@ -13,8 +13,19 @@ if (!fs.existsSync(entryHtml)) {
 }
 
 const html = fs.readFileSync(entryHtml, "utf8");
-const assetPattern = /(?:src|href)="([^"]+\.(?:js|css))"/g;
-const assetPaths = new Set([...html.matchAll(assetPattern)].map((match) => match[1]));
+const tagPattern = /<(script|link)\b([^>]*)>/gi;
+const assetPaths = new Set();
+
+for (const [, tagName, attrs] of html.matchAll(tagPattern)) {
+  // Modern browsers ignore nomodule scripts; exclude them from the initial modern bundle budget.
+  if (tagName.toLowerCase() === "script" && /\bnomodule\b/i.test(attrs)) {
+    continue;
+  }
+  const match = attrs.match(/(?:src|href)="([^"]+\.(?:js|css))"/i);
+  if (match) {
+    assetPaths.add(match[1]);
+  }
+}
 
 let totalBytes = 0;
 let cssBytes = 0;

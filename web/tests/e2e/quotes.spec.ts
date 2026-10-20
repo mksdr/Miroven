@@ -7,7 +7,126 @@ async function save(page: Page, text: string) {
   await composer(page).fill(text);
   await page.getByRole("button", { name: "기록", exact: true }).click();
   await expect(entry(page, text)).toBeVisible();
+  await expect(composer(page)).toHaveValue("");
 }
+
+for (const withQuote of [false, true]) {
+  test(`late draft restoration cannot repopulate a saved ${withQuote ? "quoted" : "plain"} entry`, async ({ page }) => {
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.goto("/");
+    await save(page, "인용할 원문");
+    await composer(page).fill("늦게 복원되는 이전 초안");
+    const storedDraftExists = () => page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("private-journal");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      try {
+        return await new Promise<boolean>((resolve, reject) => {
+          const request = db.transaction("device-keys").objectStore("device-keys").get("miroven-composer-draft");
+          request.onsuccess = () => resolve(!!request.result?.ciphertext);
+          request.onerror = () => reject(request.error);
+        });
+      } finally { db.close(); }
+    });
+    await expect.poll(storedDraftExists).toBe(true);
+    await page.addInitScript(() => {
+      const decrypt = crypto.subtle.decrypt.bind(crypto.subtle);
+      const control = window as unknown as {
+        draftRestoreWaiting: boolean;
+        releaseDraftRestore: () => Promise<void>;
+      };
+      crypto.subtle.decrypt = async (algorithm, key, data) => {
+        const result = await decrypt(algorithm, key, data);
+        if (typeof algorithm === "object" && "additionalData" in algorithm &&
+            new TextDecoder().decode((algorithm as AesGcmParams).additionalData) === "private-journal:composer-draft:v1") {
+          await new Promise<void>((resolve) => {
+            control.releaseDraftRestore = async () => {
+              resolve();
+              // Let the restore callback and React commit run before assertions.
+              await new Promise((done) => setTimeout(done, 0));
+            };
+            control.draftRestoreWaiting = true;
+          });
+        }
+        return result;
+      };
+    });
+    await page.reload();
+    await page.waitForFunction(() => (window as unknown as { draftRestoreWaiting: boolean }).draftRestoreWaiting);
+    if (withQuote) await entry(page, "인용할 원문").getByRole("button", { name: "인용", exact: true }).click();
+    await save(page, "복원 대기 중 저장한 새 글");
+    await expect(page.locator(".composer-quote")).toHaveCount(0);
+    await expect.poll(storedDraftExists).toBe(false);
+    await page.evaluate(() => (window as unknown as { releaseDraftRestore: () => Promise<void> }).releaseDraftRestore());
+    await expect(composer(page)).toHaveValue("");
+    await expect(entries(page)).toHaveCount(2);
+    await expect(page.locator(".composer-quote")).toHaveCount(0);
+    await page.reload();
+    await expect(composer(page)).toBeEnabled();
+    await expect(composer(page)).toHaveValue("");
+  });
+}
+
+test("failed save keeps text and quote; retry and subsequent saves clear the composer", async ({ page }) => {
+  await page.goto("/");
+  await save(page, "실패 검증용 원문");
+  await entry(page, "실패 검증용 원문").getByRole("button", { name: "인용", exact: true }).click();
+  await composer(page).fill("실패해도 보존할 글");
+  await page.evaluate(() => {
+    const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
+    let failOnce = true;
+    crypto.subtle.encrypt = async (algorithm, key, data) => {
+      if (failOnce && typeof algorithm === "object" && "additionalData" in algorithm &&
+          new TextDecoder().decode((algorithm as AesGcmParams).additionalData).startsWith("private-journal:entry:")) {
+        failOnce = false;
+        throw new DOMException("Synthetic save failure", "OperationError");
+      }
+      return encrypt(algorithm, key, data);
+    };
+  });
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await expect(page.getByText("저장하지 못했습니다. 기기 공간을 확인해 주세요.", { exact: true })).toBeVisible();
+  await expect(composer(page)).toHaveValue("실패해도 보존할 글");
+  await expect(page.locator(".composer-quote")).toContainText("실패 검증용 원문");
+  await expect(entries(page)).toHaveCount(1);
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await expect(entry(page, "실패해도 보존할 글").locator(".quote-card")).toBeVisible();
+  await expect(composer(page)).toBeEnabled();
+  await expect(composer(page)).toHaveValue("");
+  await expect(page.locator(".composer-quote")).toHaveCount(0);
+  await composer(page).fill("다음에 작성한 글");
+  await composer(page).press("Control+Enter");
+  await expect(entry(page, "다음에 작성한 글")).toBeVisible();
+  await expect(composer(page)).toHaveValue("");
+  await expect(entries(page)).toHaveCount(3);
+});
+
+test("draft cleanup failure reports the committed save and clears the composer", async ({ page }) => {
+  await page.goto("/");
+  await save(page, "초안 정리 실패 검증용 원문");
+  await entry(page, "초안 정리 실패 검증용 원문").getByRole("button", { name: "인용", exact: true }).click();
+  await composer(page).fill("초안 정리와 별개로 저장할 글");
+  await page.evaluate(() => {
+    const remove = IDBObjectStore.prototype.delete;
+    let failOnce = true;
+    IDBObjectStore.prototype.delete = function (key) {
+      if (failOnce && this.name === "device-keys" && key === "miroven-composer-draft") {
+        failOnce = false;
+        throw new DOMException("Synthetic draft cleanup failure", "UnknownError");
+      }
+      return remove.call(this, key);
+    };
+  });
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await expect(entry(page, "초안 정리와 별개로 저장할 글")).toBeVisible();
+  await expect(page.getByText("기록은 저장했지만 임시 저장 글을 지우지 못했습니다.", { exact: true })).toBeVisible();
+  await expect(composer(page)).toBeEnabled();
+  await expect(composer(page)).toHaveValue("");
+  await expect(page.locator(".composer-quote")).toHaveCount(0);
+  await expect(entries(page)).toHaveCount(2);
+});
 
 test("quotes preserve drafts, restore quote-only drafts, and can save without new text", async ({ page }) => {
   page.on("dialog", (dialog) => dialog.accept());
@@ -20,6 +139,7 @@ test("quotes preserve drafts, restore quote-only drafts, and can save without ne
   await page.getByRole("button", { name: "기록", exact: true }).click();
   const quoted = entry(page, "지금의 생각");
   await expect(quoted.locator(".quote-card")).toContainText("과거의 기록");
+  await expect(composer(page)).toHaveValue("");
   await page.reload();
   await expect(quoted.locator(".quote-card")).toBeVisible();
   await expect(page.locator(".composer-quote")).toHaveCount(0);

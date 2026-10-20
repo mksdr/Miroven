@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import "./JournalImageLightbox.css";
 
 export type JournalLightboxImage = {
@@ -28,15 +28,15 @@ export function JournalImageLightbox({
   const isOpen = Boolean(image);
   const count = image?.gallery?.length ?? 1;
   const index = image?.index ?? 0;
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen) return;
     const previous = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    closeButton.current?.focus();
-    return () => { document.body.style.overflow = overflow; previous?.focus(); };
+    closeButton.current?.focus({ preventScroll: true });
+    return () => { document.body.style.overflow = overflow; previous?.focus({ preventScroll: true }); };
   }, [isOpen]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!image) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;

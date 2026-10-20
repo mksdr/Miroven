@@ -48,6 +48,7 @@ type JournalWorkspaceProps = {
   copy: JournalWorkspaceCopy;
   avatarLabel: string;
   onOpenPersona?: () => void;
+  personaLoading?: boolean;
   draft: ComposerDraft;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   isEditing: boolean;
@@ -101,6 +102,7 @@ type JournalWorkspaceProps = {
 export function JournalWorkspace({
   copy,
   onOpenPersona,
+  personaLoading = false,
   draft,
   textareaRef,
   isEditing,
@@ -156,7 +158,7 @@ export function JournalWorkspace({
   return (
     <>
       <section className="composer" id="composer" aria-label={copy.write}>
-        <button type="button" className="persona-composer-button" onClick={event => { event.currentTarget.focus({ preventScroll: true }); onOpenPersona?.(); }} aria-label={language === "ko" ? "프로필 편집" : "Edit profile"}><PersonaAvatar language={language} /></button>
+        <button type="button" className="persona-composer-button" disabled={personaLoading} aria-busy={personaLoading} onClick={event => { event.currentTarget.focus({ preventScroll: true }); onOpenPersona?.(); }} aria-label={language === "ko" ? "프로필 편집" : "Edit profile"}><PersonaAvatar language={language} /></button>
         <div className="composer-main">
           {isEditing ? (
             <div className="editing-badge">

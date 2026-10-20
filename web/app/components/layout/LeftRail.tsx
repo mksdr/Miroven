@@ -10,6 +10,7 @@ export interface LeftRailProps {
   online: boolean;
   onSelectTab: (tab: "journal" | "search") => void;
   onOpenPersona?: () => void;
+  personaLoading?: boolean;
   onOpenAccount: () => void;
   onOpenSettings: () => void;
 }
@@ -21,6 +22,7 @@ export const LeftRail = memo(function LeftRail({
   online,
   onSelectTab,
   onOpenPersona,
+  personaLoading = false,
   onOpenAccount,
   onOpenSettings,
 }: LeftRailProps) {
@@ -83,7 +85,7 @@ export const LeftRail = memo(function LeftRail({
         <T ko={COPY.ko.write} en={COPY.en.write} />
       </a>
 
-      <button type="button" className="rail-profile" onClick={event => { event.currentTarget.focus({ preventScroll: true }); onOpenPersona?.(); }} aria-label={language === "ko" ? "프로필 편집" : "Edit profile"}>
+      <button type="button" className="rail-profile" disabled={personaLoading} aria-busy={personaLoading} onClick={event => { event.currentTarget.focus({ preventScroll: true }); onOpenPersona?.(); }} aria-label={language === "ko" ? "프로필 편집" : "Edit profile"}>
         <PersonaAvatar language={language} small />
         <span className="profile-copy">
           <strong>{persona.name}</strong>

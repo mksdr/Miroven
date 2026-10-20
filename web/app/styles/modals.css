@@ -366,6 +366,10 @@
   margin: 10px 0;
 }
 .account-usage progress { width: 100%; accent-color: var(--accent); }
+.account-plan { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.account-plan-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.account-plan .account-plan-badge { padding: 2px 10px; border: 1px solid var(--border-strong); border-radius: 999px; font-size: 0.85rem; font-weight: 700; }
+.account-plan .account-plan-pro { color: var(--accent); border-color: var(--accent); }
 .deletion-status-banner {
   bottom: 88px;
 }

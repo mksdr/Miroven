@@ -242,7 +242,7 @@ export function JournalApp() {
     showToast,
   });
 
-  const { persona, ready: personaReady } = usePersona({
+  const { persona, ready: personaReady, loading: personaLoading } = usePersona({
     hydrated,
     locked: isVaultLocked,
     scope: identity?.id || "local",
@@ -541,6 +541,7 @@ export function JournalApp() {
 
         <LeftRail
           onOpenPersona={openPersona}
+          personaLoading={personaLoading}
           activeTab={activeTab}
           language={language}
           copy={t}
@@ -587,6 +588,7 @@ export function JournalApp() {
           {activeTab === "journal" ? (
             <JournalWorkspace
               onOpenPersona={openPersona}
+              personaLoading={personaLoading}
               copy={t}
               avatarLabel={language === "ko" ? "나" : "M"}
               draft={composerDraft}

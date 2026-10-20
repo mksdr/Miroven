@@ -18,5 +18,6 @@ export function usePersona({ hydrated, locked, scope, refreshToken }: {
     return () => { cancelled = true; };
   }, [hydrated, locked, scope, refreshToken]);
   const available = hydrated && !locked && loaded?.scope === scope;
-  return { persona: available ? loaded.persona : null, ready: available && !loaded.error };
+  return { persona: available ? loaded.persona : null, ready: available && !loaded.error,
+    loading: !hydrated || (!locked && !available) };
 }

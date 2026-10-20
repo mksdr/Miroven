@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -53,6 +53,19 @@ function assertOutput(output: Awaited<ReturnType<typeof inspectPreview>>) {
   expect(output.chunks).not.toContain("XMP ");
 }
 
+async function revealPhotos(shell: Locator, count: number) {
+  // WebKit's automation scroll can leave this deferred shell below the fold.
+  // Scroll its actual document position and recheck after deferred layout.
+  await expect(async () => {
+    await shell.evaluate(element => window.scrollTo({
+      top: window.scrollY + element.getBoundingClientRect().top - window.innerHeight / 2,
+      behavior: "instant",
+    }));
+    await expect(shell).toBeInViewport({ timeout: 500 });
+    await expect(shell.locator("img")).toHaveCount(count, { timeout: 500 });
+  }).toPass({ timeout: 5000 });
+}
+
 for (const forceFallback of [false, true]) {
   test(`converts a real PNG above 2 MiB and persists the WebP after reload (fallback=${forceFallback})`, async ({ page }) => {
     // Exercise a short mobile viewport where the Safari notice and recovery
@@ -90,15 +103,14 @@ for (const forceFallback of [false, true]) {
     await page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" }).fill("큰 원본 사진 저장 검증");
     await page.getByRole("button", { name: "기록", exact: true }).click();
     await expect(page.locator(".entry-image-shell")).toBeAttached();
-    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     // Offscreen photos intentionally have no <img> until their shell enters
     // the viewport. Scroll the always-mounted shell, not the deferred image.
-    await page.locator(".entry-image-shell").evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await revealPhotos(page.locator(".entry-image-shell"), 1);
     await expect(page.locator(".entry-image-shell")).toBeInViewport();
     await expect(page.locator(".entry-image")).toBeVisible();
     await page.locator(".entry-image").evaluate((image: HTMLImageElement) => image.decode());
     await page.reload();
-    await page.locator(".entry-image-shell").evaluate((element) => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await revealPhotos(page.locator(".entry-image-shell"), 1);
     await expect(page.locator(".entry-image-shell")).toBeInViewport();
     await expect(page.locator(".entry-image")).toBeVisible();
     await page.locator(".entry-image").evaluate((image: HTMLImageElement) => image.decode());
@@ -160,12 +172,13 @@ test("four-photo grid supports limits, viewing, editing, replacement and cancell
   await expect(input).toBeDisabled();
   await page.getByRole("button", { name: "기록", exact: true }).click();
   const shell = page.locator(".entry-image-shell");
-  await shell.scrollIntoViewIfNeeded();
+  await revealPhotos(shell, 4);
   await expect(shell.locator("img")).toHaveCount(4);
   await expect(shell).toHaveClass(/photo-grid-4/);
   await page.screenshot({ path: test.info().outputPath("four-images.png") });
   const before = await shell.locator("img").evaluateAll((items) => items.map((item) => (item as HTMLImageElement).src));
   await shell.locator("img").nth(2).click();
+  await expect(page.locator(".lightbox-close-btn")).toBeFocused();
   await expect(page.locator(".lightbox-navigation")).toContainText("3 / 4");
   await page.keyboard.press("ArrowRight");
   await expect(page.locator(".lightbox-navigation")).toContainText("4 / 4");
@@ -184,7 +197,7 @@ test("four-photo grid supports limits, viewing, editing, replacement and cancell
   await page.getByRole("button", { name: "수정 저장", exact: true }).click();
   await expect(page.locator(".editing-badge")).toHaveCount(0);
   await page.reload();
-  await shell.scrollIntoViewIfNeeded();
+  await revealPhotos(shell, 4);
   await expect(shell.locator("img")).toHaveCount(4);
   const after = await shell.locator("img").evaluateAll((items) => items.map((item) => (item as HTMLImageElement).src));
   expect(after[0]).not.toBe(before[0]);
@@ -193,7 +206,7 @@ test("four-photo grid supports limits, viewing, editing, replacement and cancell
   await expect(page.locator(".image-preview")).toHaveCount(4);
   await page.getByRole("button", { name: "첨부 사진 제거 1", exact: true }).click();
   await page.getByRole("button", { name: "수정 취소", exact: true }).click();
-  await shell.scrollIntoViewIfNeeded();
+  await revealPhotos(shell, 4);
   await expect(shell.locator("img")).toHaveCount(4);
   await page.getByRole("button", { name: "기록 수정" }).click();
   await expect(page.locator(".image-preview")).toHaveCount(4);
@@ -220,6 +233,9 @@ test("blocks overlapping actions and discards a conversion after editing is canc
     await page.getByRole("button", { name: "기록", exact: true }).click();
     await page.getByRole("button", { name: "기록 수정" }).click();
     const input = page.locator('.photo-button input[type="file"]');
+    // setInputFiles bypasses the browser's disabled-control interaction guard.
+    // Wait for existing-photo loading before starting a new conversion.
+    await expect(input).toBeEnabled();
     await input.setInputFiles({ name: "example.heic", mimeType: "image/heic", buffer: fixture });
     await expect(input).toBeDisabled();
     await expect(page.getByRole("button", { name: "수정 저장", exact: true })).toBeDisabled();

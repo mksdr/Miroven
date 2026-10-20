@@ -242,3 +242,52 @@ test("fresh-code account deletion preserves failed attempts and resumes its rece
     await expect(page.getByText(text, { exact: true })).toHaveCount(0);
   } finally { await context.close(); }
 });
+
+test("server subscription changes refresh Free and Pro plans with effective quotas", async ({ browser }) => {
+  const adminEmail = process.env.MIROVEN_INTEGRATION_ADMIN_EMAIL;
+  test.skip(!adminEmail, "Configure a synthetic admin in the dedicated development stack.");
+  const memberContext = await browser.newContext({ locale: "ko-KR" });
+  const adminContext = await browser.newContext({ locale: "ko-KR" });
+  try {
+    const member = await memberContext.newPage();
+    const admin = await adminContext.newPage();
+    await member.goto(origin!);
+    await signIn(member, `plan-${crypto.randomUUID()}@example.com`);
+    const memberSession = await (await member.request.get(`${apiOrigin}/api/v1/auth/session`)).json();
+    const free = await (await member.request.get(`${apiOrigin}/api/v1/account/usage`)).json();
+    expect(free.plan).toBe("free");
+    await member.getByRole("button", { name: "계정", exact: true }).click();
+    const card = member.getByLabel("서버 사용량", { exact: true });
+    const plan = card.getByLabel("현재 플랜", { exact: true });
+    await expect(plan).toContainText("Free");
+    await admin.goto(origin!);
+    await signIn(admin, adminEmail!);
+    const adminSession = await (await admin.request.get(`${apiOrigin}/api/v1/auth/session`)).json();
+    const changePlan = async (status: "trialing" | "canceled" | "expired", periodEnd: string, cancel = false) => {
+      const response = await admin.request.put(`${apiOrigin}/api/v1/admin/users/${memberSession.user_id}/subscription`, {
+        headers: { Origin: new URL(origin!).origin, "X-CSRF-Token": adminSession.csrf_token, "X-Miroven-User-ID": adminSession.user_id },
+        data: { plan: "pro", status, current_period_end: periodEnd, cancel_at_period_end: cancel },
+      });
+      expect(response.status()).toBe(200);
+      await card.getByRole("button", { name: "플랜·사용량 새로고침" }).click();
+    };
+    const future = new Date(Date.now() + 86400000).toISOString();
+    await changePlan("trialing", future, true);
+    await expect(plan).toContainText("Pro");
+    await expect(plan).toContainText("체험 중");
+    await expect(plan).toContainText("Free 플랜으로 전환됩니다.");
+    const pro = await (await member.request.get(`${apiOrigin}/api/v1/account/usage`)).json();
+    expect(pro.storage_limit_bytes).toBeGreaterThan(free.storage_limit_bytes);
+    expect(pro.entry_limit).toBeGreaterThan(free.entry_limit);
+    expect(pro.blob_max_bytes).toBeGreaterThan(free.blob_max_bytes);
+    await expect(card.locator("progress")).toHaveAttribute("max", String(pro.storage_limit_bytes));
+    await changePlan("canceled", future);
+    await expect(plan).toContainText("Pro");
+    await expect(plan).toContainText("해지됨");
+    await changePlan("expired", new Date(Date.now() - 86400000).toISOString());
+    await expect(plan).toContainText("Free");
+    await expect(plan).toContainText("만료됨");
+    await expect(plan).not.toContainText("Pro");
+    await expect(card.locator("progress")).toHaveAttribute("max", String(free.storage_limit_bytes));
+  } finally { await memberContext.close(); await adminContext.close(); }
+});
