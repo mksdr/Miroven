@@ -11,7 +11,7 @@ ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_WEBSITE_URL=$NEXT_PUBLIC_WEBSITE_URL
 RUN npm run build && node scripts/nginx-headers.mjs
 
-FROM nginx:1.28-alpine
+FROM nginx:1.31-alpine
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /source/web/out /usr/share/nginx/html
 COPY --from=build /source/web/out/.nginx-headers /etc/nginx/miroven-headers.conf
