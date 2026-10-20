@@ -30,8 +30,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Chromium and WebKit
-        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Install Chromium, Firefox and WebKit
+        run: |
+          # Playwright needs Ubuntu packages, not the runner's Microsoft feeds.
+          # Disable those feeds to avoid unrelated packages.microsoft.com 403s.
+          for source in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+            if [ -f "$source" ] && grep -Eq 'https?://packages\.microsoft\.com/' "$source"; then
+              sudo mv -- "$source" "${source}.disabled"
+            fi
+          done
+          npx playwright install --with-deps chromium firefox webkit
 
       - name: Full verification
         run: npm run verify:full
@@ -99,18 +107,28 @@ jobs:
         run: |
           npm ci
           npm run build
+          # Keep the same APT workaround as the local E2E job above.
+          for source in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+            if [ -f "$source" ] && grep -Eq 'https?://packages\.microsoft\.com/' "$source"; then
+              sudo mv -- "$source" "${source}.disabled"
+            fi
+          done
           npx playwright install --with-deps chromium
 
       - name: Start Combined Docker Stack
+        id: start-stack
         if: steps.check-api.outputs.has_api == 'true'
         working-directory: Miroven-API
         run: |
           python -m pip install uv==0.13.1
           uv sync --locked
           uv run python scripts/bootstrap_local.py
+          # Also collect logs and clean up if Compose only starts part of the stack.
+          echo "compose_attempted=true" >> "$GITHUB_OUTPUT"
           docker compose -f compose.yaml -f compose.web.yaml up -d --build --wait --wait-timeout 180
 
       - name: Run Full-stack E2E (api-sync.spec.ts)
+        id: integration-tests
         if: steps.check-api.outputs.has_api == 'true'
         working-directory: Miroven/web
         env:
@@ -120,13 +138,13 @@ jobs:
           npx playwright test tests/e2e/api-sync.spec.ts --project=chromium
 
       - name: Upload Docker logs on failure
-        if: failure() && steps.check-api.outputs.has_api == 'true'
+        if: failure() && steps.start-stack.outputs.compose_attempted == 'true'
         working-directory: Miroven-API
         run: |
           docker compose -f compose.yaml -f compose.web.yaml logs --tail 100
 
       - name: Upload Playwright integration report on failure
-        if: failure() && steps.check-api.outputs.has_api == 'true'
+        if: failure() && steps.integration-tests.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-integration
@@ -134,7 +152,7 @@ jobs:
           retention-days: 14
 
       - name: Tear down Combined Docker Stack
-        if: always() && steps.check-api.outputs.has_api == 'true'
+        if: always() && steps.start-stack.outputs.compose_attempted == 'true'
         working-directory: Miroven-API
         run: |
           docker compose -f compose.yaml -f compose.web.yaml down
