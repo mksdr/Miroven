@@ -24,11 +24,30 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.13.0
-          cache: npm
-          cache-dependency-path: web/package-lock.json
+
+      # Only verify on the default branch writes caches; all jobs can restore them.
+      - name: Restore npm downloads
+        id: npm-cache
+        uses: actions/cache/restore@v5
+        continue-on-error: true
+        with:
+          path: ~/.npm/_cacache
+          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}
+          restore-keys: |
+            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline
+
+      - name: Restore Next.js build cache
+        id: next-cache
+        uses: actions/cache/restore@v5
+        continue-on-error: true
+        with:
+          path: web/.next/cache
+          key: miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}-${{ hashFiles('web/app/**', 'web/public/**', 'web/scripts/**', 'web/*.json', 'web/*.ts', 'web/*.mjs') }}
+          restore-keys: |
+            miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}-
 
       - name: Install Chromium, Firefox and WebKit
         run: |
@@ -43,6 +62,47 @@ jobs:
 
       - name: Full verification
         run: npm run verify:full
+
+      # GitHub's default repository limit is 10 GiB, with automatic eviction.
+      # Bound each upload too; PRs and integration never create duplicate entries.
+      - name: Check cache upload sizes
+        id: cache-sizes
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        continue-on-error: true
+        run: |
+          for cache in npm next; do
+            if [ "$cache" = npm ]; then
+              cache_path="$HOME/.npm/_cacache"
+            else
+              cache_path=".next/cache"
+            fi
+            eligible=false
+            if [ -d "$cache_path" ]; then
+              size=$(du -sb "$cache_path" | cut -f1)
+              if [ "$size" -le 536870912 ]; then
+                eligible=true
+              else
+                echo "::notice::Skipping $cache cache upload: $size bytes exceeds 512 MiB."
+              fi
+            fi
+            echo "$cache=$eligible" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Save npm downloads
+        if: steps.cache-sizes.outputs.npm == 'true' && steps.npm-cache.outputs.cache-hit != 'true' && steps.npm-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@v5
+        continue-on-error: true
+        with:
+          path: ~/.npm/_cacache
+          key: ${{ steps.npm-cache.outputs.cache-primary-key }}
+
+      - name: Save Next.js build cache
+        if: steps.cache-sizes.outputs.next == 'true' && steps.next-cache.outputs.cache-hit != 'true' && steps.next-cache.outputs.cache-primary-key != ''
+        uses: actions/cache/save@v5
+        continue-on-error: true
+        with:
+          path: web/.next/cache
+          key: ${{ steps.next-cache.outputs.cache-primary-key }}
 
       - name: Upload Playwright report on failure
         if: failure()
@@ -98,14 +158,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.13.0
-          cache: npm
-          cache-dependency-path: Miroven/web/package-lock.json
+
+      - name: Restore shared npm downloads
+        if: steps.check-api.outputs.has_api == 'true'
+        uses: actions/cache/restore@v5
+        continue-on-error: true
+        with:
+          path: ~/.npm/_cacache
+          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('Miroven/web/package-lock.json') }}
+          restore-keys: |
+            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-
 
       - name: Install Miroven dependencies & Chromium
         if: steps.check-api.outputs.has_api == 'true'
         working-directory: Miroven/web
         run: |
-          npm ci
+          npm ci --prefer-offline
           npm run build
           # Keep the same APT workaround as the local E2E job above.
           for source in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
