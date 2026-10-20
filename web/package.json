@@ -45,6 +45,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.4.2",
     "fake-indexeddb": "^6.2.5",
+    "parse5": "8.0.1",
     "typescript": "5.9.3",
     "vitest": "^4.1.10"
   },

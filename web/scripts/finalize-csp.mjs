@@ -3,6 +3,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import nextEnv from "@next/env";
+import { parse } from "parse5";
 import { validatePagesHeaders } from "./header-rules.mjs";
 
 const webDirectory = fileURLToPath(new URL("../", import.meta.url));
@@ -21,28 +22,41 @@ async function listHtmlFiles(directory) {
   return nestedFiles.flat();
 }
 
-function collectInlineScriptHashes(html) {
+function collectCspElements(html) {
+  const elements = [];
+  const document = parse(html, { sourceCodeLocationInfo: true, scriptingEnabled: true });
+  function visit(node) {
+    if (node.tagName === "script" || node.tagName === "style") {
+      // Hash the text the browser sees, including HTML newline/null normalization.
+      const content = (node.childNodes ?? [])
+        .filter((child) => child.nodeName === "#text")
+        .map((child) => child.value).join("");
+      elements.push({ ...node, content });
+    }
+    // Template content is inert and lives in a separate document fragment.
+    for (const child of node.childNodes ?? []) visit(child);
+  }
+  visit(document);
+  return elements;
+}
+
+function collectInlineHashes(elements, tagName) {
   const hashes = [];
-  const scriptPattern = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
-  for (const match of html.matchAll(scriptPattern)) {
-    const [, attributes, content] = match;
-    if (/\bsrc\s*=/i.test(attributes) || content.length === 0) continue;
+  for (const { tagName: name, attrs, content } of elements) {
+    if (name !== tagName || (name === "script" && attrs.some((attr) => attr.name === "src"))) continue;
+    if (content.length === 0) continue;
     const digest = createHash("sha256").update(content, "utf8").digest("base64");
     hashes.push(`'sha256-${digest}'`);
   }
   return hashes;
 }
 
-function collectInlineStyleHashes(html) {
-  const hashes = [];
-  const stylePattern = /<style\b([^>]*)>([\s\S]*?)<\/style\s*>/gi;
-  for (const match of html.matchAll(stylePattern)) {
-    const [, , content] = match;
-    if (content.length === 0) continue;
-    const digest = createHash("sha256").update(content, "utf8").digest("base64");
-    hashes.push(`'sha256-${digest}'`);
-  }
-  return hashes;
+function extractableScripts(page) {
+  return page.elements.filter((element) => element.tagName === "script"
+    && element.namespaceURI === "http://www.w3.org/1999/xhtml"
+    && element.attrs.length === 0 && element.content.length > 0
+    && element.sourceCodeLocation?.startTag && element.sourceCodeLocation?.endTag)
+    .sort((a, b) => a.sourceCodeLocation.startOffset - b.sourceCodeLocation.startOffset);
 }
 
 function replaceScriptSources(csp, hashes) {
@@ -92,14 +106,15 @@ if (apiBase?.startsWith("//")) throw new Error("Use an explicit HTTPS API URL.")
 const baseCsp = match[2].replace(/connect-src\s+[^;]*/i, `connect-src ${connectSources}`);
 const unique = (hashes) => [...new Set(hashes)].sort();
 function policyFor(pages) {
-  let csp = replaceScriptSources(baseCsp, unique(pages.flatMap((page) => collectInlineScriptHashes(page.html))));
-  csp = replaceStyleSources(csp, unique(pages.flatMap((page) => collectInlineStyleHashes(page.html))));
+  let csp = replaceScriptSources(baseCsp, unique(pages.flatMap((page) => collectInlineHashes(page.elements, "script"))));
+  csp = replaceStyleSources(csp, unique(pages.flatMap((page) => collectInlineHashes(page.elements, "style"))));
   return csp;
 }
 const cspLine = (csp) => `  Content-Security-Policy: ${csp}`;
 const pages = [];
 for (const htmlPath of htmlFiles.sort()) {
-  pages.push({ htmlPath, html: await readFile(htmlPath, "utf8") });
+  const html = await readFile(htmlPath, "utf8");
+  pages.push({ htmlPath, html, elements: collectCspElements(html) });
 }
 
 // Keep the fallback policy within Pages' limit too. It covers static assets and
@@ -107,9 +122,8 @@ for (const htmlPath of htmlFiles.sort()) {
 // hashes; Cloudflare joins overlapping CSP headers into intersecting policies.
 while (cspLine(policyFor(pages)).length > 2000) {
   const candidate = pages
-    .filter((page) => [...page.html.matchAll(/<script>([\s\S]*?)<\/script\s*>/gi)]
-      .some(([, content]) => content.length > 0))
-    .sort((a, b) => collectInlineScriptHashes(b.html).length - collectInlineScriptHashes(a.html).length)[0];
+    .filter((page) => extractableScripts(page).length > 0)
+    .sort((a, b) => collectInlineHashes(b.elements, "script").length - collectInlineHashes(a.elements, "script").length)[0];
   if (!candidate) throw new Error("CSP exceeds Cloudflare Pages' 2,000-character line limit even after extracting scripts.");
   if (checkOnly) throw new Error("CSP requires script extraction. Run npm run build.");
   const scriptsDirectory = path.join(outDirectory, "_next", "static", "csp");
@@ -117,12 +131,18 @@ while (cspLine(policyFor(pages)).length > 2000) {
   const assets = [];
   // Only extract classic scripts without attributes. Preserve their position and
   // parser-blocking execution order; JSON-LD and module scripts remain untouched.
-  candidate.html = candidate.html.replace(/<script>([\s\S]*?)<\/script\s*>/gi, (tag, content) => {
-    if (!content) return tag;
+  let cursor = 0;
+  const chunks = [];
+  for (const { content, sourceCodeLocation } of extractableScripts(candidate)) {
     const digest = createHash("sha256").update(content, "utf8").digest("hex");
     assets.push({ digest, content });
-    return `<script src="/_next/static/csp/${digest}.js"></script>`;
-  });
+    chunks.push(candidate.html.slice(cursor, sourceCodeLocation.startOffset),
+      `<script src="/_next/static/csp/${digest}.js"></script>`);
+    cursor = sourceCodeLocation.endOffset;
+  }
+  chunks.push(candidate.html.slice(cursor));
+  candidate.html = chunks.join("");
+  candidate.elements = collectCspElements(candidate.html);
   for (const { digest, content } of assets) {
     await writeFile(path.join(scriptsDirectory, `${digest}.js`), content, "utf8");
   }
@@ -140,7 +160,10 @@ for (const page of pages) {
 finalizedHeaders += "\n";
 const { ruleCount, longestLine } = validatePagesHeaders(finalizedHeaders);
 for (const page of pages) {
-  for (const [, digest] of page.html.matchAll(/<script src="\/_next\/static\/csp\/([a-f0-9]{64})\.js"><\/script>/g)) {
+  for (const element of page.elements.filter((element) => element.tagName === "script")) {
+    const src = element.attrs.find((attr) => attr.name === "src")?.value;
+    const digest = src?.match(/^\/_next\/static\/csp\/([a-f0-9]{64})\.js$/)?.[1];
+    if (!digest) continue;
     const content = await readFile(path.join(outDirectory, "_next", "static", "csp", `${digest}.js`));
     if (createHash("sha256").update(content).digest("hex") !== digest) {
       throw new Error(`Extracted CSP script ${digest}.js does not match its content hash. Run npm run build.`);
