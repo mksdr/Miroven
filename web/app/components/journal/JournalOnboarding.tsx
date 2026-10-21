@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { Language } from "../../hooks/useAppearance";
 import styles from "./JournalOnboarding.module.css";
 
@@ -25,33 +25,29 @@ export function JournalOnboarding({ ready, existingUser, firstEntrySaved, langua
     try { localStorage.setItem(STORAGE_KEY, next); } catch { /* Keep this session usable when storage is unavailable. */ }
   }, []);
 
-  useEffect(() => {
+  // Commit guidance before paint, together with the now-ready composer. A
+  // deferred insertion can move its buttons between pointerdown and pointerup.
+  useLayoutEffect(() => {
     if (!ready) return;
-    const timer = window.setTimeout(() => {
-      if (initialized.current) {
-        if (existingUser && !firstEntrySaved && (currentStep.current === "welcome" || currentStep.current === "writing")) transition("done");
-        return;
-      }
-      let saved: string | null = null;
-      try { saved = localStorage.getItem(STORAGE_KEY); } catch { /* Use in-memory state. */ }
-      const next: Step = saved === "writing" || saved === "skipped" || saved === "saved" || saved === "done"
-        ? saved : existingUser ? "done" : "welcome";
-      initialized.current = true;
-      currentStep.current = next;
-      setStep(next);
-      if (next === "done") {
-        try { localStorage.setItem(STORAGE_KEY, next); } catch { /* Optional preference. */ }
-      }
-    }, 0);
-    return () => window.clearTimeout(timer);
+    if (initialized.current) {
+      if (existingUser && !firstEntrySaved && (currentStep.current === "welcome" || currentStep.current === "writing")) transition("done");
+      return;
+    }
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(STORAGE_KEY); } catch { /* Use in-memory state. */ }
+    const next: Step = saved === "writing" || saved === "skipped" || saved === "saved" || saved === "done"
+      ? saved : existingUser ? "done" : "welcome";
+    initialized.current = true;
+    currentStep.current = next;
+    setStep(next);
+    if (next === "done") {
+      try { localStorage.setItem(STORAGE_KEY, next); } catch { /* Optional preference. */ }
+    }
   }, [ready, existingUser, firstEntrySaved, transition]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!firstEntrySaved) return;
-    const timer = window.setTimeout(() => {
-      if (currentStep.current !== "done") transition("saved");
-    }, 0);
-    return () => window.clearTimeout(timer);
+    if (currentStep.current !== "done") transition("saved");
   }, [firstEntrySaved, transition]);
 
   if (!ready || !step || step === "done" || step === "skipped") return null;

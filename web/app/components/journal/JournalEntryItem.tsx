@@ -105,6 +105,7 @@ type JournalEntryItemProps = {
   t: EntryCopy;
   isFocused?: boolean;
   pinning?: boolean;
+  saving?: boolean;
   onTogglePin?: (entry: JournalEntrySummary) => Promise<void>;
   onStartEditing: (entry: JournalEntrySummary) => void;
   onQuote?: (entry: JournalEntrySummary) => void;
@@ -127,6 +128,7 @@ export const JournalEntryItem = memo(function JournalEntryItem({
   t,
   isFocused = false,
   pinning = false,
+  saving = false,
   onTogglePin,
   onStartEditing,
   onQuote,
@@ -185,7 +187,7 @@ export const JournalEntryItem = memo(function JournalEntryItem({
           id={entry.quotedEntryId} entries={quoteEntries} reader={reader} language={language} onOpen={onOpenEntry} onSearchHashtag={onSearchHashtag} /> : null}
         <footer className="entry-footer">
           <div className="entry-actions">
-            {onQuote ? <button className="entry-action" type="button" onClick={() => onQuote(entry)}>
+            {onQuote ? <button className="entry-action" type="button" disabled={saving} onClick={() => onQuote(entry)}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11V9a3 3 0 0 1 3-3h15m-4-4 4 4-4 4M21 13v2a3 3 0 0 1-3 3H3m4-4-4 4 4 4" /></svg>
               <span>{language === "ko" ? "인용" : "Quote"}</span>
             </button> : null}
@@ -201,7 +203,7 @@ export const JournalEntryItem = memo(function JournalEntryItem({
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6m-5 0v6l-4 5v2h12v-2l-4-5V3M12 16v5" /></svg>
               <span>{language === "ko" ? "고정" : "Pin"}</span>
             </button> : null}
-            <button className="entry-action" type="button" onClick={() => onStartEditing(entry)} aria-label={t.editEntry}>
+            <button className="entry-action" type="button" disabled={saving} onClick={() => onStartEditing(entry)} aria-label={t.editEntry}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" /></svg>
               <span>{t.edit}</span>
             </button>

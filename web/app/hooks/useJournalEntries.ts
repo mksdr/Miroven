@@ -8,7 +8,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import { createComposerDraft } from "../lib/composer-draft";
-import { performancePolicy, prefersLowSpecMode } from "../lib/performance-policy";
 import {
   createJournalReader,
   deleteEntry,
@@ -247,14 +246,8 @@ export function useJournalEntries({
       clearImages();
       void loadEditingImages(entry.id);
       const composerEl = document.getElementById("composer");
-      const reducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-      composerEl?.scrollIntoView({
-        behavior: reducedMotion
-          ? "instant"
-          : performancePolicy(prefersLowSpecMode()).scrollBehavior,
-      });
+      // Match quoting: the next composer click must not race an animated jump.
+      composerEl?.scrollIntoView({ behavior: "instant" });
     },
     [cancelImageRequests, changeQuote, clearImages, loadEditingImages, setDraft],
   );

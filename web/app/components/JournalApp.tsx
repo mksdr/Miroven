@@ -30,6 +30,7 @@ import type { JournalLightboxImage } from "./journal/JournalImageLightbox";
 import { JournalSearchWorkspace } from "./journal/JournalSearchWorkspace";
 import { JournalWorkspace } from "./journal/JournalWorkspace";
 import { JournalOnboarding } from "./journal/JournalOnboarding";
+import { IosPwaPrompt } from "./IosPwaPrompt";
 import { VaultLockScreen } from "./vault/VaultLockScreen";
 import {
   COPY,
@@ -73,10 +74,6 @@ const PinSetupModal = dynamic(
 );
 const PinRemoveModal = dynamic(
   () => import("./PinRemoveModal").then((m) => m.PinRemoveModal),
-  { ssr: false },
-);
-const IosPwaPrompt = dynamic(
-  () => import("./IosPwaPrompt").then((m) => m.IosPwaPrompt),
   { ssr: false },
 );
 const KeyboardShortcutsModal = dynamic(
@@ -520,6 +517,7 @@ export function JournalApp() {
     copy: t,
     focusedEntryIndex,
     pinning,
+    saving,
     quoteEntries,
     onStartEditing: startEditing,
     onQuote: handleQuote,
@@ -576,7 +574,7 @@ export function JournalApp() {
 
           {activeTab === "journal" ? (
             <JournalOnboarding
-              ready={hydrated && !loading && !authLoading}
+              ready={hydrated && !loading}
               existingUser={entries.length > 0 || Boolean(localEnvelope || remoteEnvelope || identity)}
               firstEntrySaved={firstEntrySaved}
               language={language}
@@ -594,7 +592,7 @@ export function JournalApp() {
               draft={composerDraft}
               textareaRef={composerTextareaRef}
               isEditing={Boolean(editingEntryId)}
-              editorDisabled={saving || !hydrated}
+              editorDisabled={saving || !hydrated || loading}
               images={images}
               language={language}
               editingImageState={editingImageState}

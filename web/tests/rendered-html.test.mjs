@@ -175,7 +175,7 @@ test("static export renders the Miroven journal shell", () => {
     (element) => element.tagName === "button" && (getAttr(element, "class") ?? "").split(/\s+/).includes("post-button"),
   );
   assert.ok(postButton, "the journal post button should be server-rendered");
-  assert.ok(!hasAttr(postButton, "disabled"));
+  assert.ok(hasAttr(postButton, "disabled"), "saving must wait for client initialization");
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
 

@@ -105,6 +105,7 @@ type JournalEntryListProps = {
   copy: EntryListCopy;
   focusedEntryIndex: number;
   pinning: boolean;
+  saving: boolean;
   quoteEntries: ReadonlyMap<string, JournalEntrySummary>;
   onStartEditing: (entry: JournalEntrySummary) => void;
   onQuote: (entry: JournalEntrySummary) => void;
@@ -134,6 +135,7 @@ export function JournalEntryList({
   copy,
   focusedEntryIndex,
   pinning,
+  saving,
   quoteEntries,
   onStartEditing,
   onQuote,
@@ -170,6 +172,7 @@ export function JournalEntryList({
           onDelete={onDelete}
           onTogglePin={onTogglePin}
           pinning={pinning}
+          saving={saving}
           onResolveUseLocal={onResolveUseLocal}
           onResolveKeepBoth={onResolveKeepBoth}
           onSelectImage={onSelectImage}

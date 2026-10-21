@@ -41,7 +41,7 @@ export function ComposerSubmit({ draft, hydrated, disabled, hasImage, label, onS
       className="post-button"
       type="button"
       onClick={() => void onSubmit()}
-      disabled={hydrated && (disabled || (!text.trim() && !hasImage))}
+      disabled={!hydrated || disabled || (!text.trim() && !hasImage)}
     >
       {label}
     </button>

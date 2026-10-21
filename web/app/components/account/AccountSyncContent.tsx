@@ -2,6 +2,7 @@
 
 import type { FormEventHandler } from "react";
 import { AccountUsage } from "./AccountUsage";
+import { SignupDomainNotice } from "./SignupDomainNotice";
 
 type AccountSyncCopy = {
   localMode: string;
@@ -172,6 +173,7 @@ export function AccountSyncContent({
         placeholder="you@example.com"
         required
       />
+      <SignupDomainNotice email={email} language={language} />
       <button type="submit" disabled={isSending}>
         {isSending ? copy.sending : copy.sendLink}
       </button>

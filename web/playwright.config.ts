@@ -27,12 +27,12 @@ export default defineConfig({
     },
     {
       name: "firefox",
-      testMatch: ["images.spec.ts", "quotes.spec.ts", "persona.spec.ts", "keyboard-a11y.spec.ts"],
+      testMatch: ["images.spec.ts", "quotes.spec.ts", "persona.spec.ts", "keyboard-a11y.spec.ts", "composer-startup.spec.ts"],
       use: { ...devices["Desktop Firefox"] },
     },
     {
       name: "webkit-images",
-      testMatch: ["images.spec.ts", "quotes.spec.ts", "persona.spec.ts"],
+      testMatch: ["images.spec.ts", "quotes.spec.ts", "persona.spec.ts", "composer-startup.spec.ts"],
       use: { ...devices["iPhone 13"] },
     },
   ],
