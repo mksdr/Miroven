@@ -23,7 +23,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22.13.0
+          node-version: 24.22.1
           package-manager-cache: false
 
       # Only verify on the default branch writes caches; all jobs can restore them.
@@ -33,9 +33,9 @@ jobs:
         continue-on-error: true
         with:
           path: ~/.npm/_cacache
-          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}
+          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('web/package-lock.json') }}
           restore-keys: |
-            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-
+            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-
 
       - name: Install dependencies
         run: npm ci --prefer-offline
@@ -46,9 +46,9 @@ jobs:
         continue-on-error: true
         with:
           path: web/.next/cache
-          key: miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}-${{ hashFiles('web/app/**', 'web/public/**', 'web/scripts/**', 'web/*.json', 'web/*.ts', 'web/*.mjs') }}
+          key: miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('web/package-lock.json') }}-${{ hashFiles('web/app/**', 'web/public/**', 'web/scripts/**', 'web/*.json', 'web/*.ts', 'web/*.mjs') }}
           restore-keys: |
-            miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}-
+            miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('web/package-lock.json') }}-
 
       - name: Install Chromium, Firefox and WebKit
         run: |
@@ -158,7 +158,7 @@ jobs:
         if: steps.check-api.outputs.has_api == 'true'
         uses: actions/setup-node@v6
         with:
-          node-version: 22.13.0
+          node-version: 24.22.1
           package-manager-cache: false
 
       - name: Restore shared npm downloads
@@ -167,9 +167,9 @@ jobs:
         continue-on-error: true
         with:
           path: ~/.npm/_cacache
-          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('Miroven/web/package-lock.json') }}
+          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('Miroven/web/package-lock.json') }}
           restore-keys: |
-            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-
+            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-
 
       - name: Install Miroven dependencies & Chromium
         if: steps.check-api.outputs.has_api == 'true'

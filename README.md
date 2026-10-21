@@ -14,7 +14,7 @@ A local-first personal journal that encrypts your entries and photos on your dev
 
 ## Get started
 
-Requires Node.js 22.13 or later and npm. From the repository root:
+Requires Node.js 22.13 or later and npm. CI and Docker builds use Node.js 24.22.1. From the repository root:
 
 ```sh
 cd web
