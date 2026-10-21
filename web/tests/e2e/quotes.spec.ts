@@ -3,12 +3,50 @@ import { expect, test, type Page } from "@playwright/test";
 const composer = (page: Page) => page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
 const entries = (page: Page) => page.locator(".entry-list > .entry");
 const entry = (page: Page, text: string) => entries(page).filter({ has: page.locator(".entry-content > .entry-text", { hasText: text }) });
+test.beforeEach(async ({ page }) => {
+  // First-visit notice transitions are covered by composer-startup.spec.ts.
+  await page.addInitScript(() => localStorage.setItem("miroven:onboarding:v1", "done"));
+});
 async function save(page: Page, text: string) {
   await composer(page).fill(text);
   await page.getByRole("button", { name: "기록", exact: true }).click();
   await expect(entry(page, text)).toBeVisible();
   await expect(composer(page)).toHaveValue("");
+  await expect(composer(page)).toBeEnabled();
 }
+
+test("quote and edit actions wait for the saved entry's final bookkeeping", async ({ page }) => {
+  await page.goto("/");
+  await save(page, "후속 작업 지연 전 기록");
+  await page.evaluate(() => {
+    const read = IDBObjectStore.prototype.get;
+    const control = window as unknown as { saveBookkeepingWaiting: boolean; releaseSaveBookkeeping: () => void };
+    let holdOnce = true;
+    IDBObjectStore.prototype.get = function (key) {
+      const request = read.call(this, key);
+      if (holdOnce && this.name === "sync-meta" && key === "server-cursor") {
+        holdOnce = false;
+        request.addEventListener("success", (event) => {
+          event.stopImmediatePropagation();
+          control.releaseSaveBookkeeping = () => request.onsuccess?.call(request, event);
+          control.saveBookkeepingWaiting = true;
+        }, { once: true });
+      }
+      return request;
+    };
+  });
+  await composer(page).fill("목록에는 보이는 저장 중 기록");
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await page.waitForFunction(() => (window as unknown as { saveBookkeepingWaiting: boolean }).saveBookkeepingWaiting);
+  const saved = entry(page, "목록에는 보이는 저장 중 기록");
+  await expect(saved).toBeVisible();
+  await expect(saved.getByRole("button", { name: "인용", exact: true })).toBeDisabled();
+  await expect(saved.getByRole("button", { name: "기록 수정", exact: true })).toBeDisabled();
+  await page.evaluate(() => (window as unknown as { releaseSaveBookkeeping: () => void }).releaseSaveBookkeeping());
+  await expect(composer(page)).toBeEnabled();
+  await saved.getByRole("button", { name: "인용", exact: true }).click();
+  await expect(page.locator(".composer-quote")).toContainText("목록에는 보이는 저장 중 기록");
+});
 
 for (const withQuote of [false, true]) {
   test(`late draft restoration cannot repopulate a saved ${withQuote ? "quoted" : "plain"} entry`, async ({ page }) => {
@@ -165,10 +203,18 @@ test("quotes preserve drafts, restore quote-only drafts, and can save without ne
   await expect(entries(page)).toHaveCount(3);
   await expect(page.locator(".composer-quote")).toHaveCount(0);
   await entries(page).first().getByRole("button", { name: "기록 수정", exact: true }).click();
+  await expect(page.locator(".composer-quote")).toContainText("과거의 기록");
+  await expect(composer(page)).toHaveValue("");
   await page.getByRole("button", { name: "인용 해제", exact: true }).click();
+  await expect(page.locator(".composer-quote")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "수정 저장", exact: true })).toBeDisabled();
   await composer(page).fill("인용을 해제한 기록");
   await page.getByRole("button", { name: "수정 저장", exact: true }).click();
+  await expect(entry(page, "인용을 해제한 기록")).toBeVisible();
+  await expect(composer(page)).toBeEnabled();
+  await expect(entry(page, "인용을 해제한 기록").locator(".quote-card")).toHaveCount(0);
+  await page.reload();
+  await expect(entry(page, "인용을 해제한 기록")).toBeVisible();
   await expect(entry(page, "인용을 해제한 기록").locator(".quote-card")).toHaveCount(0);
 });
 
@@ -176,8 +222,10 @@ test("live originals update, delete safely, and nested quotes open one at a time
   await page.goto("/");
   await save(page, "처음의 기록");
   await entry(page, "처음의 기록").getByRole("button", { name: "인용", exact: true }).click();
+  await expect(page.locator(".composer-quote")).toContainText("처음의 기록");
   await save(page, "두 번째 생각");
   await entry(page, "두 번째 생각").getByRole("button", { name: "인용", exact: true }).click();
+  await expect(page.locator(".composer-quote")).toContainText("두 번째 생각");
   await save(page, "세 번째 생각");
   await expect(entry(page, "세 번째 생각").locator(".quote-card-note")).toHaveText("이 기록에도 인용이 있습니다.");
   await expect(entry(page, "세 번째 생각").locator(".quote-card")).toHaveCount(1);

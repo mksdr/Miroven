@@ -54,6 +54,83 @@ async function editProfile(page: Page, name: string, avatar?: string) {
   await expect(page.locator(".rail-profile strong")).toHaveText(name);
 }
 
+test("signup domain policy and English, Korean, Japanese SMTP codes", async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    const policyResponse = await page.request.get(`${apiOrigin}/api/v1/auth/policy`);
+    expect(policyResponse.status()).toBe(200);
+    const policy = await policyResponse.json();
+    expect(policy.default_email_locale).toBe("en");
+    expect(policy.blocked_local_part_characters).toEqual(["+", "."]);
+    for (const [group, subject] of [
+      ["DEFAULT", "Your Miroven verification code"],
+      ["KR", "Miroven 인증 코드"],
+      ["JP", "Miroven 認証コード"],
+    ]) {
+      const domain = policy.domain_groups[group][0];
+      expect(domain).toBeTruthy();
+      const email = `locale-${crypto.randomUUID()}@${domain}`;
+      const requested = await page.request.post(`${apiOrigin}/api/v1/auth/code/request`, {
+        headers: { Origin: new URL(origin!).origin }, data: { email },
+      });
+      expect(requested.status()).toBe(202);
+      let code = "";
+      await expect.poll(async () => {
+        const result = await (await page.request.get(`${mailpit}/api/v1/messages`)).json();
+        const message = result.messages.find((item: { ID: string; To: { Address: string }[] }) =>
+          item.To.some(to => to.Address === email));
+        if (!message) return false;
+        const detail = await (await page.request.get(`${mailpit}/api/v1/message/${message.ID}`)).json();
+        expect(detail.Subject).toBe(subject);
+        expect(detail.Text).toContain("UTC");
+        code = detail.Text.match(/\b[0-9]{6}\b/)?.[0] ?? "";
+        return Boolean(code);
+      }, { timeout: 20_000 }).toBe(true);
+      const verified = await page.request.post(`${apiOrigin}/api/v1/auth/code/verify`, {
+        headers: { Origin: new URL(origin!).origin }, data: { email, code },
+      });
+      expect(verified.status()).toBe(200);
+    }
+    const email = `blocked-${crypto.randomUUID()}@${policy.domain_groups.DEFAULT[0]}.unlisted.com`;
+    expect((await page.request.post(`${apiOrigin}/api/v1/auth/code/request`, {
+      headers: { Origin: new URL(origin!).origin }, data: { email },
+    })).status()).toBe(202);
+    expect((await page.request.post(`${apiOrigin}/api/v1/auth/code/verify`, {
+      headers: { Origin: new URL(origin!).origin }, data: { email, code: "012345" },
+    })).status()).toBe(401);
+    const inbox = await (await page.request.get(`${mailpit}/api/v1/messages`)).json();
+    expect(inbox.messages.some((item: { To: { Address: string }[] }) =>
+      item.To.some(to => to.Address === email))).toBe(false);
+  } finally { await context.close(); }
+});
+
+test("plus and dot signup restrictions are shown and enforced through the real API", async ({ browser }) => {
+  const context = await browser.newContext({ locale: "ko-KR" });
+  try {
+    const page = await context.newPage();
+    await page.goto(origin!);
+    await page.getByRole("button", { name: "계정", exact: true }).click();
+    const prefix = `restricted-${crypto.randomUUID()}`;
+    for (const email of [`${prefix}+tag@example.com`, `${prefix}.name@example.com`]) {
+      await page.getByLabel("이메일로 시작하기", { exact: true }).fill(email);
+      await expect(page.locator(".auth-form").getByRole("status")).toContainText("이메일의 @ 앞부분에 + 또는 .이 있으면 신규 가입할 수 없습니다.");
+      // Existing addresses can request codes; the server decides eligibility.
+      await page.getByRole("button", { name: "6자리 로그인 코드 받기", exact: true }).click();
+      await expect(page.getByLabel("보안 코드", { exact: true })).toBeVisible();
+      const response = await page.request.post(`${apiOrigin}/api/v1/auth/code/verify`, {
+        headers: { Origin: new URL(origin!).origin }, data: { email, code: "012345" },
+      });
+      expect(response.status()).toBe(401);
+      expect((await response.json()).code).toBe("invalid_code");
+      const inbox = await (await page.request.get(`${mailpit}/api/v1/messages`)).json();
+      expect(inbox.messages.some((item: { To: { Address: string }[] }) =>
+        item.To.some(to => to.Address === email))).toBe(false);
+      await page.getByRole("button", { name: "이메일 변경 / 보안 코드 다시 받기", exact: true }).click();
+    }
+  } finally { await context.close(); }
+});
+
 test("email sign-in, profile/photo sync, recovery, offline retry and tombstone across two browsers", async ({ browser }) => {
   const a = await browser.newContext({ locale: "ko-KR" });
   const b = await browser.newContext({ locale: "ko-KR" });

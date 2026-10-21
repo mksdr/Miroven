@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 const DISMISS_KEY = "miroven:ios_pwa_prompt_dismissed";
 
@@ -8,40 +8,24 @@ type IosPwaPromptProps = {
   language: "ko" | "en";
 };
 
+const subscribe = () => () => {};
+const serverSnapshot = () => false;
+
+function promptVisible() {
+  if (!/iPhone|iPad|iPod/i.test(navigator.userAgent)) return false;
+  if (window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true) return false;
+  try { return !localStorage.getItem(DISMISS_KEY); } catch { return true; }
+}
+
 export function IosPwaPrompt({ language }: IosPwaPromptProps) {
-  const [showPrompt, setShowPrompt] = useState(false);
-
-  useEffect(() => {
-    const userAgent = window.navigator.userAgent;
-    const isIos = /iPhone|iPad|iPod/i.test(userAgent);
-    if (!isIos) return;
-
-    const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-
-    if (isStandalone) return;
-
-    let shouldShow = false;
-    try {
-      const dismissed = localStorage.getItem(DISMISS_KEY);
-      if (!dismissed) {
-        shouldShow = true;
-      }
-    } catch {
-      shouldShow = true;
-    }
-
-    if (shouldShow) {
-      const timer = setTimeout(() => {
-        setShowPrompt(true);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  // Read browser preferences during hydration, without deferring an insertion
+  // above the composer to a dynamic import and a later timer.
+  const visible = useSyncExternalStore(subscribe, promptVisible, serverSnapshot);
+  const [dismissed, setDismissed] = useState(false);
 
   const handleDismiss = () => {
-    setShowPrompt(false);
+    setDismissed(true);
     try {
       localStorage.setItem(DISMISS_KEY, "true");
     } catch {
@@ -49,7 +33,7 @@ export function IosPwaPrompt({ language }: IosPwaPromptProps) {
     }
   };
 
-  if (!showPrompt) return null;
+  if (!visible || dismissed) return null;
 
   return (
     <div

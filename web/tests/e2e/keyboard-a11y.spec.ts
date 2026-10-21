@@ -4,8 +4,9 @@ test.describe("Keyboard Accessibility (A11y) Tests", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("내 저널", { exact: true })).toBeVisible();
-    // The shell is server-rendered before keyboard handlers are attached.
-    // Empty-composer disabling is applied after client hydration.
+    // The static save button is disabled too; an enabled editor signals that
+    // hydration and the initial local journal read have finished.
+    await expect(page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" })).toBeEnabled();
     await expect(page.getByRole("button", { name: "기록", exact: true })).toBeDisabled();
   });
 

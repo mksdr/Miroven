@@ -18,7 +18,7 @@
     "test": "npm run check:secrets && npm run test:unit && npm run test:rendered",
     "test:unit": "vitest run",
     "test:browser": "playwright test",
-    "test:browser:local": "playwright test tests/e2e/local-vault.spec.ts tests/e2e/images.spec.ts tests/e2e/keyboard-a11y.spec.ts tests/e2e/quotes.spec.ts tests/e2e/persona.spec.ts",
+    "test:browser:local": "playwright test tests/e2e/local-vault.spec.ts tests/e2e/images.spec.ts tests/e2e/keyboard-a11y.spec.ts tests/e2e/quotes.spec.ts tests/e2e/persona.spec.ts tests/e2e/composer-startup.spec.ts",
     "test:integration": "playwright test tests/e2e/api-sync.spec.ts",
     "test:rendered": "npm run build && npm run test:rendered:built",
     "test:rendered:built": "node --test tests/rendered-html.test.mjs",
