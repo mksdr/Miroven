@@ -18,12 +18,13 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
+          package-manager-cache: false
 
       # Only verify on the default branch writes caches; all jobs can restore them.
       - name: Restore npm downloads
@@ -106,7 +107,7 @@ jobs:
 
       - name: Upload Playwright report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-local
           path: web/playwright-report/
@@ -114,7 +115,7 @@ jobs:
 
       - name: Upload license verification report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: license-verification
           path: web/license-reports/report.json
@@ -126,12 +127,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Miroven
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: Miroven
 
       - name: Check out Miroven-API
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/Miroven-API
           path: Miroven-API
@@ -149,15 +150,16 @@ jobs:
 
       - name: Set up Python
         if: steps.check-api.outputs.has_api == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
       - name: Set up Node.js
         if: steps.check-api.outputs.has_api == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
+          package-manager-cache: false
 
       - name: Restore shared npm downloads
         if: steps.check-api.outputs.has_api == 'true'
@@ -213,7 +215,7 @@ jobs:
 
       - name: Upload Playwright integration report on failure
         if: failure() && steps.integration-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-integration
           path: Miroven/web/playwright-report/
