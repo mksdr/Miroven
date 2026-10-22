@@ -18,12 +18,13 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22.13.0
+          node-version: 24.22.1
+          package-manager-cache: false
 
       # Only verify on the default branch writes caches; all jobs can restore them.
       - name: Restore npm downloads
@@ -32,9 +33,9 @@ jobs:
         continue-on-error: true
         with:
           path: ~/.npm/_cacache
-          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}
+          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('web/package-lock.json') }}
           restore-keys: |
-            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-
+            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-
 
       - name: Install dependencies
         run: npm ci --prefer-offline
@@ -45,9 +46,9 @@ jobs:
         continue-on-error: true
         with:
           path: web/.next/cache
-          key: miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}-${{ hashFiles('web/app/**', 'web/public/**', 'web/scripts/**', 'web/*.json', 'web/*.ts', 'web/*.mjs') }}
+          key: miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('web/package-lock.json') }}-${{ hashFiles('web/app/**', 'web/public/**', 'web/scripts/**', 'web/*.json', 'web/*.ts', 'web/*.mjs') }}
           restore-keys: |
-            miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('web/package-lock.json') }}-
+            miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('web/package-lock.json') }}-
 
       - name: Install Chromium, Firefox and WebKit
         run: |
@@ -58,7 +59,17 @@ jobs:
               sudo mv -- "$source" "${source}.disabled"
             fi
           done
-          npx playwright install --with-deps chromium firefox webkit
+          # CDN certificate rollouts can fail temporarily; keep TLS verification on.
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium firefox webkit; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            echo "::warning::Playwright installation failed ($attempt/3); retrying in 30 seconds."
+            sleep 30
+          done
 
       - name: Full verification
         run: npm run verify:full
@@ -106,7 +117,7 @@ jobs:
 
       - name: Upload Playwright report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-local
           path: web/playwright-report/
@@ -114,7 +125,7 @@ jobs:
 
       - name: Upload license verification report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: license-verification
           path: web/license-reports/report.json
@@ -126,12 +137,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Miroven
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: Miroven
 
       - name: Check out Miroven-API
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository_owner }}/Miroven-API
           path: Miroven-API
@@ -149,15 +160,16 @@ jobs:
 
       - name: Set up Python
         if: steps.check-api.outputs.has_api == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
       - name: Set up Node.js
         if: steps.check-api.outputs.has_api == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22.13.0
+          node-version: 24.22.1
+          package-manager-cache: false
 
       - name: Restore shared npm downloads
         if: steps.check-api.outputs.has_api == 'true'
@@ -165,9 +177,9 @@ jobs:
         continue-on-error: true
         with:
           path: ~/.npm/_cacache
-          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('Miroven/web/package-lock.json') }}
+          key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('Miroven/web/package-lock.json') }}
           restore-keys: |
-            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node22-
+            miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-
 
       - name: Install Miroven dependencies & Chromium
         if: steps.check-api.outputs.has_api == 'true'
@@ -181,7 +193,17 @@ jobs:
               sudo mv -- "$source" "${source}.disabled"
             fi
           done
-          npx playwright install --with-deps chromium
+          # CDN certificate rollouts can fail temporarily; keep TLS verification on.
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            echo "::warning::Playwright installation failed ($attempt/3); retrying in 30 seconds."
+            sleep 30
+          done
 
       - name: Start Combined Docker Stack
         id: start-stack
@@ -213,7 +235,7 @@ jobs:
 
       - name: Upload Playwright integration report on failure
         if: failure() && steps.integration-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-report-integration
           path: Miroven/web/playwright-report/

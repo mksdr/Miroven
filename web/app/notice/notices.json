@@ -720,7 +720,7 @@
   },
   {
     "name": "@types/node",
-    "version": "22.19.19",
+    "version": "24.19.2",
     "license": "MIT",
     "author": "",
     "development": true,
@@ -5273,7 +5273,7 @@
   },
   {
     "name": "undici-types",
-    "version": "6.21.0",
+    "version": "7.24.6",
     "license": "MIT",
     "author": "",
     "development": true,
