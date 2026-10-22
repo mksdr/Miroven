@@ -59,7 +59,17 @@ jobs:
               sudo mv -- "$source" "${source}.disabled"
             fi
           done
-          npx playwright install --with-deps chromium firefox webkit
+          # CDN certificate rollouts can fail temporarily; keep TLS verification on.
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium firefox webkit; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            echo "::warning::Playwright installation failed ($attempt/3); retrying in 30 seconds."
+            sleep 30
+          done
 
       - name: Full verification
         run: npm run verify:full
@@ -183,7 +193,17 @@ jobs:
               sudo mv -- "$source" "${source}.disabled"
             fi
           done
-          npx playwright install --with-deps chromium
+          # CDN certificate rollouts can fail temporarily; keep TLS verification on.
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            echo "::warning::Playwright installation failed ($attempt/3); retrying in 30 seconds."
+            sleep 30
+          done
 
       - name: Start Combined Docker Stack
         id: start-stack
