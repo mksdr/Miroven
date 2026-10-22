@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -137,12 +137,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Miroven
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: Miroven
 
       - name: Check out Miroven-API
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/Miroven-API
           path: Miroven-API
