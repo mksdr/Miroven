@@ -1,5 +1,6 @@
 import { version as appVersion } from "../../package.json";
 import { getSyncSnapshot, hasPinLock, listEntries } from "./local-vault";
+import { entryImages } from "./journal-images";
 
 export type DiagnosticReport = {
   appVersion: string;
@@ -69,7 +70,7 @@ export async function createDiagnosticReport(params: {
     },
     metrics: {
       totalEntriesCount: entries.length,
-      entriesWithImageCount: entries.filter((e) => Boolean(e.image)).length,
+      entriesWithImageCount: entries.filter((entry) => entryImages(entry).length > 0).length,
       pendingSyncCount: snapshot.pending,
       conflictsCount: snapshot.conflicts,
     },
