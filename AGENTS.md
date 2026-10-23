@@ -2,6 +2,8 @@
 
 ## Scope and workflow
 
+- Follow Conventional Commits for PR titles and final main-branch commits; see CONTRIBUTING.md. Preserve existing history and use squash PR titles.
+- Follow .github/RELEASING.md for automated versions/releases. Do not manually bump isolated version fields or publish tags without matching metadata and required checks.
 - Miroven is a local-first personal journal client. Application code and npm commands live in `web/`.
 - The sibling `../Miroven-API/` provides authentication, encrypted synchronization, and blob storage. `../Miroven-Web/` is the public website.
 - Keep changes focused, preserve existing work, and avoid unrelated refactors or dependency updates.
