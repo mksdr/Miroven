@@ -1,0 +1,84 @@
+{
+  "always-update": true,
+  "bootstrap-sha": "a31e50ca62c52c06048aa533bf3b873a6318a4c9",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "version-file": "version.txt",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false,
+      "changelog-sections": [
+        {
+          "type": "feat",
+          "section": "Features"
+        },
+        {
+          "type": "fix",
+          "section": "Bug Fixes"
+        },
+        {
+          "type": "perf",
+          "section": "Performance Improvements"
+        },
+        {
+          "type": "revert",
+          "section": "Reverts"
+        },
+        {
+          "type": "docs",
+          "section": "docs",
+          "hidden": true
+        },
+        {
+          "type": "style",
+          "section": "style",
+          "hidden": true
+        },
+        {
+          "type": "chore",
+          "section": "chore",
+          "hidden": true
+        },
+        {
+          "type": "refactor",
+          "section": "refactor",
+          "hidden": true
+        },
+        {
+          "type": "test",
+          "section": "test",
+          "hidden": true
+        },
+        {
+          "type": "build",
+          "section": "build",
+          "hidden": true
+        },
+        {
+          "type": "ci",
+          "section": "ci",
+          "hidden": true
+        }
+      ],
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "web/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "web/package-lock.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "web/package-lock.json",
+          "jsonpath": "$.packages[''].version"
+        }
+      ]
+    }
+  }
+}
