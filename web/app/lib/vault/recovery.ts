@@ -3,6 +3,7 @@ import {
   ENTRY_STORE,
   KEY_STORE,
   OUTBOX_STORE,
+  PIN_LOCK_KEY_ID,
   VAULT_ENVELOPE_ID,
   VAULT_FORMAT_CONTRACT,
   VAULT_STORE,
@@ -14,6 +15,7 @@ import {
 } from "./idb";
 import { expectBufferLength, toArrayBuffer } from "./codec";
 import { getDeviceKey } from "./device-key";
+import { withVaultLock } from "./mutation-lock";
 import { decryptEntry, encryptEntry } from "./entry-crypto";
 import { createUpsertOperation } from "./sync-crypto";
 import type {
@@ -32,6 +34,15 @@ export const RECOVERY_AAD = new TextEncoder().encode(
 export const RECOVERY_INFO = new TextEncoder().encode(
   VAULT_FORMAT_CONTRACT.recoveryInfo,
 );
+
+export class RecoveryPinLockError extends Error {
+  readonly code = "PIN_LOCK_CONFIGURED";
+
+  constructor() {
+    super("복구 코드를 생성하려면 계정 설정에서 PIN 잠금을 먼저 해제해 주세요. 생성 후 PIN 잠금을 다시 설정할 수 있습니다.");
+    this.name = "RecoveryPinLockError";
+  }
+}
 
 export function base32Encode(bytes: Uint8Array): string {
   let bits = 0;
@@ -188,11 +199,13 @@ export async function createRecoveryKit(): Promise<{
   recoveryCode: string;
   envelope: VaultEnvelope;
 }> {
-  return withVaultDatabase(async (database) => {
-    const envelopeTransaction = database.transaction(VAULT_STORE, "readonly");
-    const existingEnvelope = await requestToPromise(
-      envelopeTransaction.objectStore(VAULT_STORE).get(VAULT_ENVELOPE_ID),
-    );
+  return withVaultLock("mutation", () => withVaultDatabase(async (database) => {
+    const envelopeTransaction = database.transaction([KEY_STORE, VAULT_STORE], "readonly");
+    const [pinEnvelope, existingEnvelope] = await Promise.all([
+      requestToPromise(envelopeTransaction.objectStore(KEY_STORE).get(PIN_LOCK_KEY_ID)),
+      requestToPromise(envelopeTransaction.objectStore(VAULT_STORE).get(VAULT_ENVELOPE_ID)),
+    ]);
+    if (pinEnvelope) throw new RecoveryPinLockError();
     if (existingEnvelope) throw new Error("이 금고에는 이미 복구 코드가 있습니다.");
 
     const previousKey = await getDeviceKey(database);
@@ -254,19 +267,34 @@ export async function createRecoveryKit(): Promise<{
       [ENTRY_STORE, KEY_STORE, VAULT_STORE, OUTBOX_STORE],
       "readwrite",
     );
-    const entryStore = writeTransaction.objectStore(ENTRY_STORE);
-    for (const record of reencryptedEntries) entryStore.put(record);
-    const outboxStore = writeTransaction.objectStore(OUTBOX_STORE);
-    for (const operation of syncOperations) outboxStore.put(operation);
-    writeTransaction.objectStore(KEY_STORE).put(vaultKey, DEVICE_KEY_ID);
-    writeTransaction.objectStore(VAULT_STORE).put({
-      id: VAULT_ENVELOPE_ID,
-      ...envelope,
-    } satisfies StoredVaultEnvelope);
-    await transactionDone(writeTransaction);
+    const done = transactionDone(writeTransaction);
+    try {
+      // Recheck in the same transaction as the replacement, including when a
+      // different context does not participate in the Web Locks protocol.
+      const [currentPin, currentEnvelope] = await Promise.all([
+        requestToPromise(writeTransaction.objectStore(KEY_STORE).get(PIN_LOCK_KEY_ID)),
+        requestToPromise(writeTransaction.objectStore(VAULT_STORE).get(VAULT_ENVELOPE_ID)),
+      ]);
+      if (currentPin) throw new RecoveryPinLockError();
+      if (currentEnvelope) throw new Error("이 금고에는 이미 복구 코드가 있습니다.");
+      const entryStore = writeTransaction.objectStore(ENTRY_STORE);
+      for (const record of reencryptedEntries) entryStore.put(record);
+      const outboxStore = writeTransaction.objectStore(OUTBOX_STORE);
+      for (const operation of syncOperations) outboxStore.put(operation);
+      writeTransaction.objectStore(KEY_STORE).put(vaultKey, DEVICE_KEY_ID);
+      writeTransaction.objectStore(VAULT_STORE).put({
+        id: VAULT_ENVELOPE_ID,
+        ...envelope,
+      } satisfies StoredVaultEnvelope);
+      await done;
+    } catch (error) {
+      try { writeTransaction.abort(); } catch { /* Already finished or aborted. */ }
+      await done.catch(() => undefined);
+      throw error;
+    }
 
     return { recoveryCode, envelope };
-  });
+  }));
 }
 
 export async function recoverVault(

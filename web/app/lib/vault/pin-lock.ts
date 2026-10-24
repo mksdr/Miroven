@@ -7,6 +7,7 @@ import {
 import { getDeviceKey } from "./device-key";
 import { requestToPromise, transactionDone, withVaultDatabase } from "./idb";
 import type { PinLockEnvelope } from "./types";
+import { withVaultLock } from "./mutation-lock";
 
 const MAX_FAILED_ATTEMPTS = 5;
 
@@ -133,7 +134,7 @@ export async function setupPinLock(pin: string): Promise<void> {
   if (!isValidPinFormat(pin)) {
     throw new Error("PIN은 4~8자리의 숫자만 가능합니다.");
   }
-  await withVaultDatabase(async (database) => {
+  await withVaultLock("mutation", () => withVaultDatabase(async (database) => {
     const deviceKey = await getDeviceKey(database);
     const salt = crypto.getRandomValues(new Uint8Array(16)).buffer;
     const iv = crypto.getRandomValues(new Uint8Array(12)).buffer;
@@ -152,10 +153,15 @@ export async function setupPinLock(pin: string): Promise<void> {
     store.delete(DEVICE_KEY_ID);
     await transactionDone(transaction);
     await clearPinFailures();
-  });
+  }));
 }
 
 export async function unlockVaultWithPin(pin: string): Promise<boolean> {
+  return withVaultLock("mutation", () => unlockVaultWithPinUnlocked(pin));
+}
+
+// Call only while holding the mutation lock; removePinLock shares this path.
+async function unlockVaultWithPinUnlocked(pin: string): Promise<boolean> {
   if ((await getPinLockoutRemainingSeconds()) > 0) return false;
   if (!isValidPinFormat(pin)) return false;
   return withVaultDatabase(async (database) => {
@@ -182,34 +188,38 @@ export async function unlockVaultWithPin(pin: string): Promise<boolean> {
         ["encrypt", "decrypt", "wrapKey", "unwrapKey"],
       );
     } catch {
-      void recordPinFailure();
+      await recordPinFailure();
       return false;
     }
 
     const writeTransaction = database.transaction(KEY_STORE, "readwrite");
     writeTransaction.objectStore(KEY_STORE).put(unwrappedDeviceKey, DEVICE_KEY_ID);
     await transactionDone(writeTransaction);
-    void clearPinFailures();
+    await clearPinFailures();
     return true;
   });
 }
 
 export async function removePinLock(currentPin: string): Promise<boolean> {
-  if (!(await unlockVaultWithPin(currentPin))) return false;
-  return withVaultDatabase(async (database) => {
-    const transaction = database.transaction(KEY_STORE, "readwrite");
-    transaction.objectStore(KEY_STORE).delete(PIN_LOCK_KEY_ID);
-    await transactionDone(transaction);
-    void clearPinFailures();
-    return true;
+  return withVaultLock("mutation", async () => {
+    if (!(await unlockVaultWithPinUnlocked(currentPin))) return false;
+    return withVaultDatabase(async (database) => {
+      const transaction = database.transaction(KEY_STORE, "readwrite");
+      transaction.objectStore(KEY_STORE).delete(PIN_LOCK_KEY_ID);
+      await transactionDone(transaction);
+      await clearPinFailures();
+      return true;
+    });
   });
 }
 
 export async function lockDeviceKey(): Promise<void> {
-  if (!(await hasPinLock())) return;
-  await withVaultDatabase(async (database) => {
-    const transaction = database.transaction(KEY_STORE, "readwrite");
-    transaction.objectStore(KEY_STORE).delete(DEVICE_KEY_ID);
-    await transactionDone(transaction);
+  await withVaultLock("mutation", async () => {
+    if (!(await hasPinLock())) return;
+    await withVaultDatabase(async (database) => {
+      const transaction = database.transaction(KEY_STORE, "readwrite");
+      transaction.objectStore(KEY_STORE).delete(DEVICE_KEY_ID);
+      await transactionDone(transaction);
+    });
   });
 }
