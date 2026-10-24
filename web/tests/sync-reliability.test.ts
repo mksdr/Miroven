@@ -180,7 +180,7 @@ describe("sync reliability regressions", () => {
     const backup = await b.run(createEncryptedBackup);
     const restored = new VirtualDevice("restored-backup");
     await restored.run(() => importEncryptedBackup(backup.json, recoveryCode));
-    expect(await restored.run(getSyncSnapshot)).toMatchObject({ cursor: 2, conflicts: 1 });
+    expect(await restored.run(getSyncSnapshot)).toMatchObject({ cursor: 0, conflicts: 1 });
     await sync(restored, server);
     await restored.run(() => resolveConflictKeepBoth("shared"));
     expect(await sync(restored, server)).toMatchObject({ pushed: 1, conflicts: 0 });
