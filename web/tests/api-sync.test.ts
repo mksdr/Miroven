@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { pairedDevices, MockRemoteSyncServer } from "./helpers/sync";
-import { acknowledgeSyncOperation, getSyncSnapshot, listEntries, listPendingSyncOperations, saveEntry, deleteEntry } from "../app/lib/local-vault";
+import { describe, expect, it, vi } from "vitest";
+import { pairedDevices, MockRemoteSyncServer, VirtualDevice } from "./helpers/sync";
+import { SYNC_META_STORE } from "../app/lib/vault/contracts";
+import { requestToPromise, transactionDone, withVaultDatabase } from "../app/lib/vault/idb";
+import { acknowledgeSyncOperation, getSyncSnapshot, listEntries, listPendingSyncOperations, markSyncOperationConflict, saveEntry, deleteEntry } from "../app/lib/local-vault";
 import { synchronizeJournal } from "../app/lib/journal-sync";
 import { ApiError } from "../app/lib/remote/client";
 import type { JournalSyncTransport, RemoteSyncBatchItem } from "../app/lib/remote/journal-sync-transport";
@@ -34,6 +36,78 @@ function httpLike(server: MockRemoteSyncServer, scope = "api|owner") {
 }
 
 describe("HTTP cursor and atomic snapshot reconciliation", () => {
+  it.each([50, "signed-cursor"])("exports cursor %s as numeric zero without changing the source vault", async cursor => {
+    const { a } = await pairedDevices();
+    await a.run(async () => {
+      await withVaultDatabase(async db => {
+        const tx = db.transaction(SYNC_META_STORE, "readwrite");
+        tx.objectStore(SYNC_META_STORE).put(cursor, "server-cursor");
+        await transactionDone(tx);
+      });
+      const backup = await createEncryptedBackup();
+      expect(JSON.parse(backup.json).serverCursor).toBe(0);
+      expect((await getSyncSnapshot()).cursor).toBe(cursor);
+    });
+  });
+
+  it("restores legacy nonzero cursors with bootstrap and preserves imported work across snapshot failure", async () => {
+    const { a, b, recoveryCode } = await pairedDevices();
+    const c = new VirtualDevice("restored-backup");
+    const server = new MockRemoteSyncServer();
+    const shared = entry("already synchronized");
+    const offline = entry("unsent backup record");
+    const remote = entry("server record missing from backup");
+    await a.run(async () => {
+      await saveEntry(shared);
+      await synchronizeJournal("owner", httpLike(server));
+      await saveEntry(offline);
+      await saveEntry({ ...shared, text: "conflicted backup edit" });
+      const operation = (await listPendingSyncOperations()).find(op => op.entryId === shared.id)!;
+      await markSyncOperationConflict(operation.operationId, "synthetic backup conflict");
+    });
+    const backup = JSON.parse((await a.run(createEncryptedBackup)).json);
+    backup.serverCursor = 50;
+    await b.run(async () => {
+      await saveEntry(remote);
+      await synchronizeJournal("owner", httpLike(server));
+    });
+    await c.run(async () => {
+      await importEncryptedBackup(JSON.stringify(backup), recoveryCode);
+      expect((await getSyncSnapshot()).cursor).toBe(0);
+      const bootstrap = await withVaultDatabase(db =>
+        requestToPromise(db.transaction(SYNC_META_STORE).objectStore(SYNC_META_STORE).get("needs-bootstrap")));
+      expect(bootstrap).toBe(true);
+      const before = await listEntries();
+      const operations = await listPendingSyncOperations();
+      expect(operations).toHaveLength(1);
+      expect((await getSyncSnapshot()).conflicts).toBe(1);
+      const interrupted = httpLike(server);
+      const snapshot = interrupted.readSnapshot!;
+      interrupted.readSnapshot = async cursor => {
+        if (cursor) throw new Error("snapshot interrupted");
+        return snapshot(cursor);
+      };
+      await expect(synchronizeJournal("owner", interrupted)).rejects.toThrow("snapshot interrupted");
+      expect(await listEntries()).toEqual(before);
+      expect(await listPendingSyncOperations()).toEqual(operations);
+      expect((await getSyncSnapshot()).cursor).toBe(0);
+      expect((await getSyncSnapshot()).conflicts).toBe(1);
+
+      const transport = httpLike(server);
+      const readSnapshot = vi.spyOn(transport, "readSnapshot");
+      const readPage = vi.spyOn(transport, "readPage");
+      await synchronizeJournal("owner", transport);
+      expect(readSnapshot).toHaveBeenCalledTimes(2);
+      expect(readSnapshot.mock.invocationCallOrder.at(-1)).toBeLessThan(readPage.mock.invocationCallOrder[0]);
+      expect(readPage).toHaveBeenCalledWith("c2");
+      expect(new Set((await listEntries()).map(record => record.id))).toEqual(new Set([shared.id, offline.id, remote.id]));
+      expect((await getSyncSnapshot()).cursor).toBe("c3");
+      expect((await getSyncSnapshot()).conflicts).toBe(1);
+      expect((await listEntries()).find(record => record.id === shared.id)?.text).toBe("conflicted backup edit");
+      expect(await listPendingSyncOperations()).toEqual([]);
+    });
+  });
+
   it("exports a signed cursor as backup v1 and bootstraps safely after import", async () => {
     const { a, b, recoveryCode } = await pairedDevices();
     const server = new MockRemoteSyncServer();

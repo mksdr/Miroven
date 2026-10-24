@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 const origin = process.env.MIROVEN_INTEGRATION_URL;
 const apiOrigin = process.env.MIROVEN_INTEGRATION_API_ORIGIN ?? origin;
@@ -35,6 +36,103 @@ async function sync(page: Page, expected = "동기화 완료") {
   await page.getByRole("button", { name: "지금 동기화", exact: true }).click();
   await expect(page.locator(".account-session")).toContainText(expected, { timeout: 15_000 });
   await page.keyboard.press("Escape");
+}
+
+async function readSyncMetadata(page: Page) {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("private-journal");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      const store = db.transaction("sync-meta").objectStore("sync-meta");
+      const read = (key: string) => new Promise<unknown>((resolve, reject) => {
+        const request = store.get(key);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const [cursor, bootstrap] = await Promise.all([read("server-cursor"), read("needs-bootstrap")]);
+      return { cursor, bootstrap: Boolean(bootstrap) };
+    } finally { db.close(); }
+  });
+}
+
+for (const backupCursor of [0, 50]) {
+  test(`encrypted backup cursor ${backupCursor} restores a full API snapshot on a fresh browser`, async ({ browser }) => {
+    const a = await browser.newContext({ locale: "ko-KR" });
+    const peers = [];
+    let releaseSync = () => {};
+    try {
+      const first = await a.newPage();
+      await first.goto(origin!);
+      await signIn(first, `backup-${crypto.randomUUID()}@example.com`);
+      await first.getByRole("button", { name: "복구 코드 만들기", exact: true }).click();
+      const code = await first.locator(".recovery-code-panel code").innerText();
+      await first.getByRole("button", { name: "안전하게 보관했습니다", exact: true }).click();
+      const local = `백업에 포함된 합성 기록 ${crypto.randomUUID()}`;
+      await first.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" }).fill(local);
+      await first.getByRole("button", { name: "기록", exact: true }).click();
+      await sync(first);
+      const sourceMetadata = await readSyncMetadata(first);
+      expect(sourceMetadata.cursor).toEqual(expect.any(String));
+      await first.getByRole("button", { name: "계정", exact: true }).click();
+      const downloading = first.waitForEvent("download");
+      await first.getByRole("button", { name: "암호화 백업 내려받기", exact: true }).click();
+      const downloadPath = await (await downloading).path();
+      const backup = JSON.parse(await readFile(downloadPath!, "utf8"));
+      expect(backup.serverCursor).toBe(0);
+      expect(await readSyncMetadata(first)).toEqual(sourceMetadata);
+
+      // Reuse only the synthetic login cookie: each peer has independent, empty IndexedDB.
+      const cookies = await a.cookies();
+      const b = await browser.newContext({ locale: "ko-KR" });
+      peers.push(b);
+      await b.addCookies(cookies);
+      const second = await b.newPage();
+      await second.goto(origin!);
+      await second.getByRole("textbox", { name: "복구 코드", exact: true }).fill(code);
+      await second.getByRole("button", { name: "이 기기에서 복구", exact: true }).click();
+      await expect(second.getByText(local, { exact: true })).toBeVisible();
+      const remote = `다른 기기의 백업 이후 합성 기록 ${crypto.randomUUID()}`;
+      await second.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" }).fill(remote);
+      await second.getByRole("button", { name: "기록", exact: true }).click();
+      await sync(second);
+
+      const c = await browser.newContext({ locale: "ko-KR" });
+      peers.push(c);
+      await c.addCookies(cookies);
+      const restored = await c.newPage();
+      await restored.goto(origin!);
+      const gate = new Promise<void>(resolve => { releaseSync = resolve; });
+      await restored.route("**/api/v1/sync/**", async route => { await gate; await route.continue(); });
+      await restored.getByRole("button", { name: "계정", exact: true }).click();
+      await restored.locator("#modal-backup-code").fill(code);
+      backup.serverCursor = backupCursor;
+      await restored.locator('.backup-file-button input[type="file"]').setInputFiles({
+        name: "synthetic.miroven-backup.json", mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify(backup)),
+      });
+      await expect(restored.getByText("1개 기록을 암호화 상태로 복구했습니다.", { exact: true })).toBeVisible();
+      expect(await readSyncMetadata(restored)).toEqual({ cursor: 0, bootstrap: true });
+      await expect(restored.getByText(remote, { exact: true })).toHaveCount(0);
+      const snapshot = restored.waitForResponse(response => response.url().includes("/sync/snapshot") && response.status() === 200);
+      const changes = restored.waitForRequest(request => request.url().includes("/sync/changes"));
+      releaseSync();
+      await restored.keyboard.press("Escape");
+      const resumeCursor = (await (await snapshot).json()).resume_cursor;
+      expect(new URL((await changes).url()).searchParams.get("cursor")).toBe(resumeCursor);
+      await expect(restored.getByText(local, { exact: true })).toBeVisible();
+      await expect(restored.getByText(remote, { exact: true })).toBeVisible();
+      await expect.poll(() => readSyncMetadata(restored)).toEqual({ cursor: expect.any(String), bootstrap: false });
+      await restored.reload();
+      await expect(restored.getByText(remote, { exact: true })).toBeVisible();
+    } finally {
+      releaseSync();
+      await Promise.all(peers.map(context => context.close()));
+      await a.close();
+    }
+  });
 }
 
 async function editProfile(page: Page, name: string, avatar?: string) {

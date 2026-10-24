@@ -96,7 +96,7 @@ describe("secret scanner", () => {
       };
     `);
     const result = scan.run(preload);
-    expect(result.stdout).toContain("fixture path replaced");
+    expect(result.stdout, result.stderr).toContain("fixture path replaced");
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(`[SECRET SCAN ERROR] Retired backend dependency or connection found in: ${target}`);
   });

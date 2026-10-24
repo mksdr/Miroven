@@ -267,21 +267,19 @@ export async function validateBackupContents(
 export async function createEncryptedBackup(): Promise<EncryptedBackupExport> {
   return withVaultDatabase(async (database) => {
     const transaction = database.transaction(
-      [ENTRY_STORE, KEY_STORE, VAULT_STORE, OUTBOX_STORE, SYNC_META_STORE],
+      [ENTRY_STORE, KEY_STORE, VAULT_STORE, OUTBOX_STORE],
       "readonly",
     );
     const entryRequest = transaction.objectStore(ENTRY_STORE).getAll();
     const keyRequest = transaction.objectStore(KEY_STORE).get(DEVICE_KEY_ID);
     const envelopeRequest = transaction.objectStore(VAULT_STORE).get(VAULT_ENVELOPE_ID);
     const outboxRequest = transaction.objectStore(OUTBOX_STORE).getAll();
-    const cursorRequest = transaction.objectStore(SYNC_META_STORE).get("server-cursor");
-    const [entryValues, keyValue, envelopeValue, outboxValues, cursorValue] =
+    const [entryValues, keyValue, envelopeValue, outboxValues] =
       await Promise.all([
         requestToPromise(entryRequest),
         requestToPromise(keyRequest),
         requestToPromise(envelopeRequest),
         requestToPromise(outboxRequest),
-        requestToPromise(cursorRequest),
       ]);
     const entries = entryValues as StoredEntry[];
     const vaultKey = keyValue instanceof CryptoKey ? keyValue : null;
@@ -323,10 +321,7 @@ export async function createEncryptedBackup(): Promise<EncryptedBackupExport> {
         syncState: entry.syncState,
       })),
       outbox: operations.map(serializeOperation),
-      serverCursor:
-        typeof cursorValue === "number" && Number.isSafeInteger(cursorValue)
-          ? Math.max(0, cursorValue)
-          : 0,
+      serverCursor: 0,
     };
     const json = JSON.stringify(backup);
     if (new Blob([json]).size > ENCRYPTED_BACKUP_MAX_BYTES) {
@@ -369,7 +364,8 @@ export async function importEncryptedBackup(
   const envelope = parseBackupEnvelope(parsed.vault);
   const entries = parsed.entries.map(parseBackupEntry);
   const operations = parsed.outbox.map(parseBackupOperation);
-  const serverCursor = expectNonNegativeInteger(parsed.serverCursor, "서버 cursor");
+  // Accept legacy numeric cursors, but never reuse another device's pull position.
+  expectNonNegativeInteger(parsed.serverCursor, "서버 cursor");
   const vaultKey = await unwrapVaultKey(envelope, recoveryCode);
   await validateBackupContents(vaultKey, entries, operations);
 
@@ -405,7 +401,9 @@ export async function importEncryptedBackup(
     } satisfies StoredVaultEnvelope);
     const outboxStore = writeTransaction.objectStore(OUTBOX_STORE);
     for (const operation of operations) outboxStore.put(operation);
-    writeTransaction.objectStore(SYNC_META_STORE).put(serverCursor, "server-cursor");
+    const metaStore = writeTransaction.objectStore(SYNC_META_STORE);
+    metaStore.put(0, "server-cursor");
+    metaStore.put(true, "needs-bootstrap");
     await transactionDone(writeTransaction);
 
     return {
