@@ -50,6 +50,16 @@ jobs:
           restore-keys: |
             miroven-next-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('web/package-lock.json') }}-
 
+      - name: Prefer Ubuntu archive mirror
+        run: |
+          # Avoid waiting on the slow Azure mirror before trying Ubuntu.
+          test -f /etc/apt/apt-mirrors.txt
+          printf '%s\tpriority:%s\n' \
+            'https://archive.ubuntu.com/ubuntu/' 1 \
+            'https://security.ubuntu.com/ubuntu/' 2 \
+            'http://azure.archive.ubuntu.com/ubuntu/' 3 \
+            | sudo tee /etc/apt/apt-mirrors.txt
+
       - name: Install Chromium, Firefox and WebKit
         run: |
           # Playwright needs Ubuntu packages, not the runner's Microsoft feeds.
@@ -180,6 +190,17 @@ jobs:
           key: miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('Miroven/web/package-lock.json') }}
           restore-keys: |
             miroven-npm-v1-${{ runner.os }}-${{ runner.arch }}-node24-
+
+      - name: Prefer Ubuntu archive mirror
+        if: steps.check-api.outputs.has_api == 'true'
+        run: |
+          # Keep the same mirror priority as the local E2E job above.
+          test -f /etc/apt/apt-mirrors.txt
+          printf '%s\tpriority:%s\n' \
+            'https://archive.ubuntu.com/ubuntu/' 1 \
+            'https://security.ubuntu.com/ubuntu/' 2 \
+            'http://azure.archive.ubuntu.com/ubuntu/' 3 \
+            | sudo tee /etc/apt/apt-mirrors.txt
 
       - name: Install Miroven dependencies & Chromium
         if: steps.check-api.outputs.has_api == 'true'
