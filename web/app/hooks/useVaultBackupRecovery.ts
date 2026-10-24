@@ -9,6 +9,7 @@ import {
   getSyncSnapshot,
   importEncryptedBackup,
   recoverVault,
+  RecoveryPinLockError,
   type VaultEnvelope,
 } from "../lib/local-vault";
 import { downloadDiagnosticReport } from "../lib/diagnostics";
@@ -38,6 +39,11 @@ function localizedError(
   koFallback: string,
   enFallback: string,
 ): string {
+  if (error instanceof RecoveryPinLockError) {
+    return language === "ko"
+      ? error.message
+      : "Remove the PIN lock in Account settings before creating a recovery code. You can set it up again afterwards.";
+  }
   if (language === "ko" && error instanceof Error) return error.message;
   return language === "ko" ? koFallback : enFallback;
 }

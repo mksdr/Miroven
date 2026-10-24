@@ -111,6 +111,7 @@ export {
   createRecoveryKit,
   getLocalVaultEnvelope,
   recoverVault,
+  RecoveryPinLockError,
 } from "./vault/recovery";
 
 export {
