@@ -2,6 +2,13 @@
 
 Future releases are generated from Conventional Commits.
 
+## [1.2.2](https://github.com/mksdr/Miroven/compare/v1.2.1...v1.2.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* **vault:** preserve PIN and recovery key consistency ([#20](https://github.com/mksdr/Miroven/issues/20)) ([5ddc6c7](https://github.com/mksdr/Miroven/commit/5ddc6c78f04749c9dd2f529ebb6b35a1e247e6c0))
+
 ## [1.2.1](https://github.com/mksdr/Miroven/compare/v1.2.0...v1.2.1) (2026-10-24)
 
 
