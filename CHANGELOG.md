@@ -2,6 +2,13 @@
 
 Future releases are generated from Conventional Commits.
 
+## [1.2.3](https://github.com/mksdr/Miroven/compare/v1.2.2...v1.2.3) (2026-10-24)
+
+
+### Bug Fixes
+
+* **backup:** reset sync cursor and bootstrap restored vaults ([#22](https://github.com/mksdr/Miroven/issues/22)) ([2cfb676](https://github.com/mksdr/Miroven/commit/2cfb67637b67179de0d7dc72a2da52d9e1788035))
+
 ## [1.2.2](https://github.com/mksdr/Miroven/compare/v1.2.1...v1.2.2) (2026-10-24)
 
 
