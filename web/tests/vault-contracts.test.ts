@@ -119,7 +119,7 @@ describe("vault compatibility contracts", () => {
     }
   });
 
-  it("keeps exported backup and encryption versions stable", async () => {
+  it("exports the authenticated backup version without changing encryption versions", async () => {
     await saveEntry({
       id: "018f91f0-776b-7c8a-80d8-82455b090002",
       text: "backup contract fixture",

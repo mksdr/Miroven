@@ -66,6 +66,9 @@ describe("HTTP cursor and atomic snapshot reconciliation", () => {
       await markSyncOperationConflict(operation.operationId, "synthetic backup conflict");
     });
     const backup = JSON.parse((await a.run(createEncryptedBackup)).json);
+    // Exercise the legacy import contract, rather than tampering with a v2 manifest.
+    backup.version = 1;
+    delete backup.authentication;
     backup.serverCursor = 50;
     await b.run(async () => {
       await saveEntry(remote);
@@ -108,7 +111,7 @@ describe("HTTP cursor and atomic snapshot reconciliation", () => {
     });
   });
 
-  it("exports a signed cursor as backup v1 and bootstraps safely after import", async () => {
+  it("exports a signed cursor as authenticated backup v2 and bootstraps safely after import", async () => {
     const { a, b, recoveryCode } = await pairedDevices();
     const server = new MockRemoteSyncServer();
     const record = entry("portable backup");
