@@ -1,0 +1,90 @@
+diff --git a/Cryptographic-Format.ko.md b/Cryptographic-Format.ko.md
+index 7791e9c..cc0284f 100644
+--- a/Cryptographic-Format.ko.md
++++ b/Cryptographic-Format.ko.md
+@@ -35,7 +35,7 @@ Vault Key (32 bytes)
+   └─ optional PIN envelope for the current device key slot
+ ```
+
+-Web Crypto의 현재 키는 PIN wrapping을 위해 extractable한 `CryptoKey`로 생성·가져옵니다. 잠금 해제 중에는 이 키가 IndexedDB의 `device-keys/primary`에 존재하며, 잠그면 삭제되고 PIN envelope만 남습니다. 따라서 PIN은 기기·브라우저가 이미 장악된 상황을 방어하는 수단이 아닙니다.
++Web Crypto의 현재 키는 PIN wrapping을 위해 extractable한 `CryptoKey`로 생성·가져옵니다. PIN이 설정되어 있으면 검증 후 해제 키는 현재 문서의 메모리에만 두며 IndexedDB `device-keys/primary`에 새로 쓰지 않습니다. PIN이 없으면 기존 영구 키 저장 동작을 유지합니다. 따라서 PIN은 기기·브라우저가 이미 장악된 상황을 방어하는 수단이 아닙니다.
+
+ ## 복구 코드와 Vault Key Envelope
+
+@@ -132,3 +132,13 @@ import는 100 MiB, 최대 entry/outbox 각 100,000개, field type·buffer length
+ 관련 문서: [백업 가이드](Backup-and-Restore.ko) · [현재 보안 기준](Security-Model.ko)
+
+ IndexedDB v4는 snapshot을 원자적으로 조정하기 위한 remote-stage를 추가합니다. 기존 암호문과 AAD는 유지합니다. 서명된 API 커서는 백업 v1에 숫자 0으로 기록하며, 복원 후 새 API·계정 바인딩으로 전체 snapshot을 받아 조정합니다.
++
++## PIN 해제 키의 수명과 기존 금고
++
++PIN 해제는 현재 문서 컨텍스트에만 적용한다. 새로고침·새 탭·다른 페이지 이동·브라우저 프로세스 재시작 후에는 PIN을 다시 입력한다. pagehide(bfcache 진입 포함)에서 현재 메모리 세션을 폐기하고 bfcache 복귀 시 잠금 상태를 다시 확인한다. 수동/유휴 잠금 및 PIN 변경은 BroadcastChannel, 불가능하면 storage 이벤트로 다른 참여 탭의 메모리와 복호화 화면을 정리한다. 키와 PIN은 전송하지 않는다. 두 알림 방식이 모두 불가능하면 다른 탭에 즉시 알릴 수 없으므로 각 탭이 별도로 잠겨야 한다. 한 탭을 열어도 다른 탭은 열리지 않으며, 진행 중인 느린 PIN 파생 작업은 이미 폐기한 세션을 복구할 수 없다.
++
++IndexedDB 버전·store 이름·암호문·AAD·PIN 봉투·PBKDF2 매개변수·복구 코드·백업 형식은 유지한다. 중앙 키 접근자는 PIN 봉투가 있으면 구버전의 영구 `primary` 키를 무시한다. 기존 키는 올바른 PIN으로 봉투와 일치하는 것을 확인한 첫 해제 시 삭제하고 메모리 세션을 만든다. 불일치한 기존 금고에서 마지막 사용 가능한 키를 조용히 잃지 않기 위한 절차다. 첫 검증 전까지 구버전 키는 디스크에 남으므로 업데이트 후 PIN 해제를 한 번 완료한다. 키가 다르면 금고를 열지 않고 원본 브라우저 데이터와 복구 코드를 보존하여 복구하도록 안내하며 키를 삭제하지 않는다.
++
++업데이트 후 구버전 탭을 모두 닫거나 다시 불러온다. 이미 실행 중인 구버전 JavaScript의 키 사용·저장을 소급 차단할 수는 없다. 업데이트된 앱은 구버전 저장 키로 PIN 입력을 우회하지 않는다. PIN 제거에는 올바른 PIN을 요구하며, 검증된 키의 영구 저장과 PIN 봉투 제거를 한 트랜잭션으로 처리해 PIN 없는 로컬 전용 금고를 재시작 후에도 사용할 수 있다. 복구/백업 가져오기는 기존 PIN 아래에 영구 키를 설치하지 않으며 빈 금고의 PIN을 먼저 제거해야 한다. 백업 내보내기는 해제된 메모리 키를 사용한다. 기록·초안·최근 검색어·사진·미전송 Outbox·충돌 데이터는 보존한다.
++
++PIN은 여전히 오프라인 엔트로피가 제한된 편의 잠금이다. 변조된 클라이언트·브라우저, XSS, OS 메모리 검사, 이미 열린 탭에 대한 접근을 방어하는 변경은 아니다.
+diff --git a/Cryptographic-Format.md b/Cryptographic-Format.md
+index b104218..36b17c3 100644
+--- a/Cryptographic-Format.md
++++ b/Cryptographic-Format.md
+@@ -21,7 +21,7 @@ Stores: `entries`, `device-keys`, `vault-envelopes`, `sync-outbox`, `sync-meta`,
+
+ A 25-byte CSPRNG recovery secret derives a recovery wrapping key through HKDF-SHA-256 with a random 16-byte salt. This wraps the 32-byte vault key. The vault key wraps per-entry/per-sync-object data keys, encrypts recent searches, and optionally has a device PIN envelope.
+
+-Web Crypto keys are generated/imported as extractable for PIN wrapping. While unlocked the vault key exists as a CryptoKey at IndexedDB `device-keys/primary`; locking removes it and retains the PIN envelope. PIN locking cannot protect a compromised browser/device.
++Web Crypto keys are generated/imported as extractable for PIN wrapping. With PIN locking enabled, a verified unlock holds the vault key only in the current document's memory; it is never newly written to IndexedDB `device-keys/primary`. Without a PIN the existing persistent-key behavior remains. PIN locking cannot protect a compromised browser/device.
+
+ | Recovery field | Contract |
+ | --- | --- |
+@@ -87,3 +87,13 @@ Up to ten search strings remain on-device, excluded from backup, sync, and diagn
+ Changing AAD, database/store names, or format versions requires a new version, migration, and compatibility tests. Do not silently redefine old versions. Add independent review and old-format fixture tests before changing crypto formats. IndexedDB v4 adds `remote-stage` for atomic snapshot reconciliation while preserving ciphertext and AAD.
+
+ See [backup and recovery](Backup-and-Restore), [security](Security-Model), and [test fixtures](https://github.com/mksdr/Miroven/blob/HEAD/web/tests/fixtures/README.md).
++
++## PIN key lifetime and existing vaults
++
++PIN unlock is scoped to one document context. Reloads, new tabs, navigation, and browser-process restarts require the PIN again. Pagehide (including bfcache entry) revokes the current context; returning from bfcache rechecks the locked state. Manual/idle locks and PIN changes revoke memory sessions and clear decrypted views in participating tabs through BroadcastChannel, with storage-event notification as a fallback. No key or PIN is sent through either channel. If both messaging mechanisms are unavailable, other tabs cannot be notified immediately and must lock independently. Unlocking one tab does not unlock another. A pending slow PIN derivation cannot restore a session revoked while it was running.
++
++Migration does not change IndexedDB version/store names, encrypted records, AAD, PIN envelope, PBKDF2 parameters, recovery codes, or backup format. The centralized key reader ignores a legacy persistent `primary` key whenever a PIN envelope exists. Existing plaintext-capable legacy keys are retained until the first correct PIN proves that they match the envelope, then removed before creating the memory session. This avoids silently deleting the only usable key in an inconsistent legacy vault. Until that first verified migration, the legacy key still exists on disk; complete a PIN unlock after updating. If keys do not match, fail closed and preserve the original browser data and recovery code for recovery rather than deleting either key.
++
++Close/reload all old-version tabs after updating: old JavaScript cannot be retroactively revoked and may still use the old persistence path. The updated app never uses a legacy stored key to bypass PIN entry. PIN removal requires the correct PIN and atomically stores the verified key while deleting the PIN envelope, preserving local-only operation across restarts. Recovery/import refuses to install a persistent key underneath an existing PIN; remove the PIN first on an empty vault. Backup export uses the memory key while unlocked. Existing encrypted entries, drafts, recent searches, photos, Outbox work, and conflicts remain intact.
++
++The PIN is still a convenience lock with limited offline entropy. This change does not defend against a compromised client/browser, XSS, OS memory inspection, or someone accessing an already unlocked tab.
+diff --git a/Security-Model.ko.md b/Security-Model.ko.md
+index 68dfac3..7389f21 100644
+--- a/Security-Model.ko.md
++++ b/Security-Model.ko.md
+@@ -23,3 +23,13 @@ E2EE는 변조된 클라이언트·XSS·잠금 해제 기기 접근을 막지
+ 서버의 기본 로컬 저장소 설치·백업 복원은 검증했습니다. 공개 도메인·실제 SMTP·S3 제공업체·독립 보안 감사·iOS/Android 실기기 검증은 남아 있습니다. API 브라우저 통합은 Chromium이며 WebKit 검증은 로컬 사진 처리 범위입니다.
+
+ [암호문 계약](Cryptographic-Format.ko)
++
++## PIN 해제 키의 수명과 기존 금고
++
++PIN 해제는 현재 문서 컨텍스트에만 적용한다. 새로고침·새 탭·다른 페이지 이동·브라우저 프로세스 재시작 후에는 PIN을 다시 입력한다. pagehide(bfcache 진입 포함)에서 현재 메모리 세션을 폐기하고 bfcache 복귀 시 잠금 상태를 다시 확인한다. 수동/유휴 잠금 및 PIN 변경은 BroadcastChannel, 불가능하면 storage 이벤트로 다른 참여 탭의 메모리와 복호화 화면을 정리한다. 키와 PIN은 전송하지 않는다. 두 알림 방식이 모두 불가능하면 다른 탭에 즉시 알릴 수 없으므로 각 탭이 별도로 잠겨야 한다. 한 탭을 열어도 다른 탭은 열리지 않으며, 진행 중인 느린 PIN 파생 작업은 이미 폐기한 세션을 복구할 수 없다.
++
++IndexedDB 버전·store 이름·암호문·AAD·PIN 봉투·PBKDF2 매개변수·복구 코드·백업 형식은 유지한다. 중앙 키 접근자는 PIN 봉투가 있으면 구버전의 영구 `primary` 키를 무시한다. 기존 키는 올바른 PIN으로 봉투와 일치하는 것을 확인한 첫 해제 시 삭제하고 메모리 세션을 만든다. 불일치한 기존 금고에서 마지막 사용 가능한 키를 조용히 잃지 않기 위한 절차다. 첫 검증 전까지 구버전 키는 디스크에 남으므로 업데이트 후 PIN 해제를 한 번 완료한다. 키가 다르면 금고를 열지 않고 원본 브라우저 데이터와 복구 코드를 보존하여 복구하도록 안내하며 키를 삭제하지 않는다.
++
++업데이트 후 구버전 탭을 모두 닫거나 다시 불러온다. 이미 실행 중인 구버전 JavaScript의 키 사용·저장을 소급 차단할 수는 없다. 업데이트된 앱은 구버전 저장 키로 PIN 입력을 우회하지 않는다. PIN 제거에는 올바른 PIN을 요구하며, 검증된 키의 영구 저장과 PIN 봉투 제거를 한 트랜잭션으로 처리해 PIN 없는 로컬 전용 금고를 재시작 후에도 사용할 수 있다. 복구/백업 가져오기는 기존 PIN 아래에 영구 키를 설치하지 않으며 빈 금고의 PIN을 먼저 제거해야 한다. 백업 내보내기는 해제된 메모리 키를 사용한다. 기록·초안·최근 검색어·사진·미전송 Outbox·충돌 데이터는 보존한다.
++
++PIN은 여전히 오프라인 엔트로피가 제한된 편의 잠금이다. 변조된 클라이언트·브라우저, XSS, OS 메모리 검사, 이미 열린 탭에 대한 접근을 방어하는 변경은 아니다.
+diff --git a/Security-Model.md b/Security-Model.md
+index 93253c0..00eb89f 100644
+--- a/Security-Model.md
++++ b/Security-Model.md
+@@ -23,3 +23,13 @@ E2EE does not protect against a modified client, XSS, or access to an unlocked d
+ Local-server installation and paired backup/restore have been exercised. Public domains, external SMTP, actual S3 providers, independent security audit, and physical iOS/Android behavior have not been established by those checks. API browser integration uses Chromium; WebKit checks cover local photo processing and client workflows. Do not infer a certification or public-service readiness from local tests.
+
+ See [cryptographic format](Cryptographic-Format), [account and sync](Account-and-Sync), [backup and recovery](Backup-and-Restore), and [image processing](Image-Processing).
++
++## PIN key lifetime and existing vaults
++
++PIN unlock is scoped to one document context. Reloads, new tabs, navigation, and browser-process restarts require the PIN again. Pagehide (including bfcache entry) revokes the current context; returning from bfcache rechecks the locked state. Manual/idle locks and PIN changes revoke memory sessions and clear decrypted views in participating tabs through BroadcastChannel, with storage-event notification as a fallback. No key or PIN is sent through either channel. If both messaging mechanisms are unavailable, other tabs cannot be notified immediately and must lock independently. Unlocking one tab does not unlock another. A pending slow PIN derivation cannot restore a session revoked while it was running.
++
++Migration does not change IndexedDB version/store names, encrypted records, AAD, PIN envelope, PBKDF2 parameters, recovery codes, or backup format. The centralized key reader ignores a legacy persistent `primary` key whenever a PIN envelope exists. Existing plaintext-capable legacy keys are retained until the first correct PIN proves that they match the envelope, then removed before creating the memory session. This avoids silently deleting the only usable key in an inconsistent legacy vault. Until that first verified migration, the legacy key still exists on disk; complete a PIN unlock after updating. If keys do not match, fail closed and preserve the original browser data and recovery code for recovery rather than deleting either key.
++
++Close/reload all old-version tabs after updating: old JavaScript cannot be retroactively revoked and may still use the old persistence path. The updated app never uses a legacy stored key to bypass PIN entry. PIN removal requires the correct PIN and atomically stores the verified key while deleting the PIN envelope, preserving local-only operation across restarts. Recovery/import refuses to install a persistent key underneath an existing PIN; remove the PIN first on an empty vault. Backup export uses the memory key while unlocked. Existing encrypted entries, drafts, recent searches, photos, Outbox work, and conflicts remain intact.
++
++The PIN is still a convenience lock with limited offline entropy. This change does not defend against a compromised client/browser, XSS, OS memory inspection, or someone accessing an already unlocked tab.

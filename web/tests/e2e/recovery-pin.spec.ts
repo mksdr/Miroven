@@ -37,6 +37,7 @@ for (const locale of ["ko-KR", "en-US"]) {
       { exact: true })).toBeVisible();
       await expect(page.locator(".recovery-code-panel")).toHaveCount(0);
       await page.reload();
+      await unlock();
       await expect(page.getByText("Synthetic PIN recovery entry", { exact: true })).toBeVisible();
 
       await account().click();

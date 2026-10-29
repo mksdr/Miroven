@@ -269,12 +269,12 @@ export function useJournalEntries({
     [changeQuote, editingEntryId, language, showToast],
   );
 
-  const lockEntries = useCallback(() => {
+  const lockEntries = useCallback((dropKey = true) => {
     vaultLockedRef.current = true;
     entryReadRef.current?.abort();
     cancelAutosave();
     cancelImageRequests();
-    void lockDeviceKey();
+    if (dropKey) void lockDeviceKey();
     clearImages();
     setDraft("");
     setEditingEntryId(null);
@@ -291,6 +291,10 @@ export function useJournalEntries({
   ]);
 
   const unlockVault = useCallback(async () => {
+    if (await isVaultLockedCheck()) {
+      setIsVaultLocked(true);
+      return;
+    }
     vaultLockedRef.current = false;
     setIsVaultLocked(false);
     setLoading(true);

@@ -28,6 +28,7 @@ import {
   saveDraft,
 } from "./vault/drafts";
 import { getDeviceKey } from "./vault/device-key";
+import { revokeKeySession } from "./vault/key-session";
 import { clearPinFailures } from "./vault/pin-lock";
 import { mapWithBudget, performancePolicy, prefersLowSpecMode } from "./performance-policy";
 import { createJournalReader as createReader } from "./vault/journal-reader";
@@ -93,6 +94,7 @@ export {
   isRecommendedPinLength,
   isValidPinFormat,
   isVaultLocked,
+  LegacyPinKeyMismatchError,
   lockDeviceKey,
   MAX_PIN_LENGTH,
   MIN_PIN_LENGTH,
@@ -342,6 +344,7 @@ export async function purgeAccountVaultData(expectedScope: string): Promise<bool
 }
 
 async function purgeLocalVaultDataUnlocked(): Promise<void> {
+  revokeKeySession({ broadcast: true, notify: false });
   if (typeof window !== "undefined") {
     try {
       localStorage.removeItem("miroven:recent_searches");

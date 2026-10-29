@@ -5,11 +5,13 @@ import {
   getPinLockoutRemainingSeconds,
   hasPinLock,
   isVaultLocked,
+  LegacyPinKeyMismatchError,
   removePinLock,
   setupPinLock,
   unlockVaultWithPin,
 } from "../lib/local-vault";
 import type { Language } from "./useAppearance";
+import { subscribeToVaultLocks } from "../lib/vault/key-session";
 
 type VaultPinOptions = {
   language: Language;
@@ -33,6 +35,13 @@ function formatPinFailureMessage(remainingSeconds: number, language: Language): 
   return language === "ko" ? "올바른 PIN 번호가 아닙니다." : "Incorrect PIN.";
 }
 
+function formatPinError(error: unknown, language: Language): string {
+  if (error instanceof LegacyPinKeyMismatchError) {
+    return language === "ko" ? error.message : "The existing vault key and PIN settings do not match. Keep the original browser data and recovery code; do not clear them.";
+  }
+  return language === "ko" ? "금고를 열지 못했습니다. 다시 시도해 주세요." : "Could not open the vault. Please retry.";
+}
+
 export function useVaultPin({
   language,
   onUnlocked,
@@ -52,6 +61,14 @@ export function useVaultPin({
     });
   }, [setVaultLocked]);
 
+  useEffect(() => subscribeToVaultLocks(() => {
+    setPinInput("");
+    setPinError(null);
+    setPinSetupOpen(false);
+    setPinRemoveOpen(false);
+    void hasPinLock().then(setIsPinConfigured);
+  }), []);
+
   const handlePinUnlock = async () => {
     if (!pinInput.trim()) return;
     const remainingBefore = await getPinLockoutRemainingSeconds();
@@ -60,7 +77,14 @@ export function useVaultPin({
       return;
     }
 
-    if (await unlockVaultWithPin(pinInput.trim())) {
+    let unlocked: boolean;
+    try {
+      unlocked = await unlockVaultWithPin(pinInput.trim());
+    } catch (error) {
+      setPinError(formatPinError(error, language));
+      return;
+    }
+    if (unlocked) {
       setPinInput("");
       setPinError(null);
       await onUnlocked();
@@ -96,7 +120,13 @@ export function useVaultPin({
       throw new Error(formatLockoutBeforeMessage(remainingBefore, language));
     }
 
-    if (await removePinLock(pin.trim())) {
+    let removed: boolean;
+    try {
+      removed = await removePinLock(pin.trim());
+    } catch (error) {
+      throw new Error(formatPinError(error, language));
+    }
+    if (removed) {
       setIsPinConfigured(false);
       showToast(
         language === "ko" ? "PIN 잠금이 해제되었습니다." : "PIN Lock removed.",

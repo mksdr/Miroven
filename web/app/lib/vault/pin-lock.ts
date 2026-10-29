@@ -4,10 +4,19 @@ import {
   PIN_FAILURE_META_ID,
   PIN_LOCK_KEY_ID,
 } from "./contracts";
-import { getDeviceKey } from "./device-key";
+import { getDeviceKey, getStoredDeviceKey } from "./device-key";
 import { requestToPromise, transactionDone, withVaultDatabase } from "./idb";
 import type { PinLockEnvelope } from "./types";
 import { withVaultLock } from "./mutation-lock";
+import { keySessionGeneration, pinIdentity, rememberKeySession, revokeKeySession } from "./key-session";
+import { equalBuffer } from "./codec";
+
+export class LegacyPinKeyMismatchError extends Error {
+  constructor() {
+    super("기존 금고 키와 PIN 설정이 일치하지 않습니다. 브라우저 데이터를 지우지 말고 원본과 복구 코드를 보관해 주세요.");
+    this.name = "LegacyPinKeyMismatchError";
+  }
+}
 
 const MAX_FAILED_ATTEMPTS = 5;
 
@@ -125,8 +134,7 @@ export async function isVaultLocked(): Promise<boolean> {
     const store = transaction.objectStore(KEY_STORE);
     const pinEnvelope = await requestToPromise(store.get(PIN_LOCK_KEY_ID));
     if (!pinEnvelope) return false;
-    const deviceKey = await requestToPromise(store.get(DEVICE_KEY_ID));
-    return !(deviceKey instanceof CryptoKey);
+    return !(await getStoredDeviceKey(database));
   });
 }
 
@@ -152,24 +160,33 @@ export async function setupPinLock(pin: string): Promise<void> {
     store.put(envelope, PIN_LOCK_KEY_ID);
     store.delete(DEVICE_KEY_ID);
     await transactionDone(transaction);
+    revokeKeySession({ broadcast: true });
     await clearPinFailures();
   }));
 }
 
 export async function unlockVaultWithPin(pin: string): Promise<boolean> {
-  return withVaultLock("mutation", () => unlockVaultWithPinUnlocked(pin));
+  const generation = keySessionGeneration();
+  return withVaultLock("mutation", async () => {
+    const unlocked = await unwrapPinKey(pin);
+    if (!unlocked) return false;
+    await clearPinFailures();
+    if (generation !== keySessionGeneration()) return false;
+    rememberKeySession(unlocked.key, unlocked.envelope);
+    return true;
+  });
 }
 
 // Call only while holding the mutation lock; removePinLock shares this path.
-async function unlockVaultWithPinUnlocked(pin: string): Promise<boolean> {
-  if ((await getPinLockoutRemainingSeconds()) > 0) return false;
-  if (!isValidPinFormat(pin)) return false;
+async function unwrapPinKey(pin: string): Promise<{ key: CryptoKey; envelope: PinLockEnvelope } | null> {
+  if ((await getPinLockoutRemainingSeconds()) > 0) return null;
+  if (!isValidPinFormat(pin)) return null;
   return withVaultDatabase(async (database) => {
     const transaction = database.transaction(KEY_STORE, "readonly");
     const envelope = (await requestToPromise(
       transaction.objectStore(KEY_STORE).get(PIN_LOCK_KEY_ID),
     )) as PinLockEnvelope | undefined;
-    if (!envelope) return false;
+    if (!envelope) return null;
 
     const pinWrappingKey = await derivePinWrappingKey(
       pin,
@@ -189,24 +206,60 @@ async function unlockVaultWithPinUnlocked(pin: string): Promise<boolean> {
       );
     } catch {
       await recordPinFailure();
-      return false;
+      return null;
+    }
+
+    const legacyTransaction = database.transaction(KEY_STORE, "readonly");
+    const legacyKey = await requestToPromise(legacyTransaction.objectStore(KEY_STORE).get(DEVICE_KEY_ID));
+    if (legacyKey instanceof CryptoKey) {
+      const [legacy, unwrapped] = await Promise.all([
+        crypto.subtle.exportKey("raw", legacyKey),
+        crypto.subtle.exportKey("raw", unwrappedDeviceKey),
+      ]);
+      try {
+        if (!equalBuffer(legacy, unwrapped)) {
+          revokeKeySession({ broadcast: true });
+          throw new LegacyPinKeyMismatchError();
+        }
+      } finally {
+        new Uint8Array(legacy).fill(0);
+        new Uint8Array(unwrapped).fill(0);
+      }
     }
 
     const writeTransaction = database.transaction(KEY_STORE, "readwrite");
-    writeTransaction.objectStore(KEY_STORE).put(unwrappedDeviceKey, DEVICE_KEY_ID);
-    await transactionDone(writeTransaction);
-    await clearPinFailures();
-    return true;
+    const done = transactionDone(writeTransaction);
+    const store = writeTransaction.objectStore(KEY_STORE);
+    const current = await requestToPromise(store.get(PIN_LOCK_KEY_ID)) as PinLockEnvelope | undefined;
+    if (!current || pinIdentity(current) !== pinIdentity(envelope)) {
+      await done;
+      return null;
+    }
+    store.delete(DEVICE_KEY_ID);
+    await done;
+    return { key: unwrappedDeviceKey, envelope };
   });
 }
 
 export async function removePinLock(currentPin: string): Promise<boolean> {
+  const generation = keySessionGeneration();
   return withVaultLock("mutation", async () => {
-    if (!(await unlockVaultWithPinUnlocked(currentPin))) return false;
+    const unlocked = await unwrapPinKey(currentPin);
+    if (!unlocked || generation !== keySessionGeneration()) return false;
     return withVaultDatabase(async (database) => {
       const transaction = database.transaction(KEY_STORE, "readwrite");
-      transaction.objectStore(KEY_STORE).delete(PIN_LOCK_KEY_ID);
-      await transactionDone(transaction);
+      const done = transactionDone(transaction);
+      const store = transaction.objectStore(KEY_STORE);
+      const current = await requestToPromise(store.get(PIN_LOCK_KEY_ID)) as PinLockEnvelope | undefined;
+      if (!current || pinIdentity(current) !== pinIdentity(unlocked.envelope)
+        || generation !== keySessionGeneration()) {
+        await done;
+        return false;
+      }
+      store.put(unlocked.key, DEVICE_KEY_ID);
+      store.delete(PIN_LOCK_KEY_ID);
+      await done;
+      revokeKeySession({ broadcast: true, notify: false });
       await clearPinFailures();
       return true;
     });
@@ -214,12 +267,8 @@ export async function removePinLock(currentPin: string): Promise<boolean> {
 }
 
 export async function lockDeviceKey(): Promise<void> {
-  await withVaultLock("mutation", async () => {
-    if (!(await hasPinLock())) return;
-    await withVaultDatabase(async (database) => {
-      const transaction = database.transaction(KEY_STORE, "readwrite");
-      transaction.objectStore(KEY_STORE).delete(DEVICE_KEY_ID);
-      await transactionDone(transaction);
-    });
-  });
+  // Revoke immediately, including while a slow PIN derivation holds the mutation lock.
+  revokeKeySession({ broadcast: true });
+  // An unverified legacy key may be the only usable copy. Only unwrapPinKey's
+  // verified migration removes it; updated unlocks never persist one.
 }
