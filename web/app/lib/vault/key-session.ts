@@ -2,10 +2,13 @@ import { bufferToBase64 } from "./codec";
 import type { PinLockEnvelope } from "./types";
 
 type Session = { key: CryptoKey; pin: string };
-// Scope test/worker storage contexts independently; nothing here is persisted.
-const sessions = new WeakMap<IDBFactory, Session>();
-const generations = new WeakMap<IDBFactory, number>();
-const listeners = new WeakMap<IDBFactory, Set<() => void>>();
+// Retain the IDBFactory wrapper for this document's lifetime: WebKit can collect
+// an otherwise unreferenced wrapper and create a new one on the next access.
+// Weak keys would then lose both lock listeners and an active memory session.
+// Factory scopes also isolate virtual storage contexts; nothing is persisted.
+const sessions = new Map<IDBFactory, Session>();
+const generations = new Map<IDBFactory, number>();
+const listeners = new Map<IDBFactory, Set<() => void>>();
 let browserEventsStarted = false;
 let channel: BroadcastChannel | undefined;
 const LOCK_EVENT_KEY = "miroven:vault-lock";
