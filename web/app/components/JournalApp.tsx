@@ -23,6 +23,7 @@ import {
   useIdleVaultLock,
   useServiceWorkerRegistration,
   useVaultResetBroadcast,
+  useVaultLockEvents,
 } from "../hooks/useAppEnvironmentEffects";
 import { JournalEntryList } from "./journal/JournalFeedSection";
 import { JournalQuoteCard } from "./journal/JournalQuoteCard";
@@ -372,9 +373,13 @@ export function JournalApp() {
     };
   }, [setRecoveryCode, setRecoveryInput, setBackupRecoveryInput]);
 
-  const lockVault = useCallback(() => {
+  const lockVault = useCallback((dropKey = true) => {
     setPersonaOpen(false);
-    lockEntries();
+    setAccountOpen(false);
+    setSettingsOpen(false);
+    setShortcutsModalOpen(false);
+    lockEntries(dropKey);
+    recoveryResetRef.current();
     setSelectedLightboxImage(null);
     setDetailEntryId(null);
     handleClearAllSearchFilters();
@@ -416,6 +421,7 @@ export function JournalApp() {
   }, [requestPersistence, showToast, t.persistentEnabled]);
 
   useIdleVaultLock(isVaultLocked, lockVault);
+  useVaultLockEvents(() => lockVault(false));
   useServiceWorkerRegistration();
 
   useLayoutEffect(() => {

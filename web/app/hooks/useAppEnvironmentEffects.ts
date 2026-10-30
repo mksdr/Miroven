@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { subscribeToVaultLocks } from "../lib/vault/key-session";
+
+export function useVaultLockEvents(onLocked: () => void) {
+  const callback = useRef(onLocked);
+  useEffect(() => { callback.current = onLocked; }, [onLocked]);
+  useEffect(() => subscribeToVaultLocks(() => callback.current()), []);
+}
 
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000;
 const IDLE_EVENTS = ["mousemove", "keydown", "pointerdown", "touchstart", "scroll"] as const;

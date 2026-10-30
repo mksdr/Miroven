@@ -313,11 +313,16 @@ export async function recoverVault(
     const vaultKey = await unwrapVaultKey(envelope, recoveryCode);
 
     const transaction = database.transaction([KEY_STORE, VAULT_STORE], "readwrite");
+    const done = transactionDone(transaction);
+    if (await requestToPromise(transaction.objectStore(KEY_STORE).get(PIN_LOCK_KEY_ID))) {
+      await done;
+      throw new Error("PIN 잠금을 먼저 해제한 뒤 금고를 복구해 주세요.");
+    }
     transaction.objectStore(KEY_STORE).put(vaultKey, DEVICE_KEY_ID);
     transaction.objectStore(VAULT_STORE).put({
       id: VAULT_ENVELOPE_ID,
       ...envelope,
     } satisfies StoredVaultEnvelope);
-    await transactionDone(transaction);
+    await done;
   });
 }

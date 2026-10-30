@@ -1,4 +1,5 @@
 import { PERSONA_DOCUMENT_ID } from "../persona";
+import { getStoredDeviceKey } from "./device-key";
 import {
   requestToPromise,
   transactionDone,
@@ -22,6 +23,7 @@ import {
   ENTRY_STORE,
   KEY_STORE,
   OUTBOX_STORE,
+  PIN_LOCK_KEY_ID,
   SYNC_META_STORE,
   VAULT_ENVELOPE_ID,
   VAULT_FORMAT_CONTRACT,
@@ -279,13 +281,13 @@ export async function createEncryptedBackup(): Promise<EncryptedBackupExport> {
       "readonly",
     );
     const entryRequest = transaction.objectStore(ENTRY_STORE).getAll();
-    const keyRequest = transaction.objectStore(KEY_STORE).get(DEVICE_KEY_ID);
+    const keyRequest = getStoredDeviceKey(database);
     const envelopeRequest = transaction.objectStore(VAULT_STORE).get(VAULT_ENVELOPE_ID);
     const outboxRequest = transaction.objectStore(OUTBOX_STORE).getAll();
     const [entryValues, keyValue, envelopeValue, outboxValues] =
       await Promise.all([
         requestToPromise(entryRequest),
-        requestToPromise(keyRequest),
+        keyRequest,
         requestToPromise(envelopeRequest),
         requestToPromise(outboxRequest),
       ]);
@@ -416,6 +418,11 @@ export async function importEncryptedBackup(
       [ENTRY_STORE, KEY_STORE, VAULT_STORE, OUTBOX_STORE, SYNC_META_STORE],
       "readwrite",
     );
+    const done = transactionDone(writeTransaction);
+    if (await requestToPromise(writeTransaction.objectStore(KEY_STORE).get(PIN_LOCK_KEY_ID))) {
+      await done;
+      throw new Error("PIN 잠금을 먼저 해제한 뒤 빈 금고에 백업을 가져와 주세요.");
+    }
     const entryStore = writeTransaction.objectStore(ENTRY_STORE);
     for (const entry of entries) entryStore.put(entry);
     writeTransaction.objectStore(KEY_STORE).put(vaultKey, DEVICE_KEY_ID);
@@ -428,7 +435,7 @@ export async function importEncryptedBackup(
     const metaStore = writeTransaction.objectStore(SYNC_META_STORE);
     metaStore.put(0, "server-cursor");
     metaStore.put(true, "needs-bootstrap");
-    await transactionDone(writeTransaction);
+    await done;
 
     return {
       entries: entries.filter((entry) => entry.id !== PERSONA_DOCUMENT_ID).length,

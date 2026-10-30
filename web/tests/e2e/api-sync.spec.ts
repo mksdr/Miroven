@@ -159,6 +159,61 @@ async function editProfile(page: Page, name: string, avatar?: string) {
   await expect(page.locator(".rail-profile strong")).toHaveText(name);
 }
 
+test("PIN memory sessions can sync and recover records without persisting the unlocked key", async ({ browser }) => {
+  const a = await browser.newContext({ locale: "ko-KR" });
+  const b = await browser.newContext({ locale: "ko-KR" });
+  try {
+    const first = await a.newPage();
+    await first.goto(origin!);
+    await signIn(first, `pin-session-${crypto.randomUUID()}@example.com`);
+    await first.getByRole("button", { name: "복구 코드 만들기", exact: true }).click();
+    const code = await first.locator(".recovery-code-panel code").innerText();
+    await first.getByRole("button", { name: "안전하게 보관했습니다", exact: true }).click();
+    const texts = ["PIN session before reload", "PIN session after reload"];
+    await first.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" }).fill(texts[0]);
+    await first.getByRole("button", { name: "기록", exact: true }).click();
+    await first.getByRole("button", { name: "계정", exact: true }).click();
+    await first.getByRole("button", { name: "PIN 잠금 설정", exact: true }).click();
+    await first.locator("#new-pin-input").fill("654321");
+    await first.locator("#confirm-pin-input").fill("654321");
+    await first.getByRole("button", { name: "저장 및 잠금 설정", exact: true }).click();
+    const unlock = async () => {
+      await first.getByPlaceholder("PIN 번호 입력").fill("654321");
+      await first.getByRole("button", { name: "PIN으로 잠금 해제", exact: true }).click();
+      await expect(first.getByText(texts[0], { exact: true })).toBeVisible();
+    };
+    await unlock();
+    await sync(first);
+    await first.reload();
+    await expect(first.getByPlaceholder("PIN 번호 입력")).toBeVisible();
+    await expect(first.getByText(texts[0], { exact: true })).toHaveCount(0);
+    await unlock();
+    await first.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" }).fill(texts[1]);
+    await first.getByRole("button", { name: "기록", exact: true }).click();
+    await sync(first);
+    expect(await first.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("private-journal");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      try {
+        return await new Promise<boolean>((resolve, reject) => {
+          const request = db.transaction("device-keys").objectStore("device-keys").get("primary");
+          request.onsuccess = () => resolve(request.result !== undefined);
+          request.onerror = () => reject(request.error);
+        });
+      } finally { db.close(); }
+    })).toBe(false);
+    await b.addCookies(await a.cookies());
+    const second = await b.newPage();
+    await second.goto(origin!);
+    await second.getByRole("textbox", { name: "복구 코드", exact: true }).fill(code);
+    await second.getByRole("button", { name: "이 기기에서 복구", exact: true }).click();
+    for (const text of texts) await expect(second.getByText(text, { exact: true })).toBeVisible();
+  } finally { await a.close(); await b.close(); }
+});
+
 test("signup domain policy and English, Korean, Japanese SMTP codes", async ({ browser }) => {
   const context = await browser.newContext();
   try {
