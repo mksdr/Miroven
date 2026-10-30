@@ -123,3 +123,51 @@ test("browser process restart with the same profile requires the PIN", async ({ 
     await unlock(restarted);
   } finally { await context.close(); }
 });
+
+
+test("restores an encrypted draft after PIN unlock on reload", async ({ page }) => {
+  page.on("dialog", dialog => dialog.accept());
+  await page.goto("/");
+  const composer = page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
+  await expect(composer).toBeVisible();
+  await page.getByRole("button", { name: "계정", exact: true }).click();
+  await page.getByRole("button", { name: "PIN 잠금 설정", exact: true }).click();
+  await page.locator("#new-pin-input").fill("654321");
+  await page.locator("#confirm-pin-input").fill("654321");
+  await page.getByRole("button", { name: "저장 및 잠금 설정", exact: true }).click();
+  const unlock = async () => {
+    await page.getByPlaceholder("PIN 번호 입력").fill("654321");
+    await page.getByRole("button", { name: "PIN으로 잠금 해제", exact: true }).click();
+    await expect(composer).toBeVisible();
+  };
+  const stored = () => page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>(resolve => {
+      const r = indexedDB.open("private-journal"); r.onsuccess = () => resolve(r.result);
+    });
+    try {
+      return await new Promise<boolean>(resolve => {
+        const r = db.transaction("device-keys").objectStore("device-keys").get("miroven-composer-draft");
+        r.onsuccess = () => resolve(!!r.result);
+      });
+    } finally { db.close(); }
+  });
+  await unlock();
+  await composer.fill("Synthetic draft to preserve through PIN restart");
+  await expect.poll(stored).toBe(true);
+  await page.reload();
+  await expect(page.getByPlaceholder("PIN 번호 입력")).toBeVisible();
+  expect(await stored()).toBe(true);
+  await unlock();
+  await expect(composer).toHaveValue("Synthetic draft to preserve through PIN restart");
+  // A second reload catches autosave deleting the restored record later.
+  await page.reload();
+  await unlock();
+  await expect(composer).toHaveValue("Synthetic draft to preserve through PIN restart");
+  expect(await stored()).toBe(true);
+  await composer.fill("");
+  await expect.poll(stored).toBe(false);
+  await page.reload();
+  await unlock();
+  await expect(composer).toHaveValue("");
+  expect(await stored()).toBe(false);
+});

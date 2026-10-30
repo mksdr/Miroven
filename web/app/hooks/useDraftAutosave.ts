@@ -5,6 +5,7 @@ import type { ComposerDraft } from "../lib/composer-draft";
 import {
   clearStoredDraft,
   getStoredDraft,
+  isVaultLocked as isVaultLockedCheck,
   saveDraft,
 } from "../lib/local-vault";
 import type { Language } from "./useAppearance";
@@ -57,11 +58,21 @@ export function useDraftAutosave({
   }, []);
 
   useEffect(() => {
-    if (isRestoredRef.current) return;
-    isRestoredRef.current = true;
+    if (isVaultLocked || isRestoredRef.current) return;
+    let cancelled = false;
     const restoreRevision = composerDraft.getRevision();
-    void getStoredDraft()
-      .then((stored) => {
+    // The initial render can precede the PIN-state check. A locked read is not
+    // a completed restore: retry after unlocking before enabling autosave.
+    void (async () => {
+      if (await isVaultLockedCheck()) return;
+      if (cancelled || vaultLockedRef.current) return;
+      const stored = await getStoredDraft();
+      if (cancelled || vaultLockedRef.current) return;
+      return { stored };
+    })()
+      .then((result) => {
+        if (!result || cancelled || vaultLockedRef.current) return;
+        const { stored } = result;
         if (
           stored &&
           (stored.text.trim() || stored.quotedEntryId) &&
@@ -82,18 +93,22 @@ export function useDraftAutosave({
               : "Restored your unsaved draft.",
           );
         }
+        isRestoredRef.current = true;
+        setDraftRestored(true);
       })
       .catch(() => {
+        if (cancelled || vaultLockedRef.current) return;
         showToast(
           language === "ko"
             ? "임시 저장 글을 복원하지 못했습니다."
             : "Could not restore your draft.",
         );
-      })
-      .finally(() => setDraftRestored(true));
+      });
+    return () => { cancelled = true; };
   }, [
     changeQuote,
     composerDraft,
+    isVaultLocked,
     language,
     loadEditingImages,
     quotedEntryIdRef,
