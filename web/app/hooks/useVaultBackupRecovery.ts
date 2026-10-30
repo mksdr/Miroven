@@ -8,6 +8,7 @@ import {
   getLocalVaultEnvelope,
   getSyncSnapshot,
   importEncryptedBackup,
+  LegacyBackupDeletionError,
   recoverVault,
   RecoveryPinLockError,
   type VaultEnvelope,
@@ -39,6 +40,11 @@ function localizedError(
   koFallback: string,
   enFallback: string,
 ): string {
+  if (error instanceof LegacyBackupDeletionError) {
+    return language === "ko"
+      ? error.message
+      : "The deletions in this backup cannot be safely verified. Create a new backup with the latest app on the original device, and keep the existing file.";
+  }
   if (error instanceof RecoveryPinLockError) {
     return language === "ko"
       ? error.message

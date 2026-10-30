@@ -81,6 +81,8 @@ for (const backupCursor of [0, 50]) {
       await first.getByRole("button", { name: "암호화 백업 내려받기", exact: true }).click();
       const downloadPath = await (await downloading).path();
       const backup = JSON.parse(await readFile(downloadPath!, "utf8"));
+      expect(backup.version).toBe(2);
+      expect(backup.authentication.algorithm).toBe("hmac-sha256");
       expect(backup.serverCursor).toBe(0);
       expect(await readSyncMetadata(first)).toEqual(sourceMetadata);
 
@@ -108,7 +110,12 @@ for (const backupCursor of [0, 50]) {
       await restored.route("**/api/v1/sync/**", async route => { await gate; await route.continue(); });
       await restored.getByRole("button", { name: "계정", exact: true }).click();
       await restored.locator("#modal-backup-code").fill(code);
-      backup.serverCursor = backupCursor;
+      if (backupCursor !== 0) {
+        // Only legacy v1 cursors are unsigned. Keep the v2 export intact.
+        backup.version = 1;
+        delete backup.authentication;
+        backup.serverCursor = backupCursor;
+      }
       await restored.locator('.backup-file-button input[type="file"]').setInputFiles({
         name: "synthetic.miroven-backup.json", mimeType: "application/json",
         buffer: Buffer.from(JSON.stringify(backup)),

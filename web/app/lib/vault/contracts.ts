@@ -21,7 +21,8 @@ export const VAULT_DATABASE_CONTRACT = {
 
 export const VAULT_FORMAT_CONTRACT = {
   backupFormat: "miroven-encrypted-backup",
-  backupVersion: 1,
+  backupVersion: 2,
+  backupAuthenticationInfo: "private-journal:backup-auth:v2",
   recoveryFormat: "base32-hkdf-sha256-v1",
   syncCryptoVersion: 1,
   currentEntryCryptoVersion: 3,
