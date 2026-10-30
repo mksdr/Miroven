@@ -2,6 +2,14 @@
 
 Future releases are generated from Conventional Commits.
 
+## [1.2.4](https://github.com/mksdr/Miroven/compare/v1.2.3...v1.2.4) (2026-10-30)
+
+
+### Bug Fixes
+
+* **backup:** authenticate manifests before restoring sync operations ([#24](https://github.com/mksdr/Miroven/issues/24)) ([62fcd92](https://github.com/mksdr/Miroven/commit/62fcd92a7ba6ee6c909eb48652b8512ae288c33d))
+* **vault:** keep PIN-unlocked keys in document memory ([#25](https://github.com/mksdr/Miroven/issues/25)) ([4f3d349](https://github.com/mksdr/Miroven/commit/4f3d34968072530ce18504af42bb485475e0e342))
+
 ## [1.2.3](https://github.com/mksdr/Miroven/compare/v1.2.2...v1.2.3) (2026-10-24)
 
 
