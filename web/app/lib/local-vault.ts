@@ -119,6 +119,7 @@ export {
 export {
   createEncryptedBackup,
   importEncryptedBackup,
+  LegacyBackupDeletionError,
 } from "./vault/backup";
 
 export {

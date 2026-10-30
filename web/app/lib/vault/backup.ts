@@ -35,10 +35,11 @@ import {
 } from "./recovery";
 import { decryptEntry } from "./entry-crypto";
 import { prepareRemoteRecord } from "./sync-crypto";
+import { authenticateBackup, verifyBackupAuthentication } from "./backup-authentication";
 import type {
   EncryptedBackupExport,
   EncryptedBackupImportResult,
-  EncryptedBackupV1,
+  EncryptedBackupV2,
   EncryptedBlobEnvelope,
   JournalEntry,
   SerializedSyncOperation,
@@ -50,6 +51,13 @@ import type {
 
 export const BACKUP_FORMAT = VAULT_FORMAT_CONTRACT.backupFormat;
 export { ENCRYPTED_BACKUP_ACCEPT, ENCRYPTED_BACKUP_MAX_BYTES };
+
+export class LegacyBackupDeletionError extends Error {
+  constructor() {
+    super("이 백업의 삭제 내역은 안전하게 확인할 수 없습니다. 원래 기기에서 최신 앱으로 새 백업을 만들어 주세요. 기존 파일은 보관해 주세요.");
+    this.name = "LegacyBackupDeletionError";
+  }
+}
 
 export function parseBackupEnvelope(value: unknown): VaultEnvelope {
   if (
@@ -300,9 +308,9 @@ export async function createEncryptedBackup(): Promise<EncryptedBackupExport> {
     }
     await validateBackupContents(vaultKey, entries, operations);
 
-    const backup: EncryptedBackupV1 = {
+    const manifest: Omit<EncryptedBackupV2, "authentication"> = {
       format: BACKUP_FORMAT,
-      version: 1,
+      version: VAULT_FORMAT_CONTRACT.backupVersion,
       exportedAt: new Date().toISOString(),
       vault: {
         wrappedVaultKey: bufferToBase64(envelope.wrappedVaultKey),
@@ -324,6 +332,10 @@ export async function createEncryptedBackup(): Promise<EncryptedBackupExport> {
       })),
       outbox: operations.map(serializeOperation),
       serverCursor: 0,
+    };
+    const backup: EncryptedBackupV2 = {
+      ...manifest,
+      authentication: await authenticateBackup(vaultKey, envelope.recoverySalt, manifest),
     };
     const json = JSON.stringify(backup);
     if (new Blob([json]).size > ENCRYPTED_BACKUP_MAX_BYTES) {
@@ -354,7 +366,7 @@ export async function importEncryptedBackup(
   if (
     !isObject(parsed) ||
     parsed.format !== BACKUP_FORMAT ||
-    parsed.version !== 1 ||
+    (parsed.version !== 1 && parsed.version !== VAULT_FORMAT_CONTRACT.backupVersion) ||
     !Array.isArray(parsed.entries) ||
     !Array.isArray(parsed.outbox)
   ) {
@@ -364,11 +376,23 @@ export async function importEncryptedBackup(
     throw new Error("백업 항목 수가 허용 범위를 넘었습니다.");
   }
   const envelope = parseBackupEnvelope(parsed.vault);
+  const vaultKey = await unwrapVaultKey(envelope, recoveryCode);
+  if (parsed.version === VAULT_FORMAT_CONTRACT.backupVersion) {
+    await verifyBackupAuthentication(vaultKey, envelope.recoverySalt, parsed);
+  } else {
+    // v1 has no whole-file authentication. Never promote its unsigned deletions
+    // into authenticated sync requests, even after stripping a v2 file's tag.
+    if (Object.hasOwn(parsed, "authentication")) {
+      throw new Error("백업 파일의 무결성을 확인하지 못했습니다.");
+    }
+    if (parsed.outbox.some((operation) => isObject(operation) && operation.changeType === "delete")) {
+      throw new LegacyBackupDeletionError();
+    }
+  }
   const entries = parsed.entries.map(parseBackupEntry);
   const operations = parsed.outbox.map(parseBackupOperation);
   // Accept legacy numeric cursors, but never reuse another device's pull position.
   expectNonNegativeInteger(parsed.serverCursor, "서버 cursor");
-  const vaultKey = await unwrapVaultKey(envelope, recoveryCode);
   await validateBackupContents(vaultKey, entries, operations);
 
   return withVaultDatabase(async (database) => {

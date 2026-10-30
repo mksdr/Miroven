@@ -177,10 +177,10 @@ describe("encrypted local vault", () => {
     await deleteTestDatabase();
     await expect(
       importEncryptedBackup(JSON.stringify(parsed), recoveryCode),
-    ).rejects.toThrow("백업 기록의 무결성을 확인하지 못했습니다.");
+    ).rejects.toThrow("백업 파일의 무결성을 확인하지 못했습니다.");
   });
 
-  it("rejects an entry id change because it is authenticated as AAD", async () => {
+  it("rejects an entry id change before importing the backup", async () => {
     const { recoveryCode, backup } = await createBackupFixture();
     const parsed = JSON.parse(backup) as {
       entries: Array<{ id: string }>;
@@ -190,7 +190,7 @@ describe("encrypted local vault", () => {
     await deleteTestDatabase();
     await expect(
       importEncryptedBackup(JSON.stringify(parsed), recoveryCode),
-    ).rejects.toThrow("백업 기록의 무결성을 확인하지 못했습니다.");
+    ).rejects.toThrow("백업 파일의 무결성을 확인하지 못했습니다.");
   });
 
   it("queues outbox operations when saving and deleting entries after vault initialization", async () => {

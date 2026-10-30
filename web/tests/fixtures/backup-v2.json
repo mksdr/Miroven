@@ -1,0 +1,48 @@
+{
+  "format": "miroven-encrypted-backup",
+  "version": 2,
+  "exportedAt": "2026-09-13T02:28:49.125Z",
+  "vault": {
+    "wrappedVaultKey": "6Fl1aRohi3Tl/hxq0u5tdYCnWvMIm7t7xkT1GoTQXSCxxoPQkT/Gd6psw+BB0xv/",
+    "wrappingNonce": "iDAQwWRUI8yfmoPE",
+    "recoverySalt": "CtCAIkXnqiAnJ4ueeawXNg==",
+    "recoveryFormat": "base32-hkdf-sha256-v1",
+    "cryptoVersion": 1,
+    "keyVersion": 1
+  },
+  "entries": [
+    {
+      "id": "018f91f0-776b-7c8a-80d8-82455b09f001",
+      "iv": "K38S8S3qG7qB3po5",
+      "ciphertext": "AiDycNrSBHoyc6OryozEy1nXoMJOLdd2R6VyfNkwHtKcJRI81EN4u0yh45rvqaJmErxdGyMtL+8N7X4VcDgXack04uIsqPkRNLBjEJpaHPXp3zMYz3EVwz88P1GSukZQDcA/2C5/rV3l+0eRbvUor5tJXzK/UVutgSk90q3fgkHH2QAyIeUXRwE/d2uM9+1t4p8lcCs=",
+      "wrappedDataKey": "vH8eVZ98wy6hrCXhcDPm/IYCD1Dk0BMMoZLduTyE8Kejt9WRdHk8UXxmjqvIw5Ei",
+      "keyNonce": "0LI/g6BFF6u6F4nb",
+      "cryptoVersion": 3,
+      "revision": 1,
+      "syncState": "pending"
+    }
+  ],
+  "outbox": [
+    {
+      "operationId": "d7af7535-6fc0-4806-a7f3-b850938e73d1",
+      "entryId": "018f91f0-776b-7c8a-80d8-82455b09f001",
+      "baseRevision": 0,
+      "revision": 1,
+      "changeType": "upsert",
+      "payload": {
+        "ciphertext": "Ie3AGRFShXkjanusDyCqr3YXBhDGRxJmTtzk/pvRfsaMEGUftB54ykOcOWWrhUS+6am+RYtMv6F5M99FMoM70dybrrjgcqjNXCHADTI07GBvUEI3sIHFX3B/SEVYBTY0tQEgETfUnAB9TW7l0+KSbEV6nAqnDtDLKuvFrDjcD7uHMYvnMqSLBnDRleKJ3QnW8LHYy/Y=",
+        "contentNonce": "2rX16uVUbz8qCanM",
+        "wrappedDataKey": "Y2jiVMt6eSCDn3p+LVGmr0aW0TEFvgHyvIIvtXreJNMmkmznCZ1OFLSMNZvZbPMY",
+        "keyNonce": "/fBY8nZ0BTGc6bJu",
+        "cryptoVersion": 1
+      },
+      "createdAt": "2026-09-13T02:28:49.118Z",
+      "status": "pending"
+    }
+  ],
+  "serverCursor": 0,
+  "authentication": {
+    "algorithm": "hmac-sha256",
+    "tag": "81yzpeAtUVfnFI4KAVpD3q/1Q7kQVJ4ppd7/E9EooXY="
+  }
+}

@@ -137,6 +137,14 @@ export type EncryptedBackupV1 = {
   serverCursor: number;
 };
 
+export type EncryptedBackupV2 = Omit<EncryptedBackupV1, "version"> & {
+  version: 2;
+  authentication: {
+    algorithm: "hmac-sha256";
+    tag: string;
+  };
+};
+
 export type EncryptedBackupExport = {
   json: string;
   filename: string;
