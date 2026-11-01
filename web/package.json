@@ -28,7 +28,9 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:csp": "node scripts/finalize-csp.mjs --check",
     "check:sw": "node scripts/finalize-sw.mjs --check",
-    "lint": "eslint . --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern .next",
+    "perf": "npm run build && npm run perf:built",
+    "perf:built": "playwright test --config playwright.performance.config.ts && node tests/performance/report.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "1.5.0",

@@ -109,18 +109,19 @@ export {
   cleanupOrphanedBlobs,
 } from "./vault/cleanup";
 
-export {
-  createRecoveryKit,
-  getLocalVaultEnvelope,
-  recoverVault,
-  RecoveryPinLockError,
-} from "./vault/recovery";
+export { getLocalVaultEnvelope } from "./vault/envelope";
+export { LegacyBackupDeletionError, RecoveryPinLockError } from "./vault/operation-errors";
 
-export {
-  createEncryptedBackup,
-  importEncryptedBackup,
-  LegacyBackupDeletionError,
-} from "./vault/backup";
+export { createRecoveryKit, recoverVault } from "./vault/recovery";
+
+// Account opens only after these optional implementations have loaded.
+export async function createEncryptedBackup() {
+  return (await import("./vault/backup")).createEncryptedBackup();
+}
+
+export async function importEncryptedBackup(json: string, recoveryCode: string) {
+  return (await import("./vault/backup")).importEncryptedBackup(json, recoveryCode);
+}
 
 export {
   acknowledgeSyncOperation,
