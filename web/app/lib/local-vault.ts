@@ -114,7 +114,7 @@ export { LegacyBackupDeletionError, RecoveryPinLockError } from "./vault/operati
 
 export { createRecoveryKit, recoverVault } from "./vault/recovery";
 
-// Account opens only after these optional implementations have loaded.
+// Account preloads these implementations and enables backup once they are ready.
 export async function createEncryptedBackup() {
   return (await import("./vault/backup")).createEncryptedBackup();
 }

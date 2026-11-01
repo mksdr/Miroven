@@ -21,7 +21,7 @@ export default defineConfig({
   },
   webServer: {
     command: "node tests/performance/server.mjs",
-    url: "http://127.0.0.1:3102",
+    url: "https://127.0.0.2:3101",
     ignoreHTTPSErrors: true,
     reuseExistingServer: false,
     timeout: 30_000,

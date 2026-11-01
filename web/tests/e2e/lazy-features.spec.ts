@@ -15,6 +15,8 @@ async function ready(page: Page) {
   await expect(page.locator("#composer textarea")).toBeEnabled();
 }
 
+const ACCOUNT_MARKER = "modal-auth-email";
+const DIAGNOSTICS_MARKER = "entriesWithImageCount";
 const BACKUP_MARKER = "지원하지 않는 백업 금고 형식입니다.";
 
 test("startup and writing do not download backup or diagnostics implementations", async ({ page }) => {
@@ -28,8 +30,8 @@ test("startup and writing do not download backup or diagnostics implementations"
   expect(requested.filter((file) => optional.includes(file))).toEqual([]);
 });
 
-test("failed Account dependency download preserves the draft and can retry", async ({ page }) => {
-  const chunk = featureChunk(BACKUP_MARKER);
+test("failed Account UI download preserves the draft and can retry", async ({ page }) => {
+  const chunk = featureChunk(ACCOUNT_MARKER);
   await page.route(`**${chunk}`, (route) => route.abort());
   await ready(page);
   const composer = page.locator("#composer textarea");
@@ -40,6 +42,66 @@ test("failed Account dependency download preserves the draft and can retry", asy
   await page.unroute(`**${chunk}`);
   await page.getByRole("button", { name: "계정", exact: true }).click();
   await expect(page.getByRole("group", { name: "암호화 백업", exact: true })).toBeVisible();
+});
+
+for (const feature of ["backup", "diagnostics"] as const) {
+  test(`failed ${feature} stays isolated and can retry without closing Account`, async ({ page }) => {
+    const chunk = featureChunk(feature === "backup" ? BACKUP_MARKER : DIAGNOSTICS_MARKER);
+    await page.route(`**${chunk}`, (route) => route.abort());
+    await ready(page);
+    await page.locator("#composer textarea").fill("Synthetic draft retained during feature retry");
+    await page.getByRole("button", { name: "계정", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "계정", exact: true });
+    await expect(dialog.getByRole("button", { name: "PIN 잠금 설정", exact: true })).toBeEnabled();
+    const backupCode = dialog.locator("#modal-backup-code");
+    const diagnostics = dialog.getByRole("button", { name: "진단 정보 리포트 내보내기", exact: true });
+    await expect(feature === "backup" ? backupCode : diagnostics).toBeDisabled();
+    await expect(feature === "backup" ? diagnostics : backupCode).toBeEnabled();
+    const retry = dialog.getByRole("button", { name: feature === "backup" ? "백업 다시 시도" : "진단 다시 시도", exact: true });
+    await expect(retry).toBeVisible();
+    await page.unroute(`**${chunk}`);
+    await retry.click();
+    await expect(backupCode).toBeEnabled();
+    await expect(diagnostics).toBeEnabled();
+    await expect(retry).toHaveCount(0);
+    await expect(page.locator("#composer textarea")).toHaveValue("Synthetic draft retained during feature retry");
+  });
+}
+
+test("pending Account shows a loading dialog and can close before loading completes", async ({ page }) => {
+  const chunk = featureChunk(ACCOUNT_MARKER);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  await page.route(`**${chunk}`, async (route) => { await gate; await route.continue(); });
+  await ready(page);
+  const loaded = page.waitForResponse((response) => new URL(response.url()).pathname === chunk);
+  try {
+    await page.getByRole("button", { name: "계정", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "계정", exact: true });
+    await expect(dialog).toHaveAttribute("aria-busy", "true");
+    await expect(dialog.getByRole("status")).toHaveText("계정 설정을 불러오고 있습니다…");
+    await dialog.getByRole("button", { name: "닫기", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+  } finally { release(); }
+  await loaded;
+  await expect(page.getByRole("dialog", { name: "계정", exact: true })).toHaveCount(0);
+});
+
+test("slow diagnostics does not delay Account or backup controls", async ({ page }) => {
+  const chunk = featureChunk(DIAGNOSTICS_MARKER);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  await page.route(`**${chunk}`, async (route) => { await gate; await route.continue(); });
+  await ready(page);
+  try {
+    await page.getByRole("button", { name: "계정", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "계정", exact: true });
+    await expect(dialog.locator("#modal-backup-code")).toBeEnabled();
+    await expect(dialog.getByRole("button", { name: "PIN 잠금 설정", exact: true })).toBeEnabled();
+    await expect(dialog.getByRole("status")).toHaveText("진단 기능을 준비하고 있습니다…");
+    await expect(dialog.getByRole("button", { name: "진단 정보 리포트 내보내기", exact: true })).toBeDisabled();
+  } finally { release(); }
+  await expect(page.getByRole("button", { name: "진단 정보 리포트 내보내기", exact: true })).toBeEnabled();
 });
 
 test("locking cancels a pending Account open", async ({ page }) => {
@@ -65,7 +127,8 @@ test("locking cancels a pending Account open", async ({ page }) => {
   try {
     await page.getByRole("button", { name: "계정", exact: true }).click();
     await started;
-    await page.getByRole("button", { name: "금고 잠그기", exact: true }).click();
+    // Trigger the lock handler while the pending feature is behind the modal overlay.
+    await page.getByRole("button", { name: "금고 잠그기", exact: true }).evaluate((button: HTMLButtonElement) => button.click());
     await expect(page.getByPlaceholder("PIN 번호 입력")).toBeVisible();
   } finally { release(); }
   await loaded;
@@ -94,7 +157,8 @@ test.describe("Account capabilities", () => {
     await ready(page);
     await page.getByRole("button", { name: "Account", exact: true }).click();
     const group = page.getByRole("group", { name: "Encrypted backup", exact: true });
-    await expect(group).toBeVisible();
+    await expect(group.locator("#modal-backup-code")).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Export Diagnostic Report", exact: true })).toBeEnabled();
     await context.setOffline(true);
     await group.locator('input[type="text"], input:not([type])').fill("3P2ZZ-A4763-F7KD3-KPBSY-9HVBT-L5QK8-PTQ4C-PECJ6-23");
     // Playwright WebKit blocks even in-memory File.text() in offline mode.
