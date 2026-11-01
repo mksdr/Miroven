@@ -24,12 +24,14 @@ describe("PWA Manifest & Service Worker Integrity Assertions", () => {
 
     const swContent = fs.readFileSync(swPath, "utf-8");
 
-    // Must validate response.ok before caching to prevent poisoning cache with 4xx/5xx errors
-    expect(swContent).toContain("if (response.ok)");
+    // addAll rejects installation if any required asset fails.
+    expect(swContent).toContain("cache.addAll([");
+    expect(swContent).toContain('cache: "reload", credentials: "omit"');
+    expect(swContent).toContain('cache: "force-cache", credentials: "omit"');
 
     // Must handle offline fallback strategy for navigate requests
     expect(swContent).toContain('event.request.mode === "navigate"');
-    expect(swContent).toContain('caches.match(url.pathname)');
+    expect(swContent).toContain('cache.match("/")');
 
     // Must handle cache versioning and cleanup
     expect(swContent).toContain("CACHE_NAME");

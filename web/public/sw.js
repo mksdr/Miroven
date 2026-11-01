@@ -1,19 +1,30 @@
 // In production builds, scripts/finalize-sw.mjs automatically replaces this with a deterministic build-hash cache name.
 const CACHE_NAME = "miroven-shell-dev";
+// Replaced at build time with emitted JS/CSS, including lazy feature chunks.
+const BUILD_ASSETS = [];
 const APP_SHELL = ["/", "/manifest.webmanifest", "/theme-init.js"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll([
+        // Always refresh unhashed shell files; reuse HTTP-cached content-addressed chunks.
+        ...APP_SHELL.map((url) => new Request(url, { cache: "reload", credentials: "omit" })),
+        ...BUILD_ASSETS.map((url) => new Request(url, { cache: "force-cache", credentials: "omit" })),
+      ]))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
+      .then((keys) => Promise.all(keys.filter((key) =>
+        key !== CACHE_NAME && (key.startsWith("miroven-shell-") || key.startsWith("private-journal-shell-"))
+      ).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -22,24 +33,19 @@ self.addEventListener("fetch", (event) => {
   // API/session/file responses must always use the network, including navigations.
   if (url.origin !== self.location.origin) return;
   const shellPage = url.pathname === "/";
-  if (!shellPage && !APP_SHELL.includes(url.pathname) && !url.pathname.startsWith("/_next/static/")) return;
+  if (!shellPage && !APP_SHELL.includes(url.pathname) && !BUILD_ASSETS.includes(url.pathname)) return;
 
-  if (event.request.mode === "navigate") {
+  // Keep the shell and hashed chunks from the same build until SW activation.
+  if (shellPage && event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(url.pathname, clone));
-          }
-          return response;
-        })
-        .catch(async () => (await caches.match(url.pathname)) ?? caches.match("/")),
+      caches.open(CACHE_NAME).then(async (cache) =>
+        (await cache.match("/")) ?? fetch(event.request)),
     );
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => cached ?? fetch(event.request)),
+    caches.open(CACHE_NAME).then(async (cache) =>
+      (await cache.match(url.pathname)) ?? fetch(event.request)),
   );
 });
