@@ -2,6 +2,10 @@
 
 Run `npm run build` followed by `npm run test:offline`. Chromium is required. The app journeys use the HTTPS production build; `updates.spec.ts` additionally serves two small synthetic builds on an isolated loopback origin with the actual Service Worker source.
 
+Run `npm run test:updates` for the real Next.js A/B build regression (also included in `npm run verify:full`, and therefore CI). It builds two isolated source copies with the normal production build and CSP/Service Worker finalizers, then serves the outputs on the same HTTPS origin. Chromium and OpenSSL are required. Outputs are kept in the ignored `.local/update-builds/`; the checkout's app source, `.env` files, `.next/` and `out/` are not changed. The fixtures use local-only mode and share installed dependencies.
+
+Only the fixture copies receive an A/B attribute in the lazy Account component. This source change must produce different Account chunk URLs and build-hash caches; the test fails if it does not. After B takes control, the server no longer provides A assets. The test clears the HTTP cache, goes offline, opens the previously unopened A Account, verifies its A chunk came from the Service Worker, exports an encrypted backup, and checks B's Account after an offline reload. A document token and draft assertions also detect an unwanted reload or lost draft. These are two production compilations of the current app with controlled source differences, not historical release or CDN compatibility tests.
+
 Root navigations revalidate with the network first, including HTTP-cache revalidation. Network failures and non-success HTTP responses fall back to the currently installed build. Network HTML never overwrites that build's cached HTML: installation must precache the entire new shell and executable asset list before activation. Unhashed shell files also use network first; content-addressed JS/CSS reuse installed caches. API, session and blob responses are never cached.
 
 A newly activated worker does not reload existing documents. Older app caches remain available for their lazy chunks. Cleanup is conservative: the worker snapshots obsolete cache names at activation and removes them only when no other window can depend on them. A worker restart loses that cleanup snapshot, so retained caches can survive until a later activation. Navigation must never delete a newer worker's installing cache. Unknown executable URLs go to the network without being added to a cache; unrelated caches are never read or deleted.
@@ -13,6 +17,10 @@ Deploy complete build outputs consistently and keep content-addressed assets ava
 ## 한국어
 
 `npm run build` 후 `npm run test:offline`을 실행합니다. Chromium이 필요합니다. 앱 시나리오는 HTTPS 프로덕션 빌드를 사용하고, `updates.spec.ts`는 별도의 루프백 주소에서 실제 Service Worker 소스와 합성 A/B 빌드를 제공합니다.
+
+실제 Next.js A/B 빌드 회귀 검사는 `npm run test:updates`로 실행합니다. `npm run verify:full`과 CI에도 포함됩니다. 격리된 소스 복사본 두 개를 일반 프로덕션 빌드 및 CSP·Service Worker 후처리로 빌드하고, 같은 HTTPS 주소에서 차례로 제공합니다. Chromium과 OpenSSL이 필요합니다. 산출물은 Git에서 제외되는 `.local/update-builds/`에 보관하며, 원본 앱 소스·`.env` 파일·`.next/`·`out/`은 변경하지 않습니다. 테스트 빌드는 로컬 전용 모드를 사용하고 설치된 의존성을 공유합니다.
+
+테스트 복사본의 지연 로딩 계정 컴포넌트에만 A/B 속성을 추가합니다. 이 소스 변경으로 계정 청크 URL과 빌드 해시 캐시가 달라지지 않으면 검사를 실패시킵니다. B가 제어권을 넘겨받으면 서버는 A 자산을 제공하지 않습니다. HTTP 캐시를 비우고 오프라인으로 전환한 뒤, 아직 열지 않은 A 계정 화면을 처음 열어 A 청크가 Service Worker에서 제공되는지 확인하고 암호화 백업을 내보냅니다. B의 오프라인 새로고침과 계정 화면도 검증합니다. 기존 문서 표식과 초안 검사로 원치 않는 새로고침과 초안 유실을 확인합니다. 현재 앱에 통제된 소스 차이를 준 실제 프로덕션 컴파일 두 개를 검증하며, 과거 릴리스나 CDN 호환성 검사까지 포함하지는 않습니다.
 
 첫 화면 탐색은 HTTP 캐시 재검증을 포함한 Network First 방식입니다. 네트워크 실패나 성공이 아닌 HTTP 응답이면 현재 설치된 빌드로 대체합니다. 온라인 HTML은 설치된 빌드의 캐시를 덮어쓰지 않습니다. 새 빌드의 화면과 실행 자산 전체가 캐시된 뒤에만 활성화합니다. 해시가 없는 셸 파일도 네트워크를 우선하고, 콘텐츠 주소로 구분된 JS/CSS는 설치된 캐시를 재사용합니다. API·세션·블롭 응답은 캐시하지 않습니다.
 
