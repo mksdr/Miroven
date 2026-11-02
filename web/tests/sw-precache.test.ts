@@ -35,7 +35,7 @@ it("does not activate on a missing chunk and removes only obsolete app caches", 
   const failure = new Error("Missing lazy chunk");
   vm.runInNewContext(await readFile(new URL("../public/sw.js", import.meta.url), "utf8"), {
     Request: class {},
-    self: { addEventListener: (name: string, handler: (event: unknown) => void) => handlers.set(name, handler), skipWaiting, clients: { claim } },
+    self: { addEventListener: (name: string, handler: (event: unknown) => void) => handlers.set(name, handler), skipWaiting, clients: { claim, matchAll: async () => [] } },
     caches: {
       open: async () => ({ addAll: async () => { throw failure; } }),
       keys: async () => ["miroven-shell-dev", "miroven-shell-old", "private-journal-shell-old", "unrelated-app"],

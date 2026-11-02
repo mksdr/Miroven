@@ -16,16 +16,43 @@ self.addEventListener("install", (event) => {
   );
 });
 
+function isAppCache(key) {
+  return key.startsWith("miroven-shell-") || key.startsWith("private-journal-shell-");
+}
+
+// Snapshot only during activation: an older worker must never delete a newer
+// worker's in-progress installation. If this worker is later restarted, defer
+// cleanup to the next activation rather than guessing which builds are older.
+let obsoleteCaches = [];
+
+// A claimed page can still execute an older build. Keep its lazy chunks until
+// a navigation has no other open windows that could still need those chunks.
+async function removeUnusedCaches(navigation) {
+  const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  const navigatingIds = navigation
+    ? [navigation.clientId, navigation.resultingClientId, navigation.replacesClientId].filter(Boolean)
+    : [];
+  if (windows.some((client) => !navigatingIds.includes(client.id))) return;
+  await Promise.all(obsoleteCaches.map((key) => caches.delete(key)));
+}
+
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((key) =>
-        key !== CACHE_NAME && (key.startsWith("miroven-shell-") || key.startsWith("private-journal-shell-"))
-      ).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim()),
-  );
+  event.waitUntil(caches.keys().then((keys) => {
+    obsoleteCaches = keys.filter((key) => key !== CACHE_NAME && isAppCache(key));
+    return removeUnusedCaches();
+  }).then(() => self.clients.claim()));
 });
+
+async function installedAsset(pathname) {
+  const current = await (await caches.open(CACHE_NAME)).match(pathname);
+  if (current) return current;
+  // Only consult app-owned caches; never serve an unrelated cache's response.
+  const keys = await caches.keys();
+  for (const key of keys.filter((key) => key !== CACHE_NAME && isAppCache(key))) {
+    const cached = await (await caches.open(key)).match(pathname);
+    if (cached) return cached;
+  }
+}
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
@@ -33,19 +60,29 @@ self.addEventListener("fetch", (event) => {
   // API/session/file responses must always use the network, including navigations.
   if (url.origin !== self.location.origin) return;
   const shellPage = url.pathname === "/";
-  if (!shellPage && !APP_SHELL.includes(url.pathname) && !BUILD_ASSETS.includes(url.pathname)) return;
+  const shellFile = APP_SHELL.includes(url.pathname);
+  const executable = url.pathname.startsWith("/_next/static/") && /\.(?:js|css)$/.test(url.pathname);
+  if (!shellFile && !executable) return;
 
-  // Keep the shell and hashed chunks from the same build until SW activation.
-  if (shellPage && event.request.mode === "navigate") {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) =>
-        (await cache.match("/")) ?? fetch(event.request)),
-    );
+  if ((shellPage && event.request.mode === "navigate") || (shellFile && !shellPage)) {
+    const network = fetch(new Request(event.request, { cache: "no-cache" }))
+      .then((response) => {
+        if (!response.ok) throw new Error("App shell unavailable");
+        return response;
+      });
+    const response = network.catch(async (error) => {
+      const cached = await (await caches.open(CACHE_NAME)).match(url.pathname);
+      if (cached) return cached;
+      throw error;
+    });
+    // Do not put network HTML into this build's cache: it may reference a newer
+    // set of chunks whose complete offline installation has not finished yet.
+    event.respondWith(response);
+    if (shellPage) {
+      event.waitUntil(network.then(() => removeUnusedCaches(event)).catch(() => undefined));
+    }
     return;
   }
 
-  event.respondWith(
-    caches.open(CACHE_NAME).then(async (cache) =>
-      (await cache.match(url.pathname)) ?? fetch(event.request)),
-  );
+  event.respondWith(installedAsset(url.pathname).then((cached) => cached ?? fetch(event.request)));
 });

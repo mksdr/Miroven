@@ -31,7 +31,8 @@ describe("PWA Manifest & Service Worker Integrity Assertions", () => {
 
     // Must handle offline fallback strategy for navigate requests
     expect(swContent).toContain('event.request.mode === "navigate"');
-    expect(swContent).toContain('cache.match("/")');
+    expect(swContent).toContain('cache: "no-cache"');
+    expect(swContent).toContain('.match(url.pathname)');
 
     // Must handle cache versioning and cleanup
     expect(swContent).toContain("CACHE_NAME");
