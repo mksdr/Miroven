@@ -1,8 +1,9 @@
 FROM node:24.22.1-bookworm-slim AS build
 WORKDIR /source/web
 COPY web/package.json web/package-lock.json ./
-RUN npm ci
-COPY web ./
+RUN --mount=type=secret,id=proxy_ca,mode=0444 \
+    if [ -f /run/secrets/proxy_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/proxy_ca; fi; npm ci
+COPY . /source
 ARG NEXT_PUBLIC_MIROVEN_API_URL=/api/v1
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_WEBSITE_URL

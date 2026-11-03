@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-03",
+  "hostNode": "24.19.0",
+  "nativeExecutionBackend": "read-only exported builder rootfs; Docker vfs standard runtime exceeded local storage",
+  "nativeToolVersions": {
+    "emscripten": "4.0.10",
+    "node": "24.22.1",
+    "cmake": "3.25.1"
+  },
+  "vendorOutputs": {
+    "heic-to.js": "f1328ed0fef449e15070237b725064888fe7dc1a2d870610acdb894b2cc553c8",
+    "heic-to.d.ts": "06061486470f89a064b937a03da388c427a2a30ad2ce9f45877927d86dc6afea",
+    "native-sha256.txt": "0b43acbfed91e3473e2bfe52181db87138dc5e87c50ccd49ae6576668b22fc4a",
+    "toolchain.txt": "a9d37a36ecb37eac0c76c61ac48342840804683be5015c8c323374d0b980e309"
+  },
+  "checks": [
+    {
+      "command": "npm run heic:verify",
+      "result": "passed: fresh native and wrapper rebuild matched all four outputs"
+    },
+    {
+      "command": "npm run heic:verify:relink",
+      "result": "passed: both C/C++ version functions modified; final Worker read both values; 2 Chromium HEIC/HEIF tests passed"
+    },
+    {
+      "command": "npm run heic:verify:source",
+      "result": "passed: extracted source npm ci and app build; repackaged source SHA-256 matched; fresh native/wrapper outputs matched"
+    },
+    {
+      "command": "npm run check:licenses",
+      "result": "exit 0; 511 pass, 0 incompatible, 83 review; warnings remain non-blocking"
+    },
+    {
+      "command": "npx vitest run tests/license-check.test.ts tests/heic-source.test.ts",
+      "result": "17 passed"
+    },
+    {
+      "command": "npm run verify:fast",
+      "result": "43 files / 331 tests passed; lint and secret scan passed"
+    },
+    {
+      "command": "npm run test:rendered:built",
+      "result": "10 passed"
+    },
+    {
+      "command": "npm run check:csp; npm run check:sw; npm run check:bundle",
+      "result": "passed"
+    },
+    {
+      "command": "npx playwright test tests/e2e/images.spec.ts --project chromium --grep 'real example'",
+      "result": "2 passed on original vendor build, separately from 2 probe cases"
+    }
+  ],
+  "limitations": [
+    "Standard image builder creation succeeded, but full image runtime hit ENOSPC on local vfs; GitHub CI must validate that backend.",
+    "Initial fixed-SDK Embind compile error was repaired by the dated source patch; read-only SDK cache initialization error was repaired in the recipe.",
+    "No local verify:full for this implementation, per user instruction. Historical pre-instruction results are separate.",
+    "No full Docker hosting image, Firefox/WebKit suite, production deployment, retention policy or legal certification established.",
+    "Documentation, author notice and regression-test-only updates were packaged after the source-rebuild experiment; native inputs, recipe and vendor outputs were unchanged.",
+    "Wiki English/Korean edits remain local and are supplied as a patch, not published."
+  ],
+  "verificationContext": "Historical native/source/relink experiments were run in the prior pr-30 working tree. Independent PR verification below uses main c5c1f36 without its 46 manual reviews or schema test.",
+  "independentPrVerification": {
+    "baseCommit": "c5c1f36",
+    "manualReviews": 3,
+    "licenseSummary": {
+      "pass": 490,
+      "incompatible": 0,
+      "review": 104
+    },
+    "targetedTests": 16,
+    "verifyFast": {
+      "files": 46,
+      "tests": 350
+    },
+    "build": "passed; includes current main offline/update/performance configuration",
+    "renderedHtml": 10,
+    "cspSwBundle": "passed",
+    "verifyFull": "not run, per user instruction",
+    "nativeInputsRecipeAndVendorOutputs": "unchanged from recorded native experiments"
+  }
+}

@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { verifyHeic } from "./check-heic.mjs";
 import { fileURLToPath } from "node:url";
 
 export const webRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -93,6 +94,13 @@ export async function collectLicenses(root = webRoot) {
       }
       const files = item.noticeFile ? [{ file: item.noticeFile, text: (await readFile(path.join(root, parent.location, item.noticeFile), "utf8")).trim() }] : await Promise.all(["COPYRIGHT", "COPYING"].map(async (kind) => ({ file: `${item.name}/${kind}`, text: (await readFile(path.join(root, `scripts/notice-sources/${item.name}-${kind}.txt`), "utf8")).trim() })));
       entries.push({ name: item.name, version: item.version, license: item.license, author: item.author ?? "", development: parent.development, scope: "bundled", location: `${parent.location}#${item.name}`, dependencyPath: [...parent.dependencyPath, `${item.name}@${item.version}`], installed: true, files, bundledNotices: [], issues, source: item.source });
+    }
+  }
+  if (entries.some((entry) => entry.name === "heic-to" && entry.installed)) {
+    const manifest = await verifyHeic(path.dirname(root));
+    for (const item of manifest.runtimeNotices) {
+      const files = await Promise.all(item.files.map(async (file) => ({ file: file.file, text: (await readFile(path.join(root, file.file), "utf8")).trim() })));
+      entries.push({ name: item.name, version: item.version, license: item.license, author: "See original notices", development: false, scope: "bundled", location: `vendor/heic#${item.name}`, dependencyPath: ["Miroven HEIC vendor build", item.name], installed: true, files, bundledNotices: [], issues: [], source: item.files[0].source });
     }
   }
   return entries.sort((a, b) => a.name.localeCompare(b.name, "en") || a.location.localeCompare(b.location, "en"));

@@ -122,6 +122,8 @@ for (const forceFallback of [false, true]) {
 
 for (const [name, mimeType, padded] of [["example.heic", "image/heic", false], ["example.HEIF", "", true]] as const) {
   test(`converts real ${name} under the production CSP without uploading photos`, async ({ page }) => {
+    const nativeProbe: string[] = [];
+    page.on("console", (message) => { if (message.text().includes("MIROVEN_NATIVE_PROBE")) nativeProbe.push(message.text()); });
     const violations: string[] = [];
     const uploads: string[] = [];
     page.on("console", (message) => { if (/Content Security Policy|Refused to/.test(message.text())) violations.push(message.text()); });
@@ -138,6 +140,10 @@ for (const [name, mimeType, padded] of [["example.heic", "image/heic", false], [
     const input = page.locator('.photo-button input[type="file"]');
     await input.setInputFiles({ name, mimeType, buffer });
     assertOutput(await inspectPreview(page));
+    if (process.env.MIROVEN_HEIC_PROBE === "1") {
+      expect(nativeProbe.join("\n")).toContain("1.22.2-miroven-probe-heif");
+      expect(nativeProbe.join("\n")).toContain("1.0.16-miroven-probe-de265");
+    }
     await expect(input).toBeEnabled();
     expect(violations).toEqual([]);
     expect(uploads).toEqual([]);

@@ -1,1 +1,35 @@
-[]
+[
+  {
+    "name": "heic-to",
+    "location": "node_modules/heic-to",
+    "version": "1.5.2",
+    "license": "LGPL-3.0",
+    "status": "review",
+    "reason": "LGPLv3는 AGPL-3.0-only와 호환 가능하며 배포 의무 충족은 별도입니다. 고정 C/C++ 소스·패치에서 생성한 vendor CSP 코덱을 사용하고, /notice에 기존 GPL·LGPL 고지와 해당 배포의 소스·재빌드 자료 다운로드를 제공합니다. 네이티브 재빌드·수정 재결합의 검증 결과는 docs/lgpl-heic-review.md 참조. 제4조(d)(1)의 공유 라이브러리 충족을 주장하지 않습니다. 제4조(d)(0)의 법적 소스 범위·배포 조건 및 운영 호스팅의 접근·보존은 미확인으로 review를 유지합니다.",
+    "source": "https://github.com/hoppergee/heic-to/blob/v1.5.2/LICENSE",
+    "reviewedBy": "Codex (technical evidence; maintainer/legal review pending)",
+    "reviewedAt": "2026-11-03"
+  },
+  {
+    "name": "libde265",
+    "location": "node_modules/heic-to#libde265",
+    "version": "1.0.16",
+    "license": "LGPL-3.0-or-later",
+    "status": "review",
+    "reason": "LGPLv3는 AGPL-3.0-only와 호환 가능하며 배포 의무 충족은 별도입니다. 고정 C/C++ 소스·패치에서 생성한 vendor CSP 코덱을 사용하고, /notice에 기존 GPL·LGPL 고지와 해당 배포의 소스·재빌드 자료 다운로드를 제공합니다. 네이티브 재빌드·수정 재결합의 검증 결과는 docs/lgpl-heic-review.md 참조. 제4조(d)(1)의 공유 라이브러리 충족을 주장하지 않습니다. 제4조(d)(0)의 법적 소스 범위·배포 조건 및 운영 호스팅의 접근·보존은 미확인으로 review를 유지합니다.",
+    "source": "https://github.com/strukturag/libde265/tree/v1.0.16",
+    "reviewedBy": "Codex (technical evidence; maintainer/legal review pending)",
+    "reviewedAt": "2026-11-03"
+  },
+  {
+    "name": "libheif",
+    "location": "node_modules/heic-to#libheif",
+    "version": "1.22.2",
+    "license": "LGPL-3.0-or-later",
+    "status": "review",
+    "reason": "LGPLv3는 AGPL-3.0-only와 호환 가능하며 배포 의무 충족은 별도입니다. 고정 C/C++ 소스·패치에서 생성한 vendor CSP 코덱을 사용하고, /notice에 기존 GPL·LGPL 고지와 해당 배포의 소스·재빌드 자료 다운로드를 제공합니다. 네이티브 재빌드·수정 재결합의 검증 결과는 docs/lgpl-heic-review.md 참조. 제4조(d)(1)의 공유 라이브러리 충족을 주장하지 않습니다. 제4조(d)(0)의 법적 소스 범위·배포 조건 및 운영 호스팅의 접근·보존은 미확인으로 review를 유지합니다.",
+    "source": "https://github.com/strukturag/libheif/tree/v1.22.2",
+    "reviewedBy": "Codex (technical evidence; maintainer/legal review pending)",
+    "reviewedAt": "2026-11-03"
+  }
+]

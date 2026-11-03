@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "builder": {
+    "platform": "linux/amd64",
+    "nodeImage": "node:24.22.1-bookworm-slim@sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c",
+    "emsdkVersion": "4.0.10",
+    "emsdkCommit": "62a853cd3b3134398ce85cde8bb5cbb2ef0194cb",
+    "debianSnapshot": "20261101T000000Z"
+  },
+  "components": [
+    {
+      "name": "heic-to",
+      "version": "1.5.2",
+      "commit": "f37af866f9aa6212ddc84b67a279c9f2386aba4f",
+      "source": "https://github.com/hoppergee/heic-to/tree/f37af866f9aa6212ddc84b67a279c9f2386aba4f",
+      "archive": "sources/heic-to.tar.gz",
+      "sha256": "afe92a1b17c26847aa741c81c816ac82419ab25074f016fd762634482335dadb",
+      "format": "git archive",
+      "license": "LGPL-3.0"
+    },
+    {
+      "name": "libheif",
+      "version": "1.22.2",
+      "commit": "763bc8bb87788d64d39ece623ceed988de12dc5b",
+      "source": "https://github.com/strukturag/libheif/tree/763bc8bb87788d64d39ece623ceed988de12dc5b",
+      "archive": "sources/libheif.tar.gz",
+      "sha256": "8d2e3ee5193639bf4ee0912a564b62626b4d9de2900dfcc15495b753de846cb9",
+      "format": "git archive",
+      "license": "LGPL-3.0-or-later"
+    },
+    {
+      "name": "libde265",
+      "version": "1.0.16",
+      "commit": "7ba65889d3d6d8a0d99b5360b028243ba843be3a",
+      "source": "https://github.com/strukturag/libde265/tree/7ba65889d3d6d8a0d99b5360b028243ba843be3a",
+      "archive": "sources/libde265.tar.gz",
+      "sha256": "b92beb6b53c346db9a8fae968d686ab706240099cdd5aff87777362d668b0de7",
+      "format": "release tarball",
+      "license": "LGPL-3.0-or-later"
+    }
+  ],
+  "recipe": {
+    "tools/heic/Dockerfile": "b60d87432059f9bc94899baf2ac5f461438714edc76826fb2762067060443c7b",
+    "tools/heic/build.sh": "46e0fcb6d203b8ec59dfb8416bebee5e17c493c7c2e382fcdb24df3104ad0fb1",
+    "tools/heic/libheif-emscripten-4.0.10.patch": "777603e695b4aaf2f4defe4182a306d55d2498c4a53ddfc0e223c9834c6df231"
+  },
+  "outputs": {
+    "heic-to.js": "f1328ed0fef449e15070237b725064888fe7dc1a2d870610acdb894b2cc553c8",
+    "heic-to.d.ts": "06061486470f89a064b937a03da388c427a2a30ad2ce9f45877927d86dc6afea",
+    "native-sha256.txt": "0b43acbfed91e3473e2bfe52181db87138dc5e87c50ccd49ae6576668b22fc4a",
+    "toolchain.txt": "a9d37a36ecb37eac0c76c61ac48342840804683be5015c8c323374d0b980e309"
+  },
+  "runtimeNotices": [
+    {
+      "name": "emscripten-runtime",
+      "version": "bundled (Emscripten 4.0.10)",
+      "license": "MIT OR NCSA",
+      "files": [
+        {
+          "file": "scripts/notice-sources/emscripten-runtime-0-LICENSE.txt",
+          "sha256": "620a78084fc7ca97c0b5dea9abf891f3ffcadfdbf305276f099c9c4e12fc1d86",
+          "source": "https://github.com/emscripten-core/emscripten/blob/4.0.10/LICENSE"
+        },
+        {
+          "file": "scripts/notice-sources/emscripten-runtime-AUTHORS.txt",
+          "sha256": "56f7df65203d4858dac19cafe3a84a8c49abaff56b67d32d2d463d5fef6e440b",
+          "source": "https://github.com/emscripten-core/emscripten/blob/4.0.10/AUTHORS"
+        }
+      ]
+    },
+    {
+      "name": "musl",
+      "version": "bundled (Emscripten 4.0.10)",
+      "license": "MIT",
+      "files": [
+        {
+          "file": "scripts/notice-sources/musl-0-LICENSE.txt",
+          "sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
+          "source": "https://github.com/emscripten-core/emscripten/blob/4.0.10/system/lib/libc/musl/COPYRIGHT"
+        }
+      ]
+    },
+    {
+      "name": "llvm-runtime",
+      "version": "bundled (Emscripten 4.0.10)",
+      "license": "Apache-2.0 WITH LLVM-exception",
+      "files": [
+        {
+          "file": "scripts/notice-sources/llvm-runtime-0-LICENSE.txt",
+          "sha256": "539dd7aed86e8a4f12cbdd0e6c50c189c7d74847e4fecc64ce2c6ee3a01da38b",
+          "source": "https://github.com/emscripten-core/emscripten/blob/4.0.10/system/lib/libcxx/LICENSE.TXT"
+        },
+        {
+          "file": "scripts/notice-sources/llvm-runtime-1-LICENSE.txt",
+          "sha256": "e2b35be49f7284a45b7baca8fc7b3ab7440e7902392b2528a457816b5bb2a15c",
+          "source": "https://github.com/emscripten-core/emscripten/blob/4.0.10/system/lib/libcxxabi/LICENSE.TXT"
+        },
+        {
+          "file": "scripts/notice-sources/llvm-runtime-2-LICENSE.txt",
+          "sha256": "1a8f1058753f1ba890de984e48f0242a3a5c29a6a8f2ed9fd813f36985387e8d",
+          "source": "https://github.com/emscripten-core/emscripten/blob/4.0.10/system/lib/compiler-rt/LICENSE.TXT"
+        }
+      ]
+    },
+    {
+      "name": "dlmalloc",
+      "version": "2.8.6 (Emscripten 4.0.10)",
+      "license": "LicenseRef-Public-Domain",
+      "files": [
+        {
+          "file": "scripts/notice-sources/dlmalloc-COPYRIGHT.txt",
+          "sha256": "e82e9f612c02b4a96284eb8b2ded9127d6dc8a27b653321c264d0081a93ca64b",
+          "source": "https://github.com/emscripten-core/emscripten/blob/4.0.10/system/lib/dlmalloc.c"
+        }
+      ]
+    }
+  ]
+}
