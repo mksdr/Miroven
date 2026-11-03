@@ -8,10 +8,15 @@ export default defineConfig({
     baseURL: "https://127.0.0.2:3101",
     locale: "en-US",
     ignoreHTTPSErrors: true,
-    launchOptions: { args: ["--ignore-certificate-errors"] },
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        launchOptions: { args: ["--ignore-certificate-errors"] },
+      },
+    },
     { name: "webkit-workers", testMatch: "worker-images.spec.ts", use: { ...devices["iPhone 13"] } },
   ],
   webServer: {
