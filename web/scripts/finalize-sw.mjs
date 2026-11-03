@@ -101,6 +101,21 @@ export function replaceCacheName(source, newCacheName) {
   return source.replace(pattern, `const CACHE_NAME = "${newCacheName}";`);
 }
 
+/** Only emitted executable assets: never maps, media, API responses or user data. */
+export async function collectBuildAssets(baseDirectory) {
+  return (await listAllFiles(path.join(baseDirectory, "_next", "static")))
+    .map((file) => path.relative(baseDirectory, file).split(path.sep).join("/"))
+    .filter((file) => /\.(?:js|css)$/.test(file))
+    .sort()
+    .map((file) => `/${file}`);
+}
+
+export function replaceBuildAssets(source, assets) {
+  const pattern = /const BUILD_ASSETS = \[[\s\S]*?\];/;
+  if (!pattern.test(source)) throw new Error("Service Worker is missing BUILD_ASSETS.");
+  return source.replace(pattern, `const BUILD_ASSETS = ${JSON.stringify(assets, null, 2)};`);
+}
+
 /**
  * Main execution routine.
  */
@@ -119,6 +134,7 @@ export async function runFinalizeSw({
 
   const { digest, fileCount } = await computeBuildArtifactsHash(outDir);
   const expectedCacheName = generateCacheName(version, digest);
+  const assets = await collectBuildAssets(outDir);
 
   let swContent;
   try {
@@ -130,18 +146,18 @@ export async function runFinalizeSw({
   const match = swContent.match(/const\s+CACHE_NAME\s*=\s*["']([^"']+)["'];/);
   const currentCacheName = match?.[1];
 
+  const expectedSwContent = replaceBuildAssets(replaceCacheName(swContent, expectedCacheName), assets);
   if (checkOnly) {
-    if (currentCacheName !== expectedCacheName) {
-      throw new Error(
-        `Exported Service Worker cache name mismatch.\nExpected: "${expectedCacheName}"\nFound:    "${currentCacheName}"\nRun "npm run build" to update.`,
-      );
+    if (swContent !== expectedSwContent) {
+      throw new Error("Exported Service Worker cache name or precache list mismatch. Run npm run build.");
     }
-    console.log(`Service Worker cache name is verified: "${expectedCacheName}" (hashed ${fileCount} files)`);
+    console.log(`Service Worker cache name and precache list are verified: "${expectedCacheName}" (hashed ${fileCount} files)`);
     return { expectedCacheName, currentCacheName, fileCount };
   }
 
-  const updatedSwContent = replaceCacheName(swContent, expectedCacheName);
+  const updatedSwContent = expectedSwContent;
   await writeFile(targetSwPath, updatedSwContent, "utf8");
+  console.log(`Precache includes ${assets.length} emitted JS/CSS assets.`);
   console.log(`Updated Service Worker cache name to: "${expectedCacheName}" (hashed ${fileCount} files)`);
   return { expectedCacheName, currentCacheName, fileCount };
 }

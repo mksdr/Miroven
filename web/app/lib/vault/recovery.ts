@@ -1,3 +1,4 @@
+import { RecoveryPinLockError } from "./operation-errors";
 import {
   DEVICE_KEY_ID,
   ENTRY_STORE,
@@ -35,14 +36,7 @@ export const RECOVERY_INFO = new TextEncoder().encode(
   VAULT_FORMAT_CONTRACT.recoveryInfo,
 );
 
-export class RecoveryPinLockError extends Error {
-  readonly code = "PIN_LOCK_CONFIGURED";
-
-  constructor() {
-    super("복구 코드를 생성하려면 계정 설정에서 PIN 잠금을 먼저 해제해 주세요. 생성 후 PIN 잠금을 다시 설정할 수 있습니다.");
-    this.name = "RecoveryPinLockError";
-  }
-}
+export { RecoveryPinLockError } from "./operation-errors";
 
 export function base32Encode(bytes: Uint8Array): string {
   let bits = 0;
@@ -177,23 +171,7 @@ export async function unwrapVaultKey(
   }
 }
 
-export async function getLocalVaultEnvelope(): Promise<VaultEnvelope | null> {
-  return withVaultDatabase(async (database) => {
-    const transaction = database.transaction(VAULT_STORE, "readonly");
-    const stored = (await requestToPromise(
-      transaction.objectStore(VAULT_STORE).get(VAULT_ENVELOPE_ID),
-    )) as StoredVaultEnvelope | undefined;
-    if (!stored) return null;
-    return {
-      wrappedVaultKey: stored.wrappedVaultKey,
-      wrappingNonce: stored.wrappingNonce,
-      recoverySalt: stored.recoverySalt,
-      recoveryFormat: stored.recoveryFormat,
-      cryptoVersion: stored.cryptoVersion,
-      keyVersion: stored.keyVersion,
-    };
-  });
-}
+export { getLocalVaultEnvelope } from "./envelope";
 
 export async function createRecoveryKit(): Promise<{
   recoveryCode: string;

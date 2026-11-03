@@ -1,3 +1,4 @@
+import { LegacyBackupDeletionError } from "./operation-errors";
 import { PERSONA_DOCUMENT_ID } from "../persona";
 import { getStoredDeviceKey } from "./device-key";
 import {
@@ -52,12 +53,7 @@ import type {
 export const BACKUP_FORMAT = VAULT_FORMAT_CONTRACT.backupFormat;
 export { ENCRYPTED_BACKUP_ACCEPT, ENCRYPTED_BACKUP_MAX_BYTES };
 
-export class LegacyBackupDeletionError extends Error {
-  constructor() {
-    super("이 백업의 삭제 내역은 안전하게 확인할 수 없습니다. 원래 기기에서 최신 앱으로 새 백업을 만들어 주세요. 기존 파일은 보관해 주세요.");
-    this.name = "LegacyBackupDeletionError";
-  }
-}
+export { LegacyBackupDeletionError } from "./operation-errors";
 
 export function parseBackupEnvelope(value: unknown): VaultEnvelope {
   if (
