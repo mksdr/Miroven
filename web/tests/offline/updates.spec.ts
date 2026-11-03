@@ -45,6 +45,28 @@ test.afterEach(async () => {
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
 
+test("non-navigation root fetches use the network while offline navigation retains the installed shell", async ({ page, context }) => {
+  await page.goto(origin);
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+
+  version = "B";
+  const bodies = await page.evaluate(async () => Promise.all([
+    fetch("/"),
+    fetch("/", { cache: "no-store" }),
+    fetch("/?_rsc=synthetic", { headers: { RSC: "1", Accept: "text/x-component" } }),
+  ].map(async (response) => (await response).text())));
+  for (const body of bodies) expect(body).toContain('id="version">B');
+
+  await context.setOffline(true);
+  expect(await page.evaluate(async () => {
+    try { await fetch("/", { cache: "no-store" }); return "resolved"; }
+    catch { return "rejected"; }
+  })).toBe("rejected");
+  await page.reload();
+  await expect(page.locator("#version")).toHaveText("A");
+});
+
 test("A to B: latest online navigation, atomic offline fallback, old-tab lazy chunks and cache cleanup", async ({ page, context }) => {
   await page.goto(origin);
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));

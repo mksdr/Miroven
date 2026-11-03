@@ -60,6 +60,8 @@ self.addEventListener("fetch", (event) => {
   // API/session/file responses must always use the network, including navigations.
   if (url.origin !== self.location.origin) return;
   const shellPage = url.pathname === "/";
+  // Root fetches may request a different representation; never substitute shell HTML.
+  if (shellPage && event.request.mode !== "navigate") return;
   const shellFile = APP_SHELL.includes(url.pathname);
   const executable = url.pathname.startsWith("/_next/static/") && /\.(?:js|css)$/.test(url.pathname);
   if (!shellFile && !executable) return;
