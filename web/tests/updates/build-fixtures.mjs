@@ -8,8 +8,12 @@ const fixtures = path.join(web, ".local/update-builds");
 
 function build(directory) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "build"], {
+    const windows = process.platform === "win32";
+    const child = spawn(windows ? (process.env.ComSpec || "cmd.exe") : "npm",
+      windows ? ["/d", "/s", "/c", "npm.cmd run build"] : ["run", "build"], {
       cwd: directory,
+      // Invoke the fixed batch command through cmd without shell argument interpolation.
+      windowsHide: true,
       // Do not inherit API settings or cache-name overrides into local-only fixtures.
       env: { ...process.env, NEXT_PUBLIC_MIROVEN_API_URL: "", SERVICE_WORKER_CACHE_VERSION: "" },
       stdio: "inherit",

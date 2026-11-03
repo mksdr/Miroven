@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { createServer, type Server } from "node:https";
-import { readFileSync, existsSync, mkdtempSync, rmSync, statSync } from "node:fs";
+import { closeSync, fstatSync, openSync, readFileSync, mkdtempSync, rmSync } from "node:fs";
 import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { headersForPath, parseHeaderRules } from "../../scripts/header-rules.mjs";
@@ -29,16 +29,34 @@ test.beforeAll(async () => {
     const directory = path.join(root, version);
     const file = path.resolve(directory, `.${pathname === "/" ? "/index.html" : pathname}`);
     // The server exposes B only after deployment; it cannot rescue A's removed chunks.
-    if (!file.startsWith(`${directory}${path.sep}`) || !existsSync(file) || !statSync(file).isFile()) {
+    if (!file.startsWith(`${directory}${path.sep}`)) {
       response.writeHead(404).end();
       return;
+    }
+    let contents: Buffer;
+    let descriptor: number | undefined;
+    try {
+      // Inspect and read the same open file, even if the path changes meanwhile.
+      descriptor = openSync(file, "r");
+      if (!fstatSync(descriptor).isFile()) {
+        response.writeHead(404).end();
+        return;
+      }
+      contents = readFileSync(descriptor);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
+      response.writeHead(404).end();
+      return;
+    } finally {
+      if (descriptor !== undefined) closeSync(descriptor);
     }
     const types: Record<string, string> = { ".html": "text/html", ".js": "application/javascript",
       ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json",
       ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon" };
     response.writeHead(200, { ...headersForPath(rules[version], pathname), "Cache-Control": "no-store",
       "Content-Type": types[path.extname(file)] ?? "application/octet-stream" });
-    response.end(readFileSync(file));
+    response.end(contents);
   });
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.2", resolve));
   origin = `https://127.0.0.2:${(server.address() as AddressInfo).port}`;
