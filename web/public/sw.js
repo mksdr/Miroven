@@ -84,5 +84,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(installedAsset(url.pathname).then((cached) => cached ?? fetch(event.request)));
+  event.respondWith(installedAsset(url.pathname).then((cached) => {
+    if (!cached) return fetch(event.request);
+    if (event.request.destination === "worker" || event.request.destination === "sharedworker") {
+      // A cached Response carries its original URL without the Worker's fragment.
+      // Safari uses that URL for self.location, losing Turbopack's #params config.
+      // A response with no URL keeps the requested Worker URL, including its
+      // fragment. Preserve CSP/MIME headers and stream the cached body as usual.
+      return new Response(cached.body, {
+        status: cached.status, statusText: cached.statusText, headers: cached.headers,
+      });
+    }
+    return cached;
+  }));
 });

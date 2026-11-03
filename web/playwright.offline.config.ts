@@ -10,7 +10,10 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
     launchOptions: { args: ["--ignore-certificate-errors"] },
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "webkit-workers", testMatch: "worker-images.spec.ts", use: { ...devices["iPhone 13"] } },
+  ],
   webServer: {
     command: "node tests/performance/server.mjs",
     url: "https://127.0.0.2:3101",

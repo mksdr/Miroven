@@ -1,6 +1,6 @@
 # Offline and update delivery checks / 오프라인·업데이트 검증
 
-Run `npm run build` followed by `npm run test:offline`. Chromium is required. The app journeys use the HTTPS production build; `updates.spec.ts` additionally serves two small synthetic builds on an isolated loopback origin with the actual Service Worker source.
+Run `npm run build` followed by `npm run test:offline`. Chromium, WebKit and OpenSSL are required. The app journeys use the HTTPS production build; `updates.spec.ts` additionally serves two small synthetic builds on an isolated loopback origin with the actual Service Worker source.
 
 Run `npm run test:updates` for the real Next.js A/B build regression (also included in `npm run verify:full`, and therefore CI). It builds two isolated source copies with the normal production build and CSP/Service Worker finalizers, then serves the outputs on the same HTTPS origin. Chromium and OpenSSL are required. Outputs are kept in the ignored `.local/update-builds/`; the checkout's app source, `.env` files, `.next/` and `out/` are not changed. The fixtures use local-only mode and share installed dependencies.
 
@@ -14,9 +14,13 @@ The update regression covers A installation, B navigation while B installation i
 
 Deploy complete build outputs consistently and keep content-addressed assets available for online documents using older builds. These checks do not simulate a CDN serving HTML and Service Worker files from mismatched deployments. The original PR's startup timings predate this navigation-strategy change; rerun performance measurements before claiming those timings for the updated code.
 
+The photo Worker regression runs in Chromium and iPhone-emulated WebKit. It waits for Service Worker installation/control over HTTPS, reloads, forces Canvas to return PNG, and verifies actual WebP WASM encoding through the cached Worker. Cached Worker responses retain their body, status and CSP/MIME headers but omit the original response URL, preserving the requested URL's `#params` bootstrap configuration in Safari. This does not verify offline WASM availability or physical devices.
+
 ## 한국어
 
-`npm run build` 후 `npm run test:offline`을 실행합니다. Chromium이 필요합니다. 앱 시나리오는 HTTPS 프로덕션 빌드를 사용하고, `updates.spec.ts`는 별도의 루프백 주소에서 실제 Service Worker 소스와 합성 A/B 빌드를 제공합니다.
+사진 Worker 회귀 검사는 Chromium과 iPhone 모의 WebKit에서 실행합니다. HTTPS에서 Service Worker 설치·제어와 새로고침을 완료한 뒤 Canvas가 PNG를 반환하도록 강제하여 실제 WebP WASM 변환을 검증합니다. 캐시된 Worker 응답은 본문·상태·CSP/MIME 헤더를 유지하되 원래 응답 URL 없이 제공하여 Safari에서도 요청 URL의 `#params` 초기화 정보를 보존합니다. WASM 파일의 오프라인 가용성이나 실기기 호환성까지 검증하는 것은 아닙니다.
+
+`npm run build` 후 `npm run test:offline`을 실행합니다. Chromium·WebKit·OpenSSL이 필요합니다. 앱 시나리오는 HTTPS 프로덕션 빌드를 사용하고, `updates.spec.ts`는 별도의 루프백 주소에서 실제 Service Worker 소스와 합성 A/B 빌드를 제공합니다.
 
 실제 Next.js A/B 빌드 회귀 검사는 `npm run test:updates`로 실행합니다. `npm run verify:full`과 CI에도 포함됩니다. 격리된 소스 복사본 두 개를 일반 프로덕션 빌드 및 CSP·Service Worker 후처리로 빌드하고, 같은 HTTPS 주소에서 차례로 제공합니다. Chromium과 OpenSSL이 필요합니다. 산출물은 Git에서 제외되는 `.local/update-builds/`에 보관하며, 원본 앱 소스·`.env` 파일·`.next/`·`out/`은 변경하지 않습니다. 테스트 빌드는 로컬 전용 모드를 사용하고 설치된 의존성을 공유합니다.
 

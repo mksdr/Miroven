@@ -18,7 +18,7 @@ function worker(windows: string[] = ["other-tab"]) {
   const claim = vi.fn();
   const remove = vi.fn(async (key: string) => stores.delete(key));
   vm.runInNewContext(source, {
-    URL, Request, fetch,
+    URL, Request, Response, fetch,
     self: {
       location: { origin },
       addEventListener: (name: string, handler: (event: unknown) => void) => handlers.set(name, handler),
@@ -29,16 +29,22 @@ function worker(windows: string[] = ["other-tab"]) {
       open: async (key: string) => ({
         match: async (path: string) => {
           const body = stores.get(key)?.get(path);
-          return body === undefined ? undefined : new Response(body);
+          if (body === undefined) return undefined;
+          const response = new Response(body, { headers: {
+            "Content-Type": "application/javascript", "Content-Security-Policy": "script-src 'self'",
+          } });
+          Object.defineProperty(response, "url", { value: `${origin}${path}` });
+          return response;
         },
       }),
     },
   });
-  async function navigate(path = "/", method = "GET") {
+  async function navigate(path = "/", method = "GET", destination = "") {
     let response: Promise<Response> | undefined;
     const pending: Promise<unknown>[] = [];
     const request = new Request(path.startsWith("https:") ? path : `${origin}${path}`, { method });
     Object.defineProperty(request, "mode", { value: "navigate" });
+    Object.defineProperty(request, "destination", { value: destination });
     handlers.get("fetch")!({
       request,
       replacesClientId: "replaced", resultingClientId: "result",
@@ -56,6 +62,21 @@ function worker(windows: string[] = ["other-tab"]) {
   }
   return { stores, fetch, remove, claim, navigate, activate };
 }
+
+it.each(["worker", "sharedworker"])("preserves the requested %s URL for current and retained cached scripts", async (destination) => {
+  const sw = worker();
+  for (const [path, body] of [["/_next/static/B.js", "B chunk"], ["/_next/static/A.js", "A lazy chunk"]]) {
+    const response = (await sw.navigate(path, "GET", destination))!;
+    expect(response.url).toBe("");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("application/javascript");
+    expect(response.headers.get("Content-Security-Policy")).toBe("script-src 'self'");
+    expect(await response.text()).toBe(body);
+  }
+  expect(sw.fetch).not.toHaveBeenCalled();
+  const regular = (await sw.navigate("/_next/static/B.js"))!;
+  expect(regular.url).toBe(`${origin}/_next/static/B.js`);
+});
 
 it("serves latest online HTML without replacing the complete installed offline build", async () => {
   const sw = worker();
