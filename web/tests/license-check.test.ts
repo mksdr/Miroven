@@ -39,6 +39,14 @@ describe("AGPL compatibility policy", () => {
     const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
     expect(() => validateReviews(reviews)).not.toThrow();
   });
+  it("requires all installed dependencies to pass", async () => {
+    const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
+    const entries = await collectLicenses();
+    const unresolved = checkEntries(entries, reviews)
+      .filter((finding) => finding.installed && finding.status !== "pass")
+      .map(({ name, version, location, status, reason }) => ({ name, version, location, status, reason }));
+    expect(unresolved).toEqual([]);
+  });
 });
 
 const temporaryDirectories: string[] = [];
