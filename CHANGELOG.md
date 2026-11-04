@@ -2,6 +2,13 @@
 
 Future releases are generated from Conventional Commits.
 
+## [1.2.5](https://github.com/mksdr/Miroven/compare/v1.2.4...v1.2.5) (2026-11-04)
+
+
+### Performance Improvements
+
+* **web:** defer account loading and preserve safe PWA updates ([#28](https://github.com/mksdr/Miroven/issues/28)) ([c5c1f36](https://github.com/mksdr/Miroven/commit/c5c1f361023a67b90fdf2b18bd46fdffb1d03d43))
+
 ## [1.2.4](https://github.com/mksdr/Miroven/compare/v1.2.3...v1.2.4) (2026-10-30)
 
 
