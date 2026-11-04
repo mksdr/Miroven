@@ -35,6 +35,32 @@ describe("AGPL compatibility policy", () => {
     expect(() => validateReviews([{ ...review, reason: "" }])).toThrow();
     expect(() => validateReviews([review, review])).toThrow();
   });
+  it("validates the schema of committed manual review records", async () => {
+    const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
+    expect(() => validateReviews(reviews)).not.toThrow();
+  });
+  it("keeps HEIC approvals deferred and requires other installed dependencies to pass", async () => {
+    const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
+    const entries = await collectLicenses();
+    const findings: {
+      name: string;
+      version: string;
+      license: string | null;
+      location: string;
+      installed: boolean;
+      status: string;
+      reason: string;
+    }[] = checkEntries(entries, reviews);
+    const unresolved = findings
+      .filter((finding) => finding.installed && finding.status !== "pass")
+      .map(({ name, version, license, location, status, reason }) => ({ name, version, license, location, status, reason }));
+    // Only these exact HEIC versions remain pending; upgrades or new warnings must fail.
+    expect(unresolved.map(({ name, version, license, location, status }) => ({ name, version, license, location, status })), JSON.stringify(unresolved, null, 2)).toEqual([
+      { name: "heic-to", version: "1.5.2", license: "LGPL-3.0", location: "node_modules/heic-to", status: "review" },
+      { name: "libde265", version: "1.0.16", license: "LGPL-3.0-or-later", location: "node_modules/heic-to#libde265", status: "review" },
+      { name: "libheif", version: "1.22.2", license: "LGPL-3.0-or-later", location: "node_modules/heic-to#libheif", status: "review" },
+    ]);
+  });
 });
 
 const temporaryDirectories: string[] = [];
