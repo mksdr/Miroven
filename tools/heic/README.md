@@ -100,3 +100,15 @@ and successful rebuild are technical evidence for §4(d)(0), not a legal verdict
 한국어: JavaScript와 `out/source/`를 같은 배포 단위로 제공하세요. 과거 배포물이
 CDN·릴리스 서버에 남아 있는 동안 대응 소스도 보존해야 합니다. 운영 호스팅의
 보존·접근 정책과 추가 배포 조건은 이 저장소의 자동화만으로 확인할 수 없습니다.
+
+### CA bootstrap / CA 초기화
+
+The slim Node image has embedded public roots but may not yet have the OS CA
+bundle. `prepare-ca.mjs` writes a readable temporary bundle from those public roots
+plus the optional proxy CA **before** APT HTTPS runs. APT, Git, Python and npm use
+that bundle during installation; TLS verification stays enabled. The temporary
+bundle is removed from the resulting image. The helper is covered by the recipe
+manifest, so changes to it require an explicit hash update.
+
+한국어: 슬림 이미지의 OS 인증서 설치 전에는 Node 내장 공개 루트와 선택적 프록시 CA를
+합친 임시 번들을 사용합니다. TLS 검증을 유지하며 설치 후 임시 번들은 제거합니다.

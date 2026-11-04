@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, cp, symlink } from "node:fs/pr
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
+import { prepareUpdateSource } from "./updates/build-fixtures.mjs";
 import { repositoryRoot, verifyHeic } from "../scripts/check-heic.mjs";
 import { allowedSourcePath, collectSource, sourceTar, sourceFiles, sourceDirectories } from "../scripts/package-source.mjs";
 
@@ -33,6 +34,14 @@ describe("HEIC source distribution", () => {
     await expect(verifyHeic(root)).rejects.toThrow("hash mismatch: heic-to.js");
     await writeFile(path.join(root, "web/vendor/heic/sources/libheif.tar.gz"), "tampered");
     await expect(verifyHeic(root)).rejects.toThrow("hash mismatch: sources/libheif.tar.gz");
+  });
+  it("prepares update fixtures with the complete repository layout and verified vendor", async () => {
+    const root = await temporary();
+    expect(await prepareUpdateSource(root)).toBe(path.join(root, "web"));
+    await expect(verifyHeic(root)).resolves.toMatchObject({ schemaVersion: 1 });
+    const files = await collectSource(root);
+    for (const name of ["LICENSE", "tools/heic/prepare-ca.mjs", "web/vendor/heic/manifest.json", "web/scripts/package-source.mjs"]) expect(files.has(name)).toBe(true);
+    expect([...files.keys()].some((name) => /node_modules|\.env.local|\.local/.test(name))).toBe(false);
   });
   it("publishes the compiler runtime copyright texts without losing their originals", async () => {
     const manifest = await verifyHeic();

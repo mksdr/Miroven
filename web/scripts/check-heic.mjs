@@ -25,7 +25,7 @@ export async function verifyHeic(root = repositoryRoot, { outputs = true } = {})
     seen.add(item.name);
     await check(vendor, item.archive, item.sha256);
   }
-  for (const required of ["tools/heic/Dockerfile", "tools/heic/build.sh", "tools/heic/libheif-emscripten-4.0.10.patch"]) {
+  for (const required of ["tools/heic/Dockerfile", "tools/heic/prepare-ca.mjs", "tools/heic/build.sh", "tools/heic/libheif-emscripten-4.0.10.patch"]) {
     await check(root, required, manifest.recipe[required]);
   }
   if (outputs) for (const required of ["heic-to.js", "heic-to.d.ts", "native-sha256.txt", "toolchain.txt"]) {

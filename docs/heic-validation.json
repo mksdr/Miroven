@@ -78,5 +78,31 @@
     "cspSwBundle": "passed",
     "verifyFull": "not run, per user instruction",
     "nativeInputsRecipeAndVendorOutputs": "unchanged from recorded native experiments"
+  },
+  "ciFailureFixes": {
+    "date": "2026-11-04",
+    "baselineCommit": "dd40f83",
+    "failures": [
+      "HEIC Docker APT HTTPS bootstrap used an OS CA bundle absent from node:bookworm-slim.",
+      "Update fixtures copied only web fragments, losing repository-root native evidence and source packaging inputs."
+    ],
+    "changes": [
+      "Generate a readable CA bundle from Node embedded public roots plus optional proxy CA before APT; keep TLS enabled and remove the temporary bundle after installation.",
+      "Copy the existing source allowlist into an isolated repository/web tree for update fixtures; preserve integrity checks and source packaging."
+    ],
+    "localChecks": {
+      "targetedTests": 19,
+      "verifyFast": {
+        "files": 47,
+        "tests": 353
+      },
+      "caBootstrapInPinnedBaseImage": "passed with no OS CA file or proxy secret; _apt can read the bundle",
+      "updateFixtureBuilds": "A and B production builds passed with source packaging and distinct lazy Account chunks"
+    },
+    "pending": [
+      "Full standard-image native verification and browser update suite must pass in GitHub CI."
+    ],
+    "nativeVendorOutputs": "unchanged; only installer recipe hashes and bootstrap helper added",
+    "verifyFull": "not run locally, per user instruction"
   }
 }
