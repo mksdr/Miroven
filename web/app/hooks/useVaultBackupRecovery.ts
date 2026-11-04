@@ -13,7 +13,6 @@ import {
   RecoveryPinLockError,
   type VaultEnvelope,
 } from "../lib/local-vault";
-import { downloadDiagnosticReport } from "../lib/diagnostics";
 import {
   downloadVaultEnvelope,
   uploadVaultEnvelope,
@@ -277,6 +276,7 @@ export function useVaultBackupRecovery({
 
   const handleExportDiagnostics = useCallback(async () => {
     try {
+      const { downloadDiagnosticReport } = await import("../lib/diagnostics");
       await downloadDiagnosticReport({ language, theme, isVaultLocked });
       showToast(
         language === "ko"

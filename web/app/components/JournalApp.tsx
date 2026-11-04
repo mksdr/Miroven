@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { usePersona } from "../hooks/usePersona";
 import { PersonaContext } from "./persona/PersonaContext";
 import { PersonaSettingsModal } from "./modals/PersonaSettingsModal";
+import { DeferredAccountSettingsModal } from "./modals/DeferredAccountSettingsModal";
 import { PERSONA_DOCUMENT_ID } from "../lib/persona";
 import { savePersona } from "../lib/local-vault";
 import { resolvePersonaConflict } from "../lib/vault/sync-outbox";
@@ -45,10 +46,6 @@ import { TimelineHeader } from "./layout/TimelineHeader";
 import { RightRail } from "./layout/RightRail";
 import { MobileNav } from "./layout/MobileNav";
 
-const AccountSettingsModal = dynamic(
-  () => import("./modals/AccountSettingsModal").then((m) => m.AccountSettingsModal),
-  { ssr: false },
-);
 const DisplaySettingsModal = dynamic(
   () => import("./modals/DisplaySettingsModal").then((m) => m.DisplaySettingsModal),
   { ssr: false },
@@ -256,6 +253,13 @@ export function JournalApp() {
       );
     }
   };
+
+  const handleAccountLoadError = useCallback(() => {
+    setAccountOpen(false);
+    showToast(language === "ko"
+      ? "계정 설정을 불러오지 못했습니다. 다시 시도해 주세요."
+      : "Could not load Account settings. Please retry.");
+  }, [language, showToast]);
 
   const quoteEntries = useMemo(
     () => new Map(entries.map((entry) => [entry.id, entry])),
@@ -764,7 +768,8 @@ export function JournalApp() {
         />
 
         {accountOpen ? (
-          <AccountSettingsModal
+          <DeferredAccountSettingsModal
+            onLoadError={handleAccountLoadError}
             isOpen={accountOpen}
             onClose={() => setAccountOpen(false)}
             pinSetupOpen={pinSetupOpen}
