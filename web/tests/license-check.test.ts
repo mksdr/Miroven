@@ -42,7 +42,15 @@ describe("AGPL compatibility policy", () => {
   it("requires all installed dependencies to pass", async () => {
     const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
     const entries = await collectLicenses();
-    const unresolved = checkEntries(entries, reviews)
+    const findings: {
+      name: string;
+      version: string;
+      location: string;
+      installed: boolean;
+      status: string;
+      reason: string;
+    }[] = checkEntries(entries, reviews);
+    const unresolved = findings
       .filter((finding) => finding.installed && finding.status !== "pass")
       .map(({ name, version, location, status, reason }) => ({ name, version, location, status, reason }));
     expect(unresolved).toEqual([]);
