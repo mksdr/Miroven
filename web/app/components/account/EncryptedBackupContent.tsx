@@ -16,6 +16,7 @@ export function EncryptedBackupContent({
   hasLocalEnvelope,
   entryCount,
   busy,
+  disabled = false,
   recoveryInput,
   acceptedFileTypes,
   onExport,
@@ -27,6 +28,7 @@ export function EncryptedBackupContent({
   hasLocalEnvelope: boolean;
   entryCount: number;
   busy: boolean;
+  disabled?: boolean;
   recoveryInput: string;
   acceptedFileTypes: string;
   onExport: () => void;
@@ -37,7 +39,7 @@ export function EncryptedBackupContent({
     return (
       <div className="backup-actions">
         <p>{copy.backupGuard}</p>
-        <button type="button" onClick={onExport} disabled={busy}>
+        <button type="button" onClick={onExport} disabled={busy || disabled}>
           {busy ? copy.checkingBackup : copy.exportBackup}
         </button>
       </div>
@@ -48,13 +50,14 @@ export function EncryptedBackupContent({
     return <p className="backup-note">{copy.emptyDeviceOnly}</p>;
   }
 
-  const importDisabled = busy || !recoveryInput.trim();
+  const importDisabled = disabled || busy || !recoveryInput.trim();
   return (
     <div className="backup-actions">
       <p>{copy.backupNeeds}</p>
       <label htmlFor={`${inputId}-code`}>{copy.recoveryCode}</label>
       <input
         id={`${inputId}-code`}
+        disabled={disabled}
         value={recoveryInput}
         onChange={(event) => onRecoveryInputChange(event.target.value)}
         placeholder="XXXXX-XXXXX-…-XX"
