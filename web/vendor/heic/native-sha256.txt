@@ -1,0 +1,2 @@
+30e891f07f1f0c8750e894403d9ee91c9cbb09e81f9b9a591affe1b700facbce  src/lib/libheif-without-unsafe-eval.js
+210002dc0570fb228b22adf824679f62c22f6cbbe2f8f351350aa58056d0bc11  src/lib/libheif.js

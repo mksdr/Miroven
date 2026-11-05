@@ -13,7 +13,7 @@
     "api:generate": "node scripts/sync-api-contract.mjs",
     "api:check": "node scripts/sync-api-contract.mjs --check",
     "dev": "next dev",
-    "build": "next build && node scripts/finalize-csp.mjs && node scripts/finalize-sw.mjs",
+    "build": "node scripts/check-heic.mjs && next build && node scripts/package-source.mjs && node scripts/finalize-csp.mjs && node scripts/finalize-sw.mjs",
     "start": "npx serve out",
     "test": "npm run check:secrets && npm run test:unit && npm run test:rendered",
     "test:unit": "vitest run",
@@ -32,7 +32,12 @@
     "lint": "eslint . --ignore-pattern .next",
     "perf": "npm run build && npm run perf:built",
     "perf:built": "playwright test --config playwright.performance.config.ts && node tests/performance/report.mjs",
-    "test:updates": "playwright test --config playwright.updates.config.ts"
+    "test:updates": "playwright test --config playwright.updates.config.ts",
+    "heic:rebuild": "node scripts/heic.mjs rebuild",
+    "heic:verify": "node scripts/heic.mjs verify",
+    "heic:verify:relink": "node scripts/heic.mjs relink",
+    "heic:verify:source": "node scripts/verify-source.mjs",
+    "sources:package": "node scripts/package-source.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "1.5.0",

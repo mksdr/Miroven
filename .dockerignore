@@ -8,3 +8,4 @@
 **/*.log
 
 .local/
+!web/.env.example

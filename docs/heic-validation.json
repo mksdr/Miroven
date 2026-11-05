@@ -1,0 +1,117 @@
+{
+  "date": "2026-11-05",
+  "hostNode": "24.22.1",
+  "nativeExecutionBackend": "standard Docker linux/amd64 container runtime (plus prior read-only exported builder rootfs validation)",
+  "nativeToolVersions": {
+    "emscripten": "4.0.10",
+    "node": "24.22.1",
+    "cmake": "3.25.1"
+  },
+  "vendorOutputs": {
+    "heic-to.js": "529902f430c6ea96b25c53c50ffcaa4505d2fd429892cb1642a4612255c04b08",
+    "heic-to.d.ts": "06061486470f89a064b937a03da388c427a2a30ad2ce9f45877927d86dc6afea",
+    "native-sha256.txt": "fd84d1a1e253ca6b4bc9e50b5380c6d132e89ca81d65c5f4359e65ffbe282f6b",
+    "toolchain.txt": "a9d37a36ecb37eac0c76c61ac48342840804683be5015c8c323374d0b980e309"
+  },
+  "checks": [
+    {
+      "command": "npm run heic:verify",
+      "result": "passed: fresh native and wrapper rebuild in standard Docker container matched all four outputs"
+    },
+    {
+      "command": "npm run heic:verify:relink",
+      "result": "passed: both C/C++ version functions modified; final Worker read both values; 2 Chromium HEIC/HEIF tests passed"
+    },
+    {
+      "command": "npm run heic:verify:source",
+      "result": "passed: extracted source npm ci and app build; repackaged source SHA-256 matched; fresh native/wrapper outputs matched"
+    },
+    {
+      "command": "npm run check:licenses",
+      "result": "exit 0; 488 pass, 0 incompatible, 106 review; warnings remain non-blocking"
+    },
+    {
+      "command": "npx vitest run tests/license-check.test.ts tests/heic-source.test.ts",
+      "result": "19 passed"
+    },
+    {
+      "command": "npm run verify:fast",
+      "result": "47 files / 353 tests passed; lint and secret scan passed"
+    },
+    {
+      "command": "npm run test:rendered:built",
+      "result": "10 passed"
+    },
+    {
+      "command": "npm run check:csp; npm run check:sw; npm run check:secrets; npm run check:bundle",
+      "result": "passed"
+    },
+    {
+      "command": "npx playwright test tests/e2e/images.spec.ts --project chromium --grep 'real example'",
+      "result": "2 passed on original vendor build, separately from 2 probe cases"
+    },
+    {
+      "command": "npm run test:updates",
+      "result": "1 passed (A and B production fixture builds with source packaging and distinct lazy Account chunks)"
+    }
+  ],
+  "limitations": [
+    "Initial fixed-SDK Embind compile error was repaired by the dated source patch; read-only SDK cache initialization error was repaired in the recipe.",
+    "Emscripten wasm2js JS optimizer defaulted to host CPU count (EMCC_CORES unset), causing minified identifier differences across machines; fixed by pinning EMCC_CORES=1 BINARYEN_CORES=1 in tools/heic/build.sh.",
+    "No full Firefox/WebKit browser matrix or live backend integration suite run locally in this verification pass; GitHub CI runs the full verification workflow.",
+    "No full Docker hosting image, production deployment, retention policy or legal certification established.",
+    "Documentation updates were repackaged after the source-rebuild experiment; native inputs, recipe and vendor outputs were unchanged and re-verified.",
+    "Wiki English/Korean edits are committed locally in Miroven.wiki (402b55b) and supplied as docs/wiki-heic-delivery.patch, not pushed yet."
+  ],
+  "verificationContext": "Initial native/source/relink experiments were run in the prior pr-30 working tree using the exported rootfs backend. Independent PR verification on main c5c1f36 and subsequent 2026-11-05 standard Docker container verification are recorded below.",
+  "independentPrVerification": {
+    "baseCommit": "c5c1f36",
+    "manualReviews": 3,
+    "licenseSummary": {
+      "pass": 488,
+      "incompatible": 0,
+      "review": 106
+    },
+    "targetedTests": 19,
+    "verifyFast": {
+      "files": 47,
+      "tests": 353
+    },
+    "build": "passed; includes current main offline/update/performance configuration",
+    "renderedHtml": 10,
+    "cspSwBundle": "passed",
+    "updatesSuite": 1,
+    "standardDockerNativeChecks": "heic:rebuild, heic:verify, heic:verify:source and heic:verify:relink all passed",
+    "nativeInputsRecipeAndVendorOutputs": "regenerated and verified with EMCC_CORES=1 BINARYEN_CORES=1"
+  },
+  "ciFailureFixes": {
+    "date": "2026-11-05",
+    "baselineCommit": "714149e",
+    "failures": [
+      "HEIC Docker APT HTTPS bootstrap used an OS CA bundle absent from node:bookworm-slim (fixed in 714149e).",
+      "Update fixtures copied only web fragments, losing repository-root native evidence and source packaging inputs (fixed in 714149e).",
+      "GitHub Actions native-relink job failed with Rebuild differs: heic-to.js because Emscripten js_optimizer.py split wasm2js AST chunks by host CPU count when EMCC_CORES was unset."
+    ],
+    "changes": [
+      "Generate a readable CA bundle from Node embedded public roots plus optional proxy CA before APT; keep TLS enabled and remove the temporary bundle after installation.",
+      "Copy the existing source allowlist into an isolated repository/web tree for update fixtures; preserve integrity checks and source packaging.",
+      "Pin EMCC_CORES=1 and BINARYEN_CORES=1 in tools/heic/build.sh and regenerate web/vendor/heic outputs so wasm2js optimization is independent of host core count.",
+      "Use container-native /build workspace in standard Docker runtime (web/scripts/heic.mjs) to avoid Windows bind-mount mtime skew, preserve 0755 mode on .sh files in package-source.mjs, and support Windows npm/junction execution in verify-source.mjs and heic-source.test.ts."
+    ],
+    "localChecks": {
+      "targetedTests": 19,
+      "verifyFast": {
+        "files": 47,
+        "tests": 353
+      },
+      "caBootstrapInPinnedBaseImage": "passed with no OS CA file or proxy secret; _apt can read the bundle",
+      "updateFixtureBuilds": "A and B production builds and Playwright update test passed (1/1)",
+      "standardDockerNativeVerification": "heic:rebuild, heic:verify, heic:verify:source and heic:verify:relink passed on Docker Desktop linux/amd64"
+    },
+    "pending": [
+      "Confirm GitHub Actions CI checks on PR #32 after pushing the EMCC_CORES=1 fix."
+    ],
+    "nativeVendorOutputs": "regenerated with EMCC_CORES=1 BINARYEN_CORES=1 and verified deterministically across rebuild, verify and verify:source",
+    "verifyFull": "HEIC native/source/relink, verify:fast, build, rendered HTML, CSP/SW/secrets/bundle, HEIC browser E2E and test:updates run locally; full cross-browser CI runs in GitHub Actions"
+  }
+}

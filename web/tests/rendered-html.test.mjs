@@ -244,3 +244,16 @@ test("exports sitemap.xml and links it from robots.txt", () => {
   const robotsContent = fs.readFileSync(robotsPath, "utf8");
   assert.match(robotsContent, new RegExp(`^Sitemap:\\s*${originPattern}/sitemap\\.xml$`, "m"));
 });
+
+test("notice links to the corresponding source download and checksum", () => {
+  const html = fs.readFileSync(path.join(outDirectory, "notice.html"), "utf8");
+  const links = collectElements(html).filter((element) => element.tagName === "a").map((element) => getAttr(element, "href"));
+  for (const filename of ["miroven-source.tar.gz", "SHA256SUMS", "manifest.json"]) assert.ok(links.includes(`/source/${filename}`));
+  for (const text of ["heic-to", "libheif", "libde265", "GNU LESSER GENERAL PUBLIC LICENSE", "GNU GENERAL PUBLIC LICENSE"]) assert.ok(html.includes(text));
+  const source = path.join(outDirectory, "source");
+  const manifest = JSON.parse(fs.readFileSync(path.join(source, "manifest.json"), "utf8"));
+  const hash = createHash("sha256").update(fs.readFileSync(path.join(source, manifest.archive))).digest("hex");
+  assert.equal(hash, manifest.sha256);
+  assert.equal(fs.readFileSync(path.join(source, "SHA256SUMS"), "utf8"), `${hash}  ${manifest.archive}\n`);
+  for (const file of ["web/app/lib/heic-decoder.ts", "web/vendor/heic/sources/libheif.tar.gz", "web/vendor/heic/sources/libde265.tar.gz", "tools/heic/libheif-emscripten-4.0.10.patch", "tools/heic/build.sh"]) assert.ok(manifest.files[file], `missing source: ${file}`);
+});
