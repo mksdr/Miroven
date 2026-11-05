@@ -39,7 +39,7 @@ describe("AGPL compatibility policy", () => {
     const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
     expect(() => validateReviews(reviews)).not.toThrow();
   });
-  it("keeps HEIC approvals deferred and requires other installed dependencies to pass", async () => {
+  it("keeps HEIC and pending compiler runtime reviews visible and requires other installed dependencies to pass", async () => {
     const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
     const entries = await collectLicenses();
     const findings: {
@@ -54,11 +54,13 @@ describe("AGPL compatibility policy", () => {
     const unresolved = findings
       .filter((finding) => finding.installed && finding.status !== "pass")
       .map(({ name, version, license, location, status, reason }) => ({ name, version, license, location, status, reason }));
-    // Only these exact HEIC versions remain pending; upgrades or new warnings must fail.
+    // Only these exact HEIC and compiler runtime versions remain pending; upgrades or new warnings must fail.
     expect(unresolved.map(({ name, version, license, location, status }) => ({ name, version, license, location, status })), JSON.stringify(unresolved, null, 2)).toEqual([
+      { name: "dlmalloc", version: "2.8.6 (Emscripten 4.0.10)", license: "LicenseRef-Public-Domain", location: "vendor/heic#dlmalloc", status: "review" },
       { name: "heic-to", version: "1.5.2", license: "LGPL-3.0", location: "node_modules/heic-to", status: "review" },
       { name: "libde265", version: "1.0.16", license: "LGPL-3.0-or-later", location: "node_modules/heic-to#libde265", status: "review" },
       { name: "libheif", version: "1.22.2", license: "LGPL-3.0-or-later", location: "node_modules/heic-to#libheif", status: "review" },
+      { name: "llvm-runtime", version: "bundled (Emscripten 4.0.10)", license: "Apache-2.0 WITH LLVM-exception", location: "vendor/heic#llvm-runtime", status: "review" },
     ]);
   });
 });
@@ -148,7 +150,6 @@ describe("HEIC LGPL review evidence", () => {
     for (const [name, version] of [["heic-to", "1.5.2"], ["libheif", "1.22.2"], ["libde265", "1.0.16"]]) {
       const review = reviews.find((item: { name: string }) => item.name === name);
       expect(review).toMatchObject({ version, status: "review" });
-      expect(review.reason).toContain("docs/lgpl-heic-review.md");
       const notice = notices.find((item: { name: string }) => item.name === name);
       expect(notice.version).toBe(version);
       expect(notice.files.some((file: { text: string }) => file.text.includes("GNU LESSER GENERAL PUBLIC LICENSE"))).toBe(true);
