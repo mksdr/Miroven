@@ -45,7 +45,7 @@ try {
   } else {
     docker.push("-e", `OUTPUT_UID=${process.getuid?.() ?? 0}`, "-e", `OUTPUT_GID=${process.getgid?.() ?? 0}`);
     mount(path.join(root, "tools/heic"), "/recipe", true);
-    mount(output, "/output"); mount(work, "/build");
+    mount(output, "/output");
     docker.push(image);
   }
   docker.push(mode === "relink" ? "probe" : "original");
@@ -83,7 +83,7 @@ try {
       if (name.endsWith(".js") && (await readFile(path.join(chunks, name), "utf8")).includes("MIROVEN_NATIVE_PROBE")) found = true;
     }
     if (!found) throw new Error("Native probe worker missing from final application");
-    run(process.execPath, ["node_modules/@playwright/test/cli.js", "test", "tests/e2e/images.spec.ts", "--project=chromium", "--grep", "real example"], { cwd, env: { ...process.env, MIROVEN_HEIC_PROBE: "1" } });
+    run(process.execPath, ["node_modules/@playwright/test/cli.js", "test", "tests/e2e/images.spec.ts", "--project=chromium", "--grep", "real example"], { cwd, env: { ...process.env, CI: "1", MIROVEN_HEIC_PROBE: "1" } });
     console.log("Both modified native libraries decoded real HEIC/HEIF in the application.");
   }
 } finally {

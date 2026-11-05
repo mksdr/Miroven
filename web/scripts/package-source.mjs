@@ -19,7 +19,7 @@ export async function collectSource(root) {
     if (info.isSymbolicLink()) throw new Error(`Source symlink is not permitted: ${name}`);
     if (info.isDirectory()) {
       for (const entry of (await readdir(path.join(root, name))).sort()) await add(`${name}/${entry}`);
-    } else if (info.isFile()) files.set(name, { data: await readFile(path.join(root, name)), mode: info.mode & 0o111 ? 0o755 : 0o644 });
+    } else if (info.isFile()) files.set(name, { data: await readFile(path.join(root, name)), mode: (info.mode & 0o111) || name.endsWith(".sh") ? 0o755 : 0o644 });
     else throw new Error(`Unsupported source input: ${name}`);
   };
   for (const name of [...sourceFiles, ...sourceDirectories]) await add(name);

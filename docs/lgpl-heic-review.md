@@ -93,7 +93,7 @@ the exact SDK/tool files and network disabled. The standard image runtime backen
 must be verified in GitHub CI; local rootfs results must not be described as that
 backend having passed. An initial SDK/API error and a read-only cache initialization
 error were fixed rather than suppressed. Local Wiki edits are supplied separately
-in `docs/wiki-heic-delivery.patch`; no Wiki publication is performed.
+in `docs/wiki-heic-delivery.patch` (and committed locally in `Miroven.wiki` prior to push). On 2026-11-05, `tools/heic/build.sh` pinned `EMCC_CORES=1 BINARYEN_CORES=1` to eliminate host-CPU-count chunk splitting in Emscripten's `wasm2js` JS optimizer, regenerated `web/vendor/heic/*`, and verified `heic:verify`, `heic:verify:source`, and `heic:verify:relink` end-to-end on the standard Docker `linux/amd64` container runtime.
 
 <details>
 <summary>Historical baseline investigation before the native delivery pipeline</summary>

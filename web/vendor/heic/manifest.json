@@ -41,14 +41,14 @@
   ],
   "recipe": {
     "tools/heic/Dockerfile": "c404b6eebe6f45bbd706d698fb4f45ee8d33a4d4d942a2d47323d62590b1a22f",
-    "tools/heic/build.sh": "46e0fcb6d203b8ec59dfb8416bebee5e17c493c7c2e382fcdb24df3104ad0fb1",
+    "tools/heic/build.sh": "8b9a8e7677872f078571d4f7bc54eb156afc9605ac56ac707633c02359041e5c",
     "tools/heic/libheif-emscripten-4.0.10.patch": "777603e695b4aaf2f4defe4182a306d55d2498c4a53ddfc0e223c9834c6df231",
     "tools/heic/prepare-ca.mjs": "53c57edfc5482f04a3e344aab13dbbb9039f1cd93150b9fbce940eb983d36f63"
   },
   "outputs": {
-    "heic-to.js": "f1328ed0fef449e15070237b725064888fe7dc1a2d870610acdb894b2cc553c8",
+    "heic-to.js": "529902f430c6ea96b25c53c50ffcaa4505d2fd429892cb1642a4612255c04b08",
     "heic-to.d.ts": "06061486470f89a064b937a03da388c427a2a30ad2ce9f45877927d86dc6afea",
-    "native-sha256.txt": "0b43acbfed91e3473e2bfe52181db87138dc5e87c50ccd49ae6576668b22fc4a",
+    "native-sha256.txt": "fd84d1a1e253ca6b4bc9e50b5380c6d132e89ca81d65c5f4359e65ffbe282f6b",
     "toolchain.txt": "a9d37a36ecb37eac0c76c61ac48342840804683be5015c8c323374d0b980e309"
   },
   "runtimeNotices": [

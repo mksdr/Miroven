@@ -6,7 +6,7 @@ import { repositoryRoot, sha256 } from "./check-heic.mjs";
 
 const temp = await mkdtemp(path.join(os.tmpdir(), "miroven-source-"));
 const run = (cmd, args, cwd) => {
-  const result = spawnSync(cmd, args, { cwd, stdio: "inherit" });
+  const result = cmd === "npm" && process.platform === "win32" ? spawnSync(process.execPath, [process.env.npm_execpath || path.join(path.dirname(process.execPath), "node_modules/npm/bin/npm-cli.js"), ...args], { cwd, stdio: "inherit" }) : spawnSync(cmd, args, { cwd, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`${cmd} exited ${result.status}`);
 };

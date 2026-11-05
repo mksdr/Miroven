@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 trap 'chown -R "${OUTPUT_UID:-0}:${OUTPUT_GID:-0}" /output /build' EXIT
-export LC_ALL=C TZ=UTC SOURCE_DATE_EPOCH=0 EM_NODE_JS=/usr/local/bin/node
+export LC_ALL=C TZ=UTC SOURCE_DATE_EPOCH=0 EM_NODE_JS=/usr/local/bin/node EMCC_CORES=1 BINARYEN_CORES=1
 export EM_CACHE=/build/em-cache
 [[ -d "$EM_CACHE" ]] || cp -a /emsdk/upstream/emscripten/cache "$EM_CACHE"
 emcc --version | grep -F '4.0.10' >/dev/null

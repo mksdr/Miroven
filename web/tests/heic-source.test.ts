@@ -68,7 +68,7 @@ describe("HEIC source distribution", () => {
     const result = spawnSync("tar", ["-xzf", filename, "-C", root], { encoding: "utf8" });
     expect(result.status, result.stderr).toBe(0);
     expect(await readFile(path.join(root, "LICENSE"), "utf8")).toBe("License text\n");
-    expect(spawnSync(path.join(root, "tools/heic/build.sh")).status).toBe(0);
+    if (process.platform !== "win32") expect(spawnSync(path.join(root, "tools/heic/build.sh")).status).toBe(0);
   });
   it("excludes private/generated roots and refuses secret files or symlinks in source roots", async () => {
     const root = await temporary();
@@ -85,7 +85,7 @@ describe("HEIC source distribution", () => {
     expect([...collected.keys()].some((name) => /\.local|node_modules|web\/out|\.env.local/.test(name))).toBe(false);
     expect(collected.has("web/.env.example")).toBe(true);
     for (const name of ["web/app/.env", "web/app/private.pem", "../private"]) expect(allowedSourcePath(name)).toBe(false);
-    await symlink(path.join(root, "web/.env.local"), path.join(root, "web/app/link"));
+    await symlink(path.join(root, "web/node_modules"), path.join(root, "web/app/link"), "junction");
     await expect(collectSource(root)).rejects.toThrow("symlink");
     await rm(path.join(root, "web/app/link"));
     await writeFile(path.join(root, "web/app/.env"), "private");
