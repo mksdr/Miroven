@@ -3,7 +3,8 @@
   "localVerification": {
     "sourceState": {
       "baseCommit": "fa540902903367e00fec35b894eaac7d27eecbc3",
-      "workingTreeChanges": "Automatic source collection, simplified build/workflow checks and regression tests. Documentation and this result record are finalized after the measurements; the source download is repackaged afterward."
+      "workingTreeChanges": "Automatic source collection, simplified build/workflow checks and regression tests. Documentation and this result record are finalized after the measurements; the source download is repackaged afterward.",
+      "implementationCommit": "362dd64ae3546356a9673c9e6be20905f1c653b5"
     },
     "environment": {
       "os": "Fedora Linux 45 x86_64",
@@ -49,8 +50,53 @@
     ]
   },
   "ciVerification": {
-    "status": "pending",
-    "context": "General application CI is checked after pushing the implementation; the HEIC workflow now requires manual dispatch."
+    "status": "passed",
+    "headCommit": "362dd64ae3546356a9673c9e6be20905f1c653b5",
+    "baseCommit": "05d3dd91bbcf82c8ceffa0d27ebd60afa3405475",
+    "testedMergeCommit": "4be65820c371e7dc5e9be13864eac2580a9c74bc",
+    "uncommittedSourceChanges": "none; GitHub Actions checkouts; this validation record is the only subsequent tracked change",
+    "environment": "GitHub ubuntu-latest; Node 24.22.1",
+    "web": {
+      "url": "https://github.com/mksdr/Miroven/actions/runs/42462793742/job/128675500452",
+      "verifyFull": "passed",
+      "unit": {
+        "files": 47,
+        "passed": 359
+      },
+      "licenses": {
+        "pass": 509,
+        "review": 85,
+        "incompatible": 0
+      },
+      "renderedHtml": {
+        "passed": 10,
+        "skipped": 0
+      },
+      "browser": {
+        "passed": 148,
+        "skipped": 16,
+        "skipContext": "API-configured cases run separately"
+      },
+      "offline": {
+        "passed": 11
+      },
+      "updates": {
+        "passed": 1
+      }
+    },
+    "apiIntegration": {
+      "url": "https://github.com/mksdr/Miroven/actions/runs/42462793742/job/128675500356",
+      "apiCommit": "cbf098e0f47c1eea589620773380b5999d5bd907",
+      "passed": 7,
+      "skipped": 1,
+      "skipContext": "Separately configured administrator/plan case"
+    },
+    "otherWorkflows": {
+      "Commit and release policy": "passed",
+      "Dependency Review": "passed",
+      "CodeQL": "passed"
+    },
+    "nativeWorkflow": "not run automatically; manual dispatch only; unchanged native inputs/recipe/vendor retain the prior successful evidence below"
   },
   "previousNativeVerification": {
     "headCommit": "fa540902903367e00fec35b894eaac7d27eecbc3",
