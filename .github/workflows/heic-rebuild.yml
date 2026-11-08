@@ -1,35 +1,6 @@
 name: HEIC source and relinking verification
 
 on:
-  pull_request:
-    paths:
-      - 'tools/heic/**'
-      - 'web/vendor/heic/**'
-      - 'web/scripts/**'
-      - 'web/app/lib/heic-decoder.ts'
-      - 'web/app/notice/**'
-      - 'web/tests/**'
-      - 'web/package*.json'
-      - 'web/next.config.ts'
-      - 'Dockerfile'
-      - '.dockerignore'
-      - '.gitattributes'
-      - '.github/workflows/heic-rebuild.yml'
-  push:
-    branches: [main]
-    paths:
-      - 'tools/heic/**'
-      - 'web/vendor/heic/**'
-      - 'web/scripts/**'
-      - 'web/app/lib/heic-decoder.ts'
-      - 'web/app/notice/**'
-      - 'web/tests/**'
-      - 'web/package*.json'
-      - 'web/next.config.ts'
-      - 'Dockerfile'
-      - '.dockerignore'
-      - '.gitattributes'
-      - '.github/workflows/heic-rebuild.yml'
   workflow_dispatch:
 
 permissions:

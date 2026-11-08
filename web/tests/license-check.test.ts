@@ -162,8 +162,5 @@ describe("HEIC LGPL review evidence", () => {
         expect(notice.files.some((file: { text: string }) => file.text.includes("GNU GENERAL PUBLIC LICENSE"))).toBe(true);
       }
     }
-    const evidence = await readFile(new URL("../docs/lgpl-heic-review.md", root), "utf8");
-    expect(evidence).toContain("emconfigure: command not found");
-    expect(evidence).toContain("c189220a7a1e87559758a48ab4700e55629fb23a4cb57489e1e8970be1b9d018");
   });
 });

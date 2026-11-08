@@ -26,7 +26,7 @@ function build(directory) {
 }
 
 // Preserve the repository/web layout required by production integrity/source steps.
-// The same allowlist excludes .env files, local artifacts and installed dependencies.
+// The same source roots and exclusions apply without Git metadata.
 export async function prepareUpdateSource(source) {
   for (const [name, file] of await collectSource(path.resolve(web, ".."))) {
     const target = path.join(source, name);

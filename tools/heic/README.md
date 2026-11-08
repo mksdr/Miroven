@@ -26,14 +26,18 @@ https://github.com/emscripten-core/emscripten/tree/4.0.10 . Node sources:
 https://nodejs.org/download/release/v24.22.1/ . These are general-purpose tools,
 not substitutes for the library sources included here. No private key is needed.
 
+After `npm run build`, `npm run heic:verify:source` rebuilds the downloaded
+application source, compares its repackaged archive and reproduces native output.
+The HEIC Actions workflow runs these native experiments on manual dispatch.
+
 For an HTTPS inspection proxy, preserve normal proxy settings. The optional
 `CODEX_PROXY_CERT` environment variable supplies a public CA to the npm install
 through a BuildKit secret; it is not copied into the image or source bundle.
 
 The source download on `/notice` includes application inputs, library archives,
 this recipe, patches (if any), lockfiles and public build settings. Extract the
-application archive, run `cd web && npm ci && npm run build` for the supplied
-vendor build; the commands above regenerate or replace it from native source.
+application archive, restore `BUILD-SETTINGS.json` into the build environment,
+then run `cd web && npm ci && npm run build` for the supplied vendor build; the commands above regenerate or replace it from native source.
 Do not substitute another release's libraries without updating its manifest,
 notices, output hashes and the matching source distribution.
 
@@ -43,62 +47,17 @@ notices, output hashes and the matching source distribution.
 소스 다운로드를 배포물과 함께 보존하고 실제 호스팅에서도 접근 가능한지 확인하세요.
 재빌드 성공은 LGPL의 모든 법적 의무 충족 판정이 아닙니다.
 
-## Approving source files / 소스 파일 승인
+## Source collection / 소스 수집
 
-`web/scripts/source-files.json` lists every approved distribution input. Before
-Next.js runs, `npm run sources:check` fails on unlisted files inside the source
-roots, missing approved inputs, forbidden names or symlinks. The packager checks
-again before writing the archive. Private/generated roots remain excluded.
+The packager automatically collects declared source directories and required root
+files, including local edits and untracked inputs. No Git metadata or file approval
+list is needed. Keep private material outside those directories; private/generated
+roots are excluded and secret-named files or symlinks in source roots are rejected.
+`BUILD-SETTINGS.json` records the public variables to restore before rebuilding.
 
-When adding, removing or renaming source files, stage only the intended public
-paths with `git add -- <paths>`, then run `npm run sources:update` from `web/`.
-Review the resulting file-list diff before distributing. The update command uses
-Git-tracked paths, never untracked or ignored files. Builds do not regenerate the
-list. Move private files outside source roots; do not approve them to pass a build.
-
-The list is included in the source archive, so Docker contexts and extracted
-downloads need no `.git` directory. Approved files retain their actual current
-contents, including local edits; the list is a path approval, not a clean-commit
-or secret-content certification. Rebuilding after adding a file to an extracted
-download requires explicitly reviewing and editing its list, or using a Git
-checkout and the update command.
-
-한국어: `web/scripts/source-files.json`으로 배포할 파일 경로를 명시적으로 관리합니다.
-`npm run sources:check`는 Next.js 실행 전에 소스 디렉터리의 미등록 파일·누락된 승인
-파일·금지된 이름·심볼릭 링크를 차단하며 패키징 시에도 다시 검사합니다. 파일 추가·삭제·
-이름 변경 시 공개할 경로만 `git add -- <경로>`로 stage한 뒤 `web/`에서
-`npm run sources:update`를 실행하고 목록 차이를 검토하세요. 미추적·무시된 파일은
-갱신 후보에 포함하지 않으며 일반 빌드는 목록을 자동 갱신하지 않습니다. 개인 파일은
-승인하여 빌드를 통과시키지 말고 소스 디렉터리 밖으로 옮기세요.
-목록 자체를 소스 아카이브에 포함하므로 Docker·다운로드 재빌드는 Git 없이 동작합니다.
-승인된 파일의 실제 수정 내용은 보존하지만 내용의 비밀정보 여부까지 인증하지는 않습니다.
-다운로드한 소스에 새 파일을 추가하려면 목록을 명시적으로 검토·수정하거나 Git checkout에서
-갱신 명령을 사용하세요.
-
-## Small vfs Docker environments
-
-Some `vfs` daemons duplicate the entire SDK image for each container. If that
-exceeds local disk capacity, export the **same Dockerfile's** root filesystem
-using Docker's `--output type=local,dest=/absolute/path` exporter and set
-`HEIC_BUILDER_ROOTFS=/absolute/path` for the HEIC commands. This explicit backend
-binds its usr/etc/emsdk/opt read-only into a small container and compiles with no
-network. It still checks SDK/Node versions and the same output hashes; it does
-not select another SDK. Do not point it at an untrusted filesystem. CI uses the
-normal image backend. The build recipe is mounted read-only at execution time.
-
-The SDK's Node copy is removed; `EM_NODE_JS` selects the pinned Node 24 binary.
-The dated Debian snapshot includes both ordinary and security/updates archives.
-`libheif-emscripten-4.0.10.patch` explicitly boxes the image pointer before
-`val.set`: libheif 1.22.2 requests a three-argument overload absent from this SDK.
-This modified LGPL header is marked with the modification date. No decoder
-algorithm is changed. The emitted module gets an ES module default export for
-heic-to; all adaptations are visible in the recipe and source download.
-The recipe disables upstream documentation/test executables and reuses the same
-native static archives for the two JS linker variants. Decoder testing happens
-against the final browser artifact; it does not require distributing test binaries.
-The ES module adapter replaces Emscripten's CommonJS/AMD export tail; it does
-not keep both module systems in the browser worker. Original upstream codec
-inputs are deleted before rebuilding, preventing an unnoticed binary fallback.
+한국어: 소스 디렉터리와 필수 루트 파일의 실제 내용을 자동 수집하며 미추적 입력도
+포함합니다. 파일별 승인이나 Git은 필요하지 않습니다. 개인 자료는 대상 디렉터리 밖에
+보관하세요. 공개 설정은 `BUILD-SETTINGS.json`에서 빌드 환경으로 복원합니다.
 
 ## Your own modified library / 직접 수정한 라이브러리
 
@@ -133,14 +92,9 @@ and successful rebuild are technical evidence for §4(d)(0), not a legal verdict
 CDN·릴리스 서버에 남아 있는 동안 대응 소스도 보존해야 합니다. 운영 호스팅의
 보존·접근 정책과 추가 배포 조건은 이 저장소의 자동화만으로 확인할 수 없습니다.
 
-### CA bootstrap / CA 초기화
-
-The slim Node image has embedded public roots but may not yet have the OS CA
-bundle. `prepare-ca.mjs` writes a readable temporary bundle from those public roots
-plus the optional proxy CA **before** APT HTTPS runs. APT, Git, Python and npm use
-that bundle during installation; TLS verification stays enabled. The temporary
-bundle is removed from the resulting image. The helper is covered by the recipe
-manifest, so changes to it require an explicit hash update.
-
-한국어: 슬림 이미지의 OS 인증서 설치 전에는 Node 내장 공개 루트와 선택적 프록시 CA를
-합친 임시 번들을 사용합니다. TLS 검증을 유지하며 설치 후 임시 번들은 제거합니다.
+Further technical background and the optional low-storage builder backend are in
+[client development](https://github.com/mksdr/Miroven/wiki/Client-Development)
+and [dependency licenses](https://github.com/mksdr/Miroven/wiki/Dependency-Licenses).
+한국어 안내: [개발](https://github.com/mksdr/Miroven/wiki/Client-Development.ko) ·
+[라이선스](https://github.com/mksdr/Miroven/wiki/Dependency-Licenses.ko).
+The rebuild and replacement steps above are self-contained in this download.
