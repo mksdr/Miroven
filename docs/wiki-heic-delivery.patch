@@ -1,12 +1,12 @@
 --- a/Image-Processing.md
 +++ b/Image-Processing.md
 @@ -30,9 +30,17 @@
- 
+
  ## HEIC/HEIF fallback
- 
+
 -Detect HEIF from MIME, case-insensitive `.heic`/`.heif`, or `ftyp` brands. Try native browser decoding first, then lazily load `heic-to/csp` in an on-device Worker. Ordinary JPEG/PNG/WebP inputs do not load it. Use the first image returned by the library; this does not promise full multi-image, video, Live Photo, or HEIF codec support. Invalid/unsupported files produce an error.
 +Detect HEIF from MIME, case-insensitive `.heic`/`.heif`, or `ftyp` brands. Try native browser decoding first, then lazily load the locally vendored CSP build of `heic-to` in an on-device Worker. Ordinary JPEG/PNG/WebP inputs do not load it. Use the first image returned by the library; this does not promise full multi-image, video, Live Photo, or HEIF codec support. Invalid/unsupported files produce an error.
- 
+
  The host must honor `worker-src 'self' blob:` from `public/_headers`. First fallback use needs the decoder assets; offline restart behavior and physical-device support require separate verification.
 +
 +The vendored module is rebuilt from pinned libheif/libde265 C/C++ sources. Ordinary
@@ -16,14 +16,14 @@
 +`heic:verify:relink` commands check native rebuilding and modified-library use; see
 +[the recipe](https://github.com/mksdr/Miroven/blob/HEAD/tools/heic/README.md).
 +Successful tests do not certify all LGPL distribution conditions.
- 
+
  ## Memory limits and verification
- 
+
 --- a/Image-Processing.ko.md
 +++ b/Image-Processing.ko.md
 @@ -41,10 +41,18 @@
  ## HEIC·HEIF 처리
- 
+
  - MIME, `.heic`·`.heif` 확장자 또는 `ftyp` 브랜드로 감지합니다. 확장자는 대소문자를 구분하지 않습니다.
 -- 먼저 브라우저의 기본 디코더를 시도합니다. 읽지 못하면 `heic-to/csp`를 지연 로딩해 기기 내 Worker에서 변환합니다. 일반 JPEG·PNG·WebP 입력에는 이 디코더를 불러오지 않습니다.
 +- 먼저 브라우저의 기본 디코더를 시도합니다. 읽지 못하면 로컬 vendor의 heic-to CSP 빌드를 지연 로딩해 기기 내 Worker에서 변환합니다. 일반 JPEG·PNG·WebP 입력에는 이 디코더를 불러오지 않습니다.
@@ -38,6 +38,44 @@
 +`heic:verify:relink`는 네이티브 재빌드와 수정 라이브러리 재결합을 검증합니다.
 +[재빌드 안내](https://github.com/mksdr/Miroven/blob/HEAD/tools/heic/README.md)를
 +참조하세요. 테스트 성공은 LGPL 배포 조건 전체에 대한 법적 판정이 아닙니다.
- 
+
  ## 메모리 제한의 범위
- 
+
+diff --git a/Client-Development.ko.md b/Client-Development.ko.md
+index cfe84c3..6694bd9 100644
+--- a/Client-Development.ko.md
++++ b/Client-Development.ko.md
+@@ -16,6 +16,14 @@ CI·Docker의 빌드 런타임은 저장소의 `Dockerfile`과 `.github/workflow
+
+ 지원 런타임·의존성 선언은 `web/package.json`, 실제 의존성 버전은 `web/package-lock.json`을 확인하고 `npm ci`로 재현합니다. 설치된 `node_modules`는 오래됐을 수 있으며 패키지 버전만으로 소스 시점을 식별하지 않습니다.
+
++### PR #32의 소스 파일 승인
++
++[PR #32](https://github.com/mksdr/Miroven/pull/32)의 소스 제공 구현은 `web/scripts/source-files.json`으로 배포 입력 파일의 경로를 개별 승인합니다. `npm run sources:check`를 Next.js 실행 전에 수행하고 패키징할 때 다시 검사합니다. 소스 디렉터리의 미등록 파일·누락된 승인 파일·금지된 이름·심볼릭 링크는 빌드를 실패시킵니다. 개인·생성물 디렉터리는 계속 제외합니다. 실제 프로덕션 배포 검증 결과가 아닌 PR 구현에 관한 안내입니다.
++
++소스 파일 추가·삭제·이름 변경 시 공개할 경로만 `git add -- <경로>`로 stage하고 `web/`에서 `npm run sources:update`를 실행한 뒤 목록 차이를 검토하세요. 갱신 후보는 Git 추적 경로에서 가져오며 미추적·무시된 파일을 자동 승인하지 않습니다. 개인 파일은 빌드를 통과시키려고 승인하지 말고 소스 디렉터리 밖으로 옮기세요. 일반 빌드는 목록을 자동 갱신하지 않습니다.
++
++목록 자체를 소스 아카이브에 동봉하므로 Docker context와 다운로드 소스의 빌드는 Git 메타데이터 없이 동작합니다. 승인된 파일의 실제 로컬 수정 내용은 보존하지만 경로 승인이 내용의 비밀정보 부재까지 인증하지는 않습니다. 다운로드 소스에 파일을 추가하려면 목록을 명시적으로 검토·수정하거나 Git checkout에서 갱신 명령을 사용하세요. [영·한 소스 승인 절차](https://github.com/mksdr/Miroven/blob/fix/heic-lgpl-source-delivery/tools/heic/README.md)를 참고하세요.
++
+ ## 로컬 전용
+
+ ```sh
+diff --git a/Client-Development.md b/Client-Development.md
+index 914c556..f8c4060 100644
+--- a/Client-Development.md
++++ b/Client-Development.md
+@@ -14,6 +14,14 @@ For development, check out the client in `Miroven/` and API beside it in `Mirove
+
+ Use `web/package.json` for supported runtime requirements and declared dependencies, `web/package-lock.json` for resolved dependency versions, and `npm ci` to reproduce that lockfile. Installed `node_modules` may be stale; a package version alone does not identify a source snapshot.
+
++### Source file approval in PR #32
++
++The source-delivery implementation in [PR #32](https://github.com/mksdr/Miroven/pull/32) uses `web/scripts/source-files.json` to approve individual distribution input paths. `npm run sources:check` runs before Next.js; packaging checks again. Unlisted files inside the source roots, missing approved files, forbidden names and symlinks fail the build. Private/generated roots stay excluded. This describes the PR implementation, not an already verified production deployment.
++
++When adding, removing or renaming source files, stage only intended public paths with `git add -- <paths>`, run `npm run sources:update` from `web/`, and review the file-list diff. The update command derives candidates from tracked paths; untracked and ignored files are not auto-approved. Move private files outside source roots instead of approving them to pass a build. Ordinary builds never regenerate the list.
++
++The list travels with the source archive, so Docker contexts and extracted-source builds work without Git metadata. Approved files keep their actual local modifications; approval concerns paths and does not certify that their contents contain no secrets. Adding files to a downloaded source tree requires explicitly reviewing/editing its list or using a Git checkout and the update command. See [the bilingual source approval workflow](https://github.com/mksdr/Miroven/blob/fix/heic-lgpl-source-delivery/tools/heic/README.md).
++
+ ## Local development
+
+ From the Miroven root:

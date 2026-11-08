@@ -38,9 +38,17 @@ Ordinary builds validate vendor evidence before Next.js, then package actual
 application input files plus library archives, patch, scripts and public build
 settings into `out/source/miroven-source.tar.gz`. `/notice` links this download,
 its SHA-256 and manifest. Packaging works without Git metadata, including Docker
-build contexts. Environment files, private local directories, dependencies and
-build outputs are excluded; symlinks or secret-named files inside included source
-roots fail packaging. Hash-bearing source/output files have LF checkout rules.
+build contexts. The reviewed file-level list in `web/scripts/source-files.json`
+ships in the archive. Ordinary builds check it before Next.js and packaging
+checks it again: unlisted local files inside source roots and missing approved
+files fail the build. `npm run sources:update` is an explicit maintainer step
+using Git-tracked paths; builds never approve new paths automatically. Approved
+files still contain their actual local modifications. Environment files, private
+local directories, dependencies and build outputs are excluded; symlinks or
+secret-named files inside included source roots fail packaging. This path list
+does not certify the absence of secrets inside approved files. See the bilingual
+approval workflow in `tools/heic/README.md`. Hash-bearing source/output files
+have LF checkout rules.
 Compiler-generated runtime notices are now supplied too, without replacing the
 existing GPL/LGPL notices. Review results for unknown exceptions remain visible.
 
@@ -64,6 +72,12 @@ expire and are not the source-delivery channel.
 한국어: 고정된 C/C++ 소스와 공개 패치에서 코덱을 생성해 실제 앱에 사용하고,
 일반 빌드가 소스·레시피·출력 무결성을 검사합니다. 배포물에는 애플리케이션 입력,
 라이브러리 원본·패치·재빌드 자료와 공개 설정을 묶어 `/notice`에서 제공합니다.
+`web/scripts/source-files.json`에 승인된 파일 경로를 관리하고 소스에 동봉합니다.
+일반 빌드는 Next.js 실행 전과 패키징 시에 소스 디렉터리의 미등록 파일과 승인 파일의
+누락을 차단합니다. `npm run sources:update`로 Git 추적 경로에서 후보를 명시적으로
+갱신·검토하며, 빌드가 자동 승인하지 않습니다. 승인 파일의 실제 수정 내용은 보존하지만
+내용의 비밀정보 부재까지 인증하지는 않습니다. Docker·다운로드 재빌드에는 Git이 필요하지
+않습니다. 승인 절차는 `tools/heic/README.md`의 영·한 안내를 따릅니다.
 네이티브 두 라이브러리를 수정하는 재결합 시험도 별도 복사본에서 수행합니다.
 이는 제4조(d)(0)에 관한 기술적 근거이며 법률적 준수 판정은 아닙니다. 실제 호스팅의
 소스 접근·보존, 배포 조건과 소스 범위 등은 별도 확인이 필요해 `review`를 유지합니다.

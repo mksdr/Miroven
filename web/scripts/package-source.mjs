@@ -3,26 +3,78 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { repositoryRoot, sha256, verifyHeic } from "./check-heic.mjs";
 
-// Explicit source roots: never traverse the checkout, node_modules, .local or out.
+// These roots bound the reviewed file list; they do not approve their contents.
 export const sourceDirectories = [".github", "deploy", "docs", "tools/heic", "web/app", "web/public", "web/scripts", "web/tests", "web/vendor/heic"];
 export const sourceFiles = ["LICENSE", "README.md", "README.ko.md", "CONTRIBUTING.md", "SECURITY.md", "AGENTS.md", "CHANGELOG.md", "Dockerfile", ".dockerignore", ".gitignore", ".gitattributes", "version.txt", "release-please-config.json", ".release-please-manifest.json", "web/AGENTS.md", "web/CLAUDE.md", "web/.env.example", "web/.gitignore", "web/package.json", "web/package-lock.json", "web/next.config.ts", "web/tsconfig.json", "web/eslint.config.mjs", "web/playwright.config.ts", "web/playwright.offline.config.ts", "web/playwright.performance.config.ts", "web/playwright.updates.config.ts", "web/vitest.config.ts"];
+export const sourceFileList = "web/scripts/source-files.json";
+const inSourceRoots = (name) => sourceFiles.includes(name) || sourceDirectories.some((directory) => name.startsWith(`${directory}/`));
 export function allowedSourcePath(name) {
-  return !name.split("/").some((part) => part === ".." || part === "node_modules" || part === ".local" || part === ".git" || (part.startsWith(".env") && part !== ".env.example") || /\.(?:pem|key|log)$/i.test(part));
+  return typeof name === "string" && !/[\\:\0]/.test(name) && !name.split("/").some((part) => !part || part === "." || part === ".." || part === "node_modules" || part === ".local" || part === ".git" || (part.startsWith(".env") && part !== ".env.example") || /\.(?:pem|key|log)$/i.test(part));
+}
+export function validateSourceFiles(list) {
+  if (list?.schemaVersion !== 1 || !Array.isArray(list.files)) throw new Error("Invalid source file list");
+  const approved = new Set();
+  for (const name of list.files) {
+    if (!allowedSourcePath(name) || !inSourceRoots(name)) throw new Error(`Forbidden source file list entry: ${name}`);
+    if (approved.has(name)) throw new Error(`Duplicate source file list entry: ${name}`);
+    approved.add(name);
+  }
+  for (const name of [...sourceFiles, sourceFileList]) {
+    if (!approved.has(name)) throw new Error(`Required source file list entry missing: ${name}`);
+  }
+  return approved;
+}
+// Updating is an explicit review step, never part of an ordinary build. Git-ignored
+// and other untracked local files cannot become candidates through this command.
+export async function updateSourceFiles(root = repositoryRoot) {
+  const { stdout } = await promisify(execFile)("git", ["-C", root, "ls-files", "--cached", "-z"], { maxBuffer: 16 * 1024 * 1024 });
+  const files = [...new Set([...stdout.split("\0").filter((name) => name && inSourceRoots(name)), sourceFileList])].sort();
+  const list = { schemaVersion: 1, files };
+  validateSourceFiles(list);
+  await writeFile(path.join(root, sourceFileList), JSON.stringify(list, null, 2) + "\n");
+  console.log(`Updated ${sourceFileList} from Git-tracked paths. Review the diff before distributing.`);
 }
 export async function collectSource(root) {
   const files = new Map();
+  // Check ancestors too: lstat of web/app alone would follow a symlink at web/.
+  const checkedDirectories = new Set();
+  const checkParents = async (name) => {
+    for (let parent = path.posix.dirname(name); parent !== "."; parent = path.posix.dirname(parent)) {
+      if (checkedDirectories.has(parent)) continue;
+      const info = await lstat(path.join(root, parent));
+      if (info.isSymbolicLink()) throw new Error(`Source symlink is not permitted: ${parent}`);
+      if (!info.isDirectory()) throw new Error(`Source parent is not a directory: ${parent}`);
+      checkedDirectories.add(parent);
+    }
+  };
+  await checkParents(sourceFileList);
+  const listInfo = await lstat(path.join(root, sourceFileList));
+  if (listInfo.isSymbolicLink()) throw new Error(`Source symlink is not permitted: ${sourceFileList}`);
+  if (!listInfo.isFile()) throw new Error(`Source file list is not a regular file: ${sourceFileList}`);
+  const approved = validateSourceFiles(JSON.parse(await readFile(path.join(root, sourceFileList), "utf8")));
   const add = async (name) => {
     if (!allowedSourcePath(name)) throw new Error(`Forbidden source input: ${name}`);
     const info = await lstat(path.join(root, name));
     if (info.isSymbolicLink()) throw new Error(`Source symlink is not permitted: ${name}`);
     if (info.isDirectory()) {
       for (const entry of (await readdir(path.join(root, name))).sort()) await add(`${name}/${entry}`);
-    } else if (info.isFile()) files.set(name, { data: await readFile(path.join(root, name)), mode: (info.mode & 0o111) || name.endsWith(".sh") ? 0o755 : 0o644 });
+    } else if (info.isFile()) {
+      if (!approved.has(name)) throw new Error(`Unapproved source input: ${name}. Review tracked source changes and run npm run sources:update from web/.`);
+      files.set(name, { data: await readFile(path.join(root, name)), mode: (info.mode & 0o111) || name.endsWith(".sh") ? 0o755 : 0o644 });
+    }
     else throw new Error(`Unsupported source input: ${name}`);
   };
-  for (const name of [...sourceFiles, ...sourceDirectories]) await add(name);
+  for (const name of [...sourceFiles, ...sourceDirectories]) {
+    await checkParents(name);
+    await add(name);
+  }
+  for (const name of approved) {
+    if (!files.has(name)) throw new Error(`Approved source input missing: ${name}`);
+  }
   return files;
 }
 // Deterministic POSIX ustar, no tar dependency in ordinary npm/Docker builds.
@@ -71,4 +123,10 @@ export async function packageSource(root = repositoryRoot) {
   console.log(`Packaged ${files.size} source files (${archive.length} bytes).`);
   return { files, archive };
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await packageSource();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv.includes("--update-file-list")) await updateSourceFiles();
+  else if (process.argv.includes("--check-file-list")) {
+    const files = await collectSource(repositoryRoot);
+    console.log(`Verified ${files.size} approved source inputs without Git metadata.`);
+  } else await packageSource();
+}

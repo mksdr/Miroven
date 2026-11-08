@@ -43,6 +43,38 @@ notices, output hashes and the matching source distribution.
 소스 다운로드를 배포물과 함께 보존하고 실제 호스팅에서도 접근 가능한지 확인하세요.
 재빌드 성공은 LGPL의 모든 법적 의무 충족 판정이 아닙니다.
 
+## Approving source files / 소스 파일 승인
+
+`web/scripts/source-files.json` lists every approved distribution input. Before
+Next.js runs, `npm run sources:check` fails on unlisted files inside the source
+roots, missing approved inputs, forbidden names or symlinks. The packager checks
+again before writing the archive. Private/generated roots remain excluded.
+
+When adding, removing or renaming source files, stage only the intended public
+paths with `git add -- <paths>`, then run `npm run sources:update` from `web/`.
+Review the resulting file-list diff before distributing. The update command uses
+Git-tracked paths, never untracked or ignored files. Builds do not regenerate the
+list. Move private files outside source roots; do not approve them to pass a build.
+
+The list is included in the source archive, so Docker contexts and extracted
+downloads need no `.git` directory. Approved files retain their actual current
+contents, including local edits; the list is a path approval, not a clean-commit
+or secret-content certification. Rebuilding after adding a file to an extracted
+download requires explicitly reviewing and editing its list, or using a Git
+checkout and the update command.
+
+한국어: `web/scripts/source-files.json`으로 배포할 파일 경로를 명시적으로 관리합니다.
+`npm run sources:check`는 Next.js 실행 전에 소스 디렉터리의 미등록 파일·누락된 승인
+파일·금지된 이름·심볼릭 링크를 차단하며 패키징 시에도 다시 검사합니다. 파일 추가·삭제·
+이름 변경 시 공개할 경로만 `git add -- <경로>`로 stage한 뒤 `web/`에서
+`npm run sources:update`를 실행하고 목록 차이를 검토하세요. 미추적·무시된 파일은
+갱신 후보에 포함하지 않으며 일반 빌드는 목록을 자동 갱신하지 않습니다. 개인 파일은
+승인하여 빌드를 통과시키지 말고 소스 디렉터리 밖으로 옮기세요.
+목록 자체를 소스 아카이브에 포함하므로 Docker·다운로드 재빌드는 Git 없이 동작합니다.
+승인된 파일의 실제 수정 내용은 보존하지만 내용의 비밀정보 여부까지 인증하지는 않습니다.
+다운로드한 소스에 새 파일을 추가하려면 목록을 명시적으로 검토·수정하거나 Git checkout에서
+갱신 명령을 사용하세요.
+
 ## Small vfs Docker environments
 
 Some `vfs` daemons duplicate the entire SDK image for each container. If that
