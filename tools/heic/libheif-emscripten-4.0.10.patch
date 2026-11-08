@@ -1,0 +1,23 @@
+--- a/libheif/api/libheif/heif_emscripten.h
++++ b/libheif/api/libheif/heif_emscripten.h
+@@ -339,7 +339,8 @@
+ #if __EMSCRIPTEN_major__ > 4 ||   \
+     (__EMSCRIPTEN_major__ == 4 && \
+      (__EMSCRIPTEN_minor__ > 0 || __EMSCRIPTEN_tiny__ >= 9))
+-  result.set("image", image, emscripten::allow_raw_pointers());
++  // Miroven 2026-11-03: box the raw pointer explicitly for Emscripten 4.0.10.
++  result.set("image", emscripten::val(image, emscripten::allow_raw_pointers()));
+ #else
+   result.set("image", image);
+ #endif
+--- a/build-emscripten.sh
++++ b/build-emscripten.sh
+@@ -143,7 +143,7 @@
+     EXTRA_COMPILER_FLAGS="-D__EMSCRIPTEN_STANDALONE_WASM__=1"
+ fi
+ 
+-CONFIGURE_ARGS="-DENABLE_MULTITHREADING_SUPPORT=OFF -DWITH_GDK_PIXBUF=OFF -DWITH_EXAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_PLUGIN_LOADING=OFF"
++CONFIGURE_ARGS="-DBUILD_TESTING=OFF -DBUILD_DOCUMENTATION=OFF -DENABLE_MULTITHREADING_SUPPORT=OFF -DWITH_GDK_PIXBUF=OFF -DWITH_EXAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DENABLE_PLUGIN_LOADING=OFF"
+ emcmake cmake ${SRCDIR} $CONFIGURE_ARGS \
+     -DCMAKE_BUILD_TYPE=Release \
+     -DCMAKE_C_FLAGS="${EXTRA_COMPILER_FLAGS}" \

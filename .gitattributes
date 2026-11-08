@@ -1,0 +1,5 @@
+# Hash-verified build inputs and outputs must survive Windows checkouts unchanged.
+tools/heic/** text eol=lf
+web/vendor/heic/** text eol=lf
+web/vendor/heic/sources/*.tar.gz -text
+web/scripts/notice-sources/*.txt text eol=lf

@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     "dist/**",
     "out/**",
     "build/**",
+    "vendor/heic/*.js",
     "next-env.d.ts",
     // Generated update fixtures and other local artifacts.
     ".local/**",

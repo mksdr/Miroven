@@ -54,3 +54,6 @@ Thumbs.db
 # Local private workspace data retained during relocation
 /.local/
 /web/.local/
+
+# HEIC rebuild scratch space (never distribute probe output)
+/heic-work/

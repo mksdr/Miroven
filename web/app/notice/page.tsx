@@ -37,6 +37,10 @@ export default function NoticePage() {
         <h2 id="libraries-title">외부 라이브러리</h2>
         <p>직접·간접 의존성과 개발 도구를 포함한 {notices.length}개 패키지의 고지입니다. 각 소프트웨어의 권리는 해당 저작권자에게 있으며, 개별 라이선스가 적용됩니다.</p>
         <p>항목을 펼치면 저작권 고지와 라이선스 원문을 확인할 수 있습니다. Next.js의 내장 라이브러리, WebP 코덱 및 HEIC 변환에 사용되는 libheif·libde265의 고지도 함께 수록했습니다.</p>
+        <p>HEIC 변환에는 고정된 소스에서 자체 빌드한 heic-to, libheif, libde265를 사용합니다.
+          라이브러리 소스, 수정·재결합 절차와 이 배포에 사용한 애플리케이션 소스를 함께 제공합니다.</p>
+        <p><a href="/source/miroven-source.tar.gz" download>소스 및 재빌드 자료 다운로드</a>{" · "}
+          <a href="/source/SHA256SUMS">SHA-256</a>{" · "}<a href="/source/manifest.json">빌드 자료 명세</a></p>
         <div className={styles.list}>
           {notices.map((notice, index) => (
             <details className={styles.notice} key={`${notice.name}-${notice.version}-${index}`}>

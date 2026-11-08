@@ -39,7 +39,7 @@ describe("AGPL compatibility policy", () => {
     const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
     expect(() => validateReviews(reviews)).not.toThrow();
   });
-  it("keeps HEIC approvals deferred and requires other installed dependencies to pass", async () => {
+  it("keeps HEIC and pending compiler runtime reviews visible and requires other installed dependencies to pass", async () => {
     const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
     const entries = await collectLicenses();
     const findings: {
@@ -54,11 +54,13 @@ describe("AGPL compatibility policy", () => {
     const unresolved = findings
       .filter((finding) => finding.installed && finding.status !== "pass")
       .map(({ name, version, license, location, status, reason }) => ({ name, version, license, location, status, reason }));
-    // Only these exact HEIC versions remain pending; upgrades or new warnings must fail.
+    // Only these exact HEIC and compiler runtime versions remain pending; upgrades or new warnings must fail.
     expect(unresolved.map(({ name, version, license, location, status }) => ({ name, version, license, location, status })), JSON.stringify(unresolved, null, 2)).toEqual([
+      { name: "dlmalloc", version: "2.8.6 (Emscripten 4.0.10)", license: "LicenseRef-Public-Domain", location: "vendor/heic#dlmalloc", status: "review" },
       { name: "heic-to", version: "1.5.2", license: "LGPL-3.0", location: "node_modules/heic-to", status: "review" },
       { name: "libde265", version: "1.0.16", license: "LGPL-3.0-or-later", location: "node_modules/heic-to#libde265", status: "review" },
       { name: "libheif", version: "1.22.2", license: "LGPL-3.0-or-later", location: "node_modules/heic-to#libheif", status: "review" },
+      { name: "llvm-runtime", version: "bundled (Emscripten 4.0.10)", license: "Apache-2.0 WITH LLVM-exception", location: "vendor/heic#llvm-runtime", status: "review" },
     ]);
   });
 });
@@ -103,6 +105,13 @@ describe("license collection and findings", () => {
     expect(entry).toMatchObject({ status: "review", scope: "bundled" });
     expect(entry?.reason).toContain("버전이 변경");
   });
+  it("does not let a manual pass hide a changed compiled codec header", async () => {
+    const root = await fixture();
+    await writeFile(path.join(root, "scripts/bundled-licenses.json"), JSON.stringify([{ name: "codec", version: "1", parent: "example", parentVersion: "1.0.0", license: "MIT", noticeFile: "LICENSE", markerFile: "codec.js", marker: "codec version 1" }]));
+    await writeFile(path.join(root, "node_modules/example/codec.js"), "codec version 2");
+    const review = { name: "codec", version: "1", location: "node_modules/example#codec", license: "MIT", status: "pass", reason: "old review", source: "https://example.org", reviewedBy: "test", reviewedAt: "2026-11-03" };
+    expect(checkEntries(await collectLicenses(root), [review]).find((entry: { name: string }) => entry.name === "codec")).toMatchObject({ status: "review" });
+  });
   it("inspects Next's embedded notices separately from its top-level license", async () => {
     const root = await fixture();
     await writeFile(path.join(root, "node_modules/example/package.json"), JSON.stringify({ name: "next", version: "1.0.0", license: "MIT" }));
@@ -115,7 +124,7 @@ describe("license collection and findings", () => {
   });
   it("returns zero for warnings and replaces stale reports on inspection failure", async () => {
     const root = await fixture();
-    for (const file of ["check-licenses.mjs", "collect-licenses.mjs", "license-policy.mjs"]) {
+    for (const file of ["check-licenses.mjs", "collect-licenses.mjs", "license-policy.mjs", "check-heic.mjs"]) {
       await copyFile(new URL(`../scripts/${file}`, import.meta.url), path.join(root, "scripts", file));
     }
     await writeFile(path.join(root, "scripts/license-reviews.json"), "[]");
@@ -126,5 +135,32 @@ describe("license collection and findings", () => {
     await rm(path.join(root, "node_modules/example/package.json"));
     expect(run().status).toBe(1);
     expect(JSON.parse(await readFile(output, "utf8"))).toMatchObject({ completed: false });
+  });
+});
+
+
+describe("HEIC LGPL review evidence", () => {
+  it("keeps unresolved distribution obligations visible and pins bundled evidence", async () => {
+    const root = new URL("../", import.meta.url);
+    const reviews = JSON.parse(await readFile(new URL("scripts/license-reviews.json", root), "utf8"));
+    const bundled = JSON.parse(await readFile(new URL("scripts/bundled-licenses.json", root), "utf8"));
+    const notices = JSON.parse(await readFile(new URL("app/notice/notices.json", root), "utf8"));
+    const lock = JSON.parse(await readFile(new URL("package-lock.json", root), "utf8"));
+    expect(lock.packages["node_modules/heic-to"].version).toBe("1.5.2");
+    for (const [name, version] of [["heic-to", "1.5.2"], ["libheif", "1.22.2"], ["libde265", "1.0.16"]]) {
+      const review = reviews.find((item: { name: string }) => item.name === name);
+      expect(review).toMatchObject({ version, status: "review" });
+      const notice = notices.find((item: { name: string }) => item.name === name);
+      expect(notice.version).toBe(version);
+      expect(notice.files.some((file: { text: string }) => file.text.includes("GNU LESSER GENERAL PUBLIC LICENSE"))).toBe(true);
+      if (name !== "heic-to") {
+        expect(bundled.find((item: { name: string }) => item.name === name)).toMatchObject({ version, parentVersion: "1.5.2" });
+        for (const kind of ["COPYRIGHT", "COPYING"]) {
+          const text = (await readFile(new URL(`scripts/notice-sources/${name}-${kind}.txt`, root), "utf8")).trim();
+          expect(notice.files.find((file: { file: string }) => file.file === `${name}/${kind}`).text).toBe(text);
+        }
+        expect(notice.files.some((file: { text: string }) => file.text.includes("GNU GENERAL PUBLIC LICENSE"))).toBe(true);
+      }
+    }
   });
 });
