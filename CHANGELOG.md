@@ -2,6 +2,19 @@
 
 Future releases are generated from Conventional Commits.
 
+## [1.2.5](https://github.com/mksdr/Miroven/compare/v1.2.4...v1.2.5) (2026-11-08)
+
+
+### Bug Fixes
+
+* **deps:** patch Zod resource exhaustion vulnerability ([#33](https://github.com/mksdr/Miroven/issues/33)) ([05d3dd9](https://github.com/mksdr/Miroven/commit/05d3dd91bbcf82c8ceffa0d27ebd60afa3405475))
+* **licenses:** rebuild HEIC codecs and ship source ([#32](https://github.com/mksdr/Miroven/issues/32)) ([4bd461b](https://github.com/mksdr/Miroven/commit/4bd461b52556bdf5472ebcf9573edca7ae29d1c0))
+
+
+### Performance Improvements
+
+* **web:** defer account loading and preserve safe PWA updates ([#28](https://github.com/mksdr/Miroven/issues/28)) ([c5c1f36](https://github.com/mksdr/Miroven/commit/c5c1f361023a67b90fdf2b18bd46fdffb1d03d43))
+
 ## [1.2.4](https://github.com/mksdr/Miroven/compare/v1.2.3...v1.2.4) (2026-10-30)
 
 
