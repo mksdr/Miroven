@@ -6,6 +6,9 @@ import path from "node:path";
 import { assessLicense, parseExpression, applyReview, validateReviews } from "../scripts/license-policy.mjs";
 import { collectLicenses } from "../scripts/collect-licenses.mjs";
 import { checkEntries } from "../scripts/check-licenses.mjs";
+import { sha256, validateLicenseDeclaration } from "../scripts/optional-license-evidence.mjs";
+import { verifyIntegrity } from "../scripts/archive-optional-licenses.mjs";
+import { createHash } from "node:crypto";
 
 describe("AGPL compatibility policy", () => {
   it("selects an available OR branch and requires every AND branch", () => {
@@ -39,7 +42,7 @@ describe("AGPL compatibility policy", () => {
     const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
     expect(() => validateReviews(reviews)).not.toThrow();
   });
-  it("keeps HEIC and pending compiler runtime reviews visible and requires other installed dependencies to pass", async () => {
+  it("keeps HEIC/runtime reviews visible and requires all other dependencies to pass", async () => {
     const reviews = JSON.parse(await readFile(new URL("../scripts/license-reviews.json", import.meta.url), "utf8"));
     const entries = await collectLicenses();
     const findings: {
@@ -52,9 +55,9 @@ describe("AGPL compatibility policy", () => {
       reason: string;
     }[] = checkEntries(entries, reviews);
     const unresolved = findings
-      .filter((finding) => finding.installed && finding.status !== "pass")
+      .filter((finding) => finding.status !== "pass")
       .map(({ name, version, license, location, status, reason }) => ({ name, version, license, location, status, reason }));
-    // Only these exact HEIC and compiler runtime versions remain pending; upgrades or new warnings must fail.
+    // These exact pending versions remain visible; upgrades or new warnings must fail.
     expect(unresolved.map(({ name, version, license, location, status }) => ({ name, version, license, location, status })), JSON.stringify(unresolved, null, 2)).toEqual([
       { name: "dlmalloc", version: "2.8.6 (Emscripten 4.0.10)", license: "LicenseRef-Public-Domain", location: "vendor/heic#dlmalloc", status: "review" },
       { name: "heic-to", version: "1.5.2", license: "LGPL-3.0", location: "node_modules/heic-to", status: "review" },
@@ -85,6 +88,74 @@ describe("license collection and findings", () => {
     const entries = await collectLicenses(await fixture());
     const other = checkEntries(entries).find((entry: { name: string }) => entry.name === "other-platform");
     expect(other).toMatchObject({ installed: false, status: "incompatible", evidence: [] });
+  });
+  async function archiveFixture(license = "MIT") {
+    const root = await fixture();
+    const lockPath = path.join(root, "package-lock.json");
+    const lock = JSON.parse(await readFile(lockPath, "utf8"));
+    const location = "node_modules/other-platform";
+    const info = { ...lock.packages[location], license, resolved: "https://registry.npmjs.org/other-platform/-/other-platform-2.0.0.tgz", integrity: "sha512-test" };
+    lock.packages[location] = info;
+    await writeFile(lockPath, JSON.stringify(lock));
+    const text = "Synthetic original license notice\n";
+    const hash = sha256(text);
+    const original = `scripts/optional-license-sources/${hash}.txt`;
+    await mkdir(path.join(root, "scripts/optional-license-sources"));
+    await writeFile(path.join(root, original), text);
+    const record = { name: "other-platform", location, ...info, files: [{ file: "LICENSE", sha256: hash }] };
+    const manifest = path.join(root, "scripts/optional-license-evidence.json");
+    await writeFile(manifest, JSON.stringify([record]));
+    return { root, manifest, record, original };
+  }
+  it("uses exact archived originals offline without pretending the package is installed", async () => {
+    const { root, original, record } = await archiveFixture();
+    expect(checkEntries(await collectLicenses(root)).find((entry: { name: string }) => entry.name === "other-platform")).toMatchObject({ installed: false, status: "pass", evidence: [original], source: record.resolved });
+  });
+  it("accepts the exact upstream license declaration and rejects conflicting fields", () => {
+    const declaration = { name: "example", version: "1.0.0", license: "MIT" };
+    expect(() => validateLicenseDeclaration(Buffer.from(JSON.stringify(declaration)), "example", declaration)).not.toThrow();
+    for (const field of ["name", "version", "license"]) {
+      expect(() => validateLicenseDeclaration(Buffer.from(JSON.stringify({ ...declaration, [field]: "changed" })), "example", declaration)).toThrow("declaration mismatch");
+    }
+  });
+  it.each(["name", "version", "license", "resolved", "integrity"])("keeps absent originals unverified when archived %s changes", async (field) => {
+    const { root, manifest, record } = await archiveFixture();
+    await writeFile(manifest, JSON.stringify([{ ...record, [field]: "changed" }]));
+    const finding = checkEntries(await collectLicenses(root)).find((entry: { name: string }) => entry.name === "other-platform");
+    expect(finding).toMatchObject({ status: "review", installed: false, evidence: [] });
+  });
+  it("does not turn archived evidence into a compatibility exception", async () => {
+    const { root } = await archiveFixture("GPL-2.0-only");
+    expect(checkEntries(await collectLicenses(root)).find((entry: { name: string }) => entry.name === "other-platform")).toMatchObject({ status: "incompatible", installed: false });
+  });
+  it("does not let manual approval hide a missing archived original", async () => {
+    const root = await fixture();
+    const entries = await collectLicenses(root);
+    const other = entries.find((entry: { name: string }) => entry.name === "other-platform");
+    if (!other) throw new Error("Fixture is missing the optional other-platform dependency");
+    const review = { name: other.name, location: other.location, version: other.version, license: other.license, status: "pass", reason: "Synthetic approval", source: "https://example.org/license", reviewedBy: "test", reviewedAt: "2026-11-14" };
+    expect(checkEntries(entries, [review]).find((entry: { name: string }) => entry.name === "other-platform")).toMatchObject({ status: "review", evidence: [] });
+  });
+  it("checks installed metadata rather than replacing it with archived evidence", async () => {
+    const { root } = await archiveFixture();
+    const directory = path.join(root, "node_modules/other-platform");
+    await mkdir(directory);
+    await writeFile(path.join(directory, "package.json"), JSON.stringify({ name: "other-platform", version: "2.0.0", license: "ISC" }));
+    expect(checkEntries(await collectLicenses(root)).find((entry: { name: string }) => entry.name === "other-platform")).toMatchObject({ status: "review", installed: true, evidence: [] });
+  });
+  it("fails on corrupt or missing archived originals", async () => {
+    const { root, original } = await archiveFixture();
+    await writeFile(path.join(root, original), "altered notice");
+    await expect(collectLicenses(root)).rejects.toThrow("Invalid optional license original");
+    await rm(path.join(root, original));
+    await expect(collectLicenses(root)).rejects.toThrow("ENOENT");
+  });
+  it("rejects downloaded archives that do not match the locked SHA-512", () => {
+    const data = Buffer.from("synthetic archive");
+    const integrity = `sha512-${createHash("sha512").update(data).digest("base64")}`;
+    expect(() => verifyIntegrity(data, integrity)).not.toThrow();
+    expect(() => verifyIntegrity(Buffer.from("tampered"), integrity)).toThrow("integrity mismatch");
+    expect(() => verifyIntegrity(data, "")).toThrow("integrity mismatch");
   });
   it("fails the inspection on missing required packages and installed version mismatch", async () => {
     const root = await fixture();
@@ -124,7 +195,7 @@ describe("license collection and findings", () => {
   });
   it("returns zero for warnings and replaces stale reports on inspection failure", async () => {
     const root = await fixture();
-    for (const file of ["check-licenses.mjs", "collect-licenses.mjs", "license-policy.mjs", "check-heic.mjs"]) {
+    for (const file of ["check-licenses.mjs", "collect-licenses.mjs", "license-policy.mjs", "check-heic.mjs", "optional-license-evidence.mjs"]) {
       await copyFile(new URL(`../scripts/${file}`, import.meta.url), path.join(root, "scripts", file));
     }
     await writeFile(path.join(root, "scripts/license-reviews.json"), "[]");

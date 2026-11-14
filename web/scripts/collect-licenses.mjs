@@ -2,6 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { verifyHeic } from "./check-heic.mjs";
 import { fileURLToPath } from "node:url";
+import { archivedOptionalNotices } from "./optional-license-evidence.mjs";
 
 export const webRoot = fileURLToPath(new URL("../", import.meta.url));
 export const readJson = async (filename) => JSON.parse(await readFile(filename, "utf8"));
@@ -55,6 +56,7 @@ export async function collectLicenses(root = webRoot) {
     if (JSON.stringify(Object.entries(pkg[kind] ?? {}).sort()) !== JSON.stringify(Object.entries(lock.packages[""][kind] ?? {}).sort())) throw new Error(`package.json and lockfile differ: ${kind}. Run npm install / npm ci.`);
   }
   const entries = [];
+  const optionalEvidence = await optionalJson(path.join(root, "scripts/optional-license-evidence.json")) ?? [];
   const paths = dependencyPaths(lock.packages);
   for (const [location, info] of Object.entries(lock.packages)) {
     if (!location) continue;
@@ -63,17 +65,17 @@ export async function collectLicenses(root = webRoot) {
     if (!installed && !info.optional) throw new Error(`Missing dependency: ${location}. Run npm ci.`);
     if (installed && installed.version !== info.version) throw new Error(`Version mismatch: ${location}`);
     const name = installed?.name ?? location.split("node_modules/").at(-1);
-    const files = installed ? await licenseFiles(directory) : [];
+    const files = installed ? await licenseFiles(directory) : await archivedOptionalNotices(root, location, info, optionalEvidence);
     const bundledNotices = [];
     for (const subdirectory of !installed ? [] : name === "next" ? ["dist/compiled"] : name === "@jsquash/webp" ? ["codec"] : []) {
       for (const notice of await licenseFiles(path.join(directory, subdirectory), true)) bundledNotices.push({ ...notice, file: `${subdirectory}/${notice.file}` });
     }
     const author = typeof installed?.author === "string" ? installed.author : installed?.author?.name ?? "";
     const issues = [];
-    if (!installed) issues.push("현재 플랫폼에 설치되지 않은 선택적 의존성으로 원문을 확인하지 못했습니다.");
+    if (!installed && !files.length) issues.push("현재 플랫폼에 설치되지 않은 선택적 의존성으로 원문을 확인하지 못했습니다.");
     if (installed?.license && info.license && installed.license !== info.license) issues.push("설치된 패키지와 잠금 파일의 라이선스 표기가 다릅니다.");
     const dependencyPath = paths.get(location) ?? [location];
-    entries.push({ name, version: info.version, license: installed?.license ?? info.license ?? "", author, development: !!info.dev, scope: info.dev ? "development" : "runtime", location, dependencyPath, installed: !!installed, files, bundledNotices, issues });
+    entries.push({ name, version: info.version, license: installed?.license ?? info.license ?? "", author, development: !!info.dev, scope: info.dev ? "development" : "runtime", location, dependencyPath, installed: !!installed, files, bundledNotices, issues, ...(!installed && files.length ? { source: files[0].source ?? info.resolved } : {}) });
     // Bundled notices are independent findings, not covered by Next's MIT license.
     for (const notice of bundledNotices.filter(() => name === "next")) {
       const bundledDirectory = path.posix.dirname(notice.file);

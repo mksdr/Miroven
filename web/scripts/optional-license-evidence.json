@@ -1,0 +1,1899 @@
+[
+  {
+    "name": "@emnapi/core",
+    "location": "node_modules/@emnapi/core",
+    "version": "1.10.0",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@emnapi/core/-/core-1.10.0.tgz",
+    "integrity": "sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "2088f55c6731498410b20c95ebd345ed4a4a800bf74c0fba4d282fd2a021daaa"
+      }
+    ]
+  },
+  {
+    "name": "@emnapi/runtime",
+    "location": "node_modules/@emnapi/runtime",
+    "version": "1.11.3",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@emnapi/runtime/-/runtime-1.11.3.tgz",
+    "integrity": "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "2088f55c6731498410b20c95ebd345ed4a4a800bf74c0fba4d282fd2a021daaa"
+      }
+    ]
+  },
+  {
+    "name": "@emnapi/wasi-threads",
+    "location": "node_modules/@emnapi/wasi-threads",
+    "version": "1.2.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@emnapi/wasi-threads/-/wasi-threads-1.2.1.tgz",
+    "integrity": "sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "2088f55c6731498410b20c95ebd345ed4a4a800bf74c0fba4d282fd2a021daaa"
+      }
+    ]
+  },
+  {
+    "name": "@img/colour",
+    "location": "node_modules/@img/colour",
+    "version": "1.1.0",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@img/colour/-/colour-1.1.0.tgz",
+    "integrity": "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==",
+    "files": [
+      {
+        "file": "LICENSE.md",
+        "sha256": "e2eaa4603c14cb26f301e88648c12a853fa3f0f5da6d4b0972958c666e7f2ab8"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-darwin-arm64",
+    "location": "node_modules/@img/sharp-darwin-arm64",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-darwin-arm64/-/sharp-darwin-arm64-0.35.5.tgz",
+    "integrity": "sha512-QRUlFQ0WxvdWyqqG/WtI3iupfD5rBzmCHXSdPsY91sAtVtTo7Q4cb6zOccZ3gqEqkr0f1As1ehLqmEpDsRf+lg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-darwin-x64",
+    "location": "node_modules/@img/sharp-darwin-x64",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-darwin-x64/-/sharp-darwin-x64-0.35.5.tgz",
+    "integrity": "sha512-+BR255RhDlpygUpOc/Jdt1nT6DQ3XG/ERo5wbcdOf5Q320dKtPCKPLR1LJs9VGXRaMa8l1uUa0tkCNOXiAxZUw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-freebsd-wasm32",
+    "location": "node_modules/@img/sharp-freebsd-wasm32",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-freebsd-wasm32/-/sharp-freebsd-wasm32-0.35.5.tgz",
+    "integrity": "sha512-Y/z91nEZ4uIBX5X3nfTovjU9lHNKFYbL2lpHCLVNmXQK03VIZvXBBt0KxbPGp2SdGSF+2mQU4e+hQaWOt86iAw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-darwin-arm64",
+    "location": "node_modules/@img/sharp-libvips-darwin-arm64",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-arm64/-/sharp-libvips-darwin-arm64-1.3.4.tgz",
+    "integrity": "sha512-5R89nBYiRdUlSWJxPhO+GVtaXzXSxKnRu/xqMn3KTA3L9EB9Oy/P+Nn2f2vlhPuUdy/Zusb2DarbyTpGCfEDuw==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "5dd6d3c034f925604681d49b7bedc71bd08dcf3d0cfc6d16b9f0569497d700dc"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-darwin-x64",
+    "location": "node_modules/@img/sharp-libvips-darwin-x64",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-darwin-x64/-/sharp-libvips-darwin-x64-1.3.4.tgz",
+    "integrity": "sha512-iR2OKH80yi0U+dUplyh3/xdpFvps6YkCwsXenIJxqxR1v9o+xtKTGbS9H7cps+2Vxjc8B1j96p75NmTGjIhtpQ==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "986086beb25bd1b05712a2a0689a64f2e422ae5d7f0d9e46dad44fba3f9a13ff"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-linux-arm",
+    "location": "node_modules/@img/sharp-libvips-linux-arm",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm/-/sharp-libvips-linux-arm-1.3.4.tgz",
+    "integrity": "sha512-LmRtTsOHuvM2+wlO2Db37dx5MiZhB0FvSunciw48YjdOkZz9KAiRbm8ujeMOA1INqmei5NapFxYEK1D1ZSidmw==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "d2fbff9f36a84a34bd77255a844ae61de18688b15e0b7bd0a41c0c30391660d7"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-linux-arm64",
+    "location": "node_modules/@img/sharp-libvips-linux-arm64",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-arm64/-/sharp-libvips-linux-arm64-1.3.4.tgz",
+    "integrity": "sha512-Y3dgX/6lE2QhQb+Gxy0WZxfg9MEm/JBjamZpS2IklP7xIQoKN4hzAm7KcMVGtaVDt3neE9OKBC7vAfonA/Lr1A==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "bdf6919b0ffd7dcd31907ca49f520f26e8543825e0358f51b9036fed428eddb6"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-linux-ppc64",
+    "location": "node_modules/@img/sharp-libvips-linux-ppc64",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-ppc64/-/sharp-libvips-linux-ppc64-1.3.4.tgz",
+    "integrity": "sha512-Le6boB8Tai0Nis+gIxIpKx68UDVVIqdR8Tin5Yf1z2LJJQLDJvCDRqRu+jC2qCoD+eIomonmOwB4smBRxfVpYQ==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "6fb8b7207acc691c55856a65207571da154ee155b163992f2e7d88620ca55194"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-linux-riscv64",
+    "location": "node_modules/@img/sharp-libvips-linux-riscv64",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-riscv64/-/sharp-libvips-linux-riscv64-1.3.4.tgz",
+    "integrity": "sha512-aHkkIEHPRdQEegJN20MLmGtxYD9R2wQr3Cwpddnu5+YKMt6Uzax7S9h5gpZTo8wyrGuZSlfQ63OevL5mTyOC7Q==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "cd5163af4e88135a82f0cd0b94bbd331e0eff4e5e47d8b5c0d97a55b0dfccfcd"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-linux-s390x",
+    "location": "node_modules/@img/sharp-libvips-linux-s390x",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-s390x/-/sharp-libvips-linux-s390x-1.3.4.tgz",
+    "integrity": "sha512-ra/mB6MikESDUO7Yg+Mi95bFBb9GsObURuhnOv3OqknjGe9sZrG8tCe9q0xSIGrtLgvgw0gKnFWcK4blSgQOuQ==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "517dabfb009423898c6aa79a632b7b2110857e0e5c4889c5c1cf85c239270cf3"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-linux-x64",
+    "location": "node_modules/@img/sharp-libvips-linux-x64",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linux-x64/-/sharp-libvips-linux-x64-1.3.4.tgz",
+    "integrity": "sha512-GJ//SSXbnwSDes02umB3nDJLFcQzw8a18V8fyhqr6tV515tOEMdImjjxj1AoafMRz56F3PHgftnj1QEKSU1zkw==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "b4fb1a9f5909cfd58edb4177c2028ce3033cf8651aef740a554c1dc58b3c5ee3"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-linuxmusl-arm64",
+    "location": "node_modules/@img/sharp-libvips-linuxmusl-arm64",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-arm64/-/sharp-libvips-linuxmusl-arm64-1.3.4.tgz",
+    "integrity": "sha512-hvulFwtjUcagsis6BBxHwGFwWoNZjgYmULGVrZcyfNbjA8hKILbRxGg15/7w5HDyXHXUos/j6baAWqnCyQ2DWA==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "1671df5758d1976c073b74d853d5267b286cac16a6492e912afb90b1e3d81be5"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-libvips-linuxmusl-x64",
+    "location": "node_modules/@img/sharp-libvips-linuxmusl-x64",
+    "version": "1.3.4",
+    "license": "LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-libvips-linuxmusl-x64/-/sharp-libvips-linuxmusl-x64-1.3.4.tgz",
+    "integrity": "sha512-6zXKeE/p39I1AmA3cJG35eyBGNqNddLnUXjhwBnsGjFPWqf5VKkDBEqaEkPDoTEtkxwi2vv8Tcr2mDyP4So7Fg==",
+    "files": [
+      {
+        "file": "README.md",
+        "sha256": "df733be80a44f45878f212d7f0859ffd18fbdd8ed988b5226663487732aa1c1c"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-linux-arm",
+    "location": "node_modules/@img/sharp-linux-arm",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm/-/sharp-linux-arm-0.35.5.tgz",
+    "integrity": "sha512-LEaXK2WdXVK5ykcw0buWyPMsmLLL2vpHLD6yrNSW+JGEL3BZPA4tpKN6iaMc4AxTTAoaX/sU1rOL51lcIz48ZQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-linux-arm64",
+    "location": "node_modules/@img/sharp-linux-arm64",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-linux-arm64/-/sharp-linux-arm64-0.35.5.tgz",
+    "integrity": "sha512-LYVx5JTsOM2CBzmxreh+nl64/3H6Xb09iSLknqH47z2T2DFFxDeFLP5y4dJwe6H7uGQlHPyEEtIqyo3DYsRwdQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-linux-ppc64",
+    "location": "node_modules/@img/sharp-linux-ppc64",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-linux-ppc64/-/sharp-linux-ppc64-0.35.5.tgz",
+    "integrity": "sha512-QVxAAq8evVRI9ia2vqgwrmWucn5Dfv+JdWzj75pD8omHLPSP7f8p20O8jxzjCcuCEQEOtYOZUmX1hkiZ0kdevA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-linux-riscv64",
+    "location": "node_modules/@img/sharp-linux-riscv64",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-linux-riscv64/-/sharp-linux-riscv64-0.35.5.tgz",
+    "integrity": "sha512-LtdreXguaavKODPIfzJ4kffx7UNt1omwtK0rch4EBbbSTXPnxWmYSayXdLJw0fJzQ97kHt1gL/yh4tvU+nCyRQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-linux-s390x",
+    "location": "node_modules/@img/sharp-linux-s390x",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-linux-s390x/-/sharp-linux-s390x-0.35.5.tgz",
+    "integrity": "sha512-UZasTOFiYzotTsGOCu42BfUzP6Tu6Do/947iRm1RsLKvlllxwGcn4RN27LibGWceix4Y+Pmw3jsnTcCQIgWjqA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-linux-x64",
+    "location": "node_modules/@img/sharp-linux-x64",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-linux-x64/-/sharp-linux-x64-0.35.5.tgz",
+    "integrity": "sha512-SxFtLTeJInhAA9Q836kux2vZNeOBQEx658qvbboZScr0wIARym3IcGmW7KpVD5sbVg0Ojy+udFQdayYIZyoNog==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-linuxmusl-arm64",
+    "location": "node_modules/@img/sharp-linuxmusl-arm64",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-arm64/-/sharp-linuxmusl-arm64-0.35.5.tgz",
+    "integrity": "sha512-9HbMclmI1zlNkFRs3z9/eBtDjfD0sGlrX1z6b1qwmiFY5ElDLh4BC0LPBdVp7z1DXFiKlIcznf+ZlsuZzLxQqg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-linuxmusl-x64",
+    "location": "node_modules/@img/sharp-linuxmusl-x64",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-linuxmusl-x64/-/sharp-linuxmusl-x64-0.35.5.tgz",
+    "integrity": "sha512-4KOphqB035HrVdqLZfCgMzzERrQkkzOwRhl4OAkRO1YCldbaFjySXMaK534Mo0V+LndnlJk+sbUyLeU0ULyD1A==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-wasm32",
+    "location": "node_modules/@img/sharp-wasm32",
+    "version": "0.35.5",
+    "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
+    "resolved": "https://registry.npmjs.org/@img/sharp-wasm32/-/sharp-wasm32-0.35.5.tgz",
+    "integrity": "sha512-Ptsga1su4tQx+LLF1ECS9U6nz5kmrXKo6XVbtR48Ke3ZRxxgaWBu7IDtEe1quo8hiupwm6WFqxVlXaSf7IINGQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-webcontainers-wasm32",
+    "location": "node_modules/@img/sharp-webcontainers-wasm32",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/@img/sharp-webcontainers-wasm32/-/sharp-webcontainers-wasm32-0.35.5.tgz",
+    "integrity": "sha512-hfhF/FmoQyTUkA0bIKFOtw536BQSeBMe6BF6QyWlrPxT754+TFLaZ7sKKTfvvM0yJgKgaYTwnFCIZ/GuDw5SUA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-win32-arm64",
+    "location": "node_modules/@img/sharp-win32-arm64",
+    "version": "0.35.5",
+    "license": "Apache-2.0 AND LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-win32-arm64/-/sharp-win32-arm64-0.35.5.tgz",
+    "integrity": "sha512-X4t7g+7ZA5DKblCBEXGjUqqemj4vczING/5viFwAL8h4N3qYeyjwdCvRLHi4EdOUI+2Z7UFlp1VM+p/AuEtm6Q==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "dc1f5d2d43c5531dfe0acaf4e950ea5dbe3e61e1850cf0e983bda7efc10d6693"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-win32-ia32",
+    "location": "node_modules/@img/sharp-win32-ia32",
+    "version": "0.35.5",
+    "license": "Apache-2.0 AND LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-win32-ia32/-/sharp-win32-ia32-0.35.5.tgz",
+    "integrity": "sha512-5Zm82LoBc43nhwNybZlG7Y1KO//Zhsn306fQl29ZOuStHLGTo3BWL83q3cznX0poxSAMuYL1On/BHBxkBeKr6A==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "dc1f5d2d43c5531dfe0acaf4e950ea5dbe3e61e1850cf0e983bda7efc10d6693"
+      }
+    ]
+  },
+  {
+    "name": "@img/sharp-win32-x64",
+    "location": "node_modules/@img/sharp-win32-x64",
+    "version": "0.35.5",
+    "license": "Apache-2.0 AND LGPL-3.0-or-later",
+    "resolved": "https://registry.npmjs.org/@img/sharp-win32-x64/-/sharp-win32-x64-0.35.5.tgz",
+    "integrity": "sha512-x76eH0vEiHlcMQu8Y8IenntaACtddpT6W0wmXtWrnKcnKI7ME5DdgqhAD6SEWOEl1v2zDvkZDhFA9KnURwpfqg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "dc1f5d2d43c5531dfe0acaf4e950ea5dbe3e61e1850cf0e983bda7efc10d6693"
+      }
+    ]
+  },
+  {
+    "name": "@napi-rs/wasm-runtime",
+    "location": "node_modules/@napi-rs/wasm-runtime",
+    "version": "0.2.12",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@napi-rs/wasm-runtime/-/wasm-runtime-0.2.12.tgz",
+    "integrity": "sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "3f1ce66533302df3a32edbfdfc0b78f0dd34659e4c1f5817162e5ea3c2297215"
+      }
+    ]
+  },
+  {
+    "name": "@next/swc-darwin-arm64",
+    "location": "node_modules/@next/swc-darwin-arm64",
+    "version": "16.4.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-16.4.2.tgz",
+    "integrity": "sha512-ONkhFvZNFWlsEHOM/81AtxdyuJP2KRYKYR0JxPwvcu1AuPMMMgcL+wW2luldJvMtZwKtUxoSkCychW5wIeoYSw==",
+    "files": [
+      {
+        "file": "license.md",
+        "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224",
+        "source": "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@next/swc-",
+      "version": "16.4.2",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+      "sources": [
+        "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      ],
+      "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@next/swc-darwin-x64",
+    "location": "node_modules/@next/swc-darwin-x64",
+    "version": "16.4.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-16.4.2.tgz",
+    "integrity": "sha512-luPCMbOsCoaF+kXJEUjmjmOZg1lC3BflhmUu+ZmW4tBu2vW/4AXak8JBFvePizGkxVmNiAw/r9ra+6UviCWtWQ==",
+    "files": [
+      {
+        "file": "license.md",
+        "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224",
+        "source": "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@next/swc-",
+      "version": "16.4.2",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+      "sources": [
+        "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      ],
+      "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@next/swc-linux-arm64-gnu",
+    "location": "node_modules/@next/swc-linux-arm64-gnu",
+    "version": "16.4.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-16.4.2.tgz",
+    "integrity": "sha512-xhwFTAncJyaCNy5KqKKuKaIIdCy1/1ZV1s5S1G0hhT7wGMkDTlfJ6aQbfRFnIG/s3/kDrxQ8aycVe+c5QnP8ow==",
+    "files": [
+      {
+        "file": "license.md",
+        "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224",
+        "source": "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@next/swc-",
+      "version": "16.4.2",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+      "sources": [
+        "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      ],
+      "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@next/swc-linux-arm64-musl",
+    "location": "node_modules/@next/swc-linux-arm64-musl",
+    "version": "16.4.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-16.4.2.tgz",
+    "integrity": "sha512-T1PNmfbPcxr5ndtWUL/3wQtLXsz808lq6sc2GrNT5k2oquF7UyqZddHSuAewHVsWsGXe6nsl9HoN1YNriVjuSg==",
+    "files": [
+      {
+        "file": "license.md",
+        "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224",
+        "source": "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@next/swc-",
+      "version": "16.4.2",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+      "sources": [
+        "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      ],
+      "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@next/swc-linux-x64-gnu",
+    "location": "node_modules/@next/swc-linux-x64-gnu",
+    "version": "16.4.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-16.4.2.tgz",
+    "integrity": "sha512-N9cDUOCGtkJG5PNKDFZUF3xXndrJJcpLp121uAGjIGvO/U2p9tfdNOM9htj7+5f72l0m8rMw/cvYacUJBQoudg==",
+    "files": [
+      {
+        "file": "license.md",
+        "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224",
+        "source": "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@next/swc-",
+      "version": "16.4.2",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+      "sources": [
+        "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      ],
+      "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@next/swc-linux-x64-musl",
+    "location": "node_modules/@next/swc-linux-x64-musl",
+    "version": "16.4.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-16.4.2.tgz",
+    "integrity": "sha512-yY2uh1YhX6ufuYy2FCbw1dqblbhI57GLYAJfCkqD9auTv6pLrH67Uccjc3QMKBeCYAG6lkgu08ExmX1bbjejjQ==",
+    "files": [
+      {
+        "file": "license.md",
+        "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224",
+        "source": "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@next/swc-",
+      "version": "16.4.2",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+      "sources": [
+        "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      ],
+      "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@next/swc-win32-arm64-msvc",
+    "location": "node_modules/@next/swc-win32-arm64-msvc",
+    "version": "16.4.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-16.4.2.tgz",
+    "integrity": "sha512-j/ArWRIHpMMB6wYLMhr2puTguBt70lNU/Cmjl9p6dTDE8DGknYJMP9PdwPk2dqpCNL/KIX9yfngDvIesxJPmsg==",
+    "files": [
+      {
+        "file": "license.md",
+        "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224",
+        "source": "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@next/swc-",
+      "version": "16.4.2",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+      "sources": [
+        "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      ],
+      "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@next/swc-win32-x64-msvc",
+    "location": "node_modules/@next/swc-win32-x64-msvc",
+    "version": "16.4.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-16.4.2.tgz",
+    "integrity": "sha512-AA4edyWHDko3NCSo0x6GomsdgFb0oR1J3MXU1b5xt6FRFg4AucrMPW3S0hCe/9onU0O1BbpGQBsqo1r0Gneu1g==",
+    "files": [
+      {
+        "file": "license.md",
+        "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224",
+        "source": "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@next/swc-",
+      "version": "16.4.2",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+      "sources": [
+        "https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"
+      ],
+      "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-android-arm-eabi",
+    "location": "node_modules/@rolldown/binding-android-arm-eabi",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-android-arm-eabi/-/binding-android-arm-eabi-1.2.14.tgz",
+    "integrity": "sha512-aWR+XKH9+rW7m5fWq/5360J3mHycrx/o6xZM2DQFdJnTMdyP7/WzxPjhtLbVWdKo2y612/4U1bWqb3HQhiF7vg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-android-arm64",
+    "location": "node_modules/@rolldown/binding-android-arm64",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-android-arm64/-/binding-android-arm64-1.2.14.tgz",
+    "integrity": "sha512-QiVxHofl6A8lQU7WAtOUY4QMVZXohxwz7WJJoeh8NBEUyKfIkMRKhYyq8az/1RypNiIXzNTtiS6KwHz0erxYRQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-darwin-arm64",
+    "location": "node_modules/@rolldown/binding-darwin-arm64",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.2.14.tgz",
+    "integrity": "sha512-lTQOzHuBIooh3jIr5XINQkjPGEuGy+Dsy0meXDr6Sjty0b99kYgGh4uBC/8mJX1T0kC8d6S0aPP1Y+bHkh6aBw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-darwin-x64",
+    "location": "node_modules/@rolldown/binding-darwin-x64",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.2.14.tgz",
+    "integrity": "sha512-hyMKEGatjmBYCs/Q4sbIcL/GqpFEqsX3wc+HYVQ/85A4rxc1o7rPm4DUI4GV4k/h0ITddwFSGpqQunI14GXjTA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-freebsd-x64",
+    "location": "node_modules/@rolldown/binding-freebsd-x64",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.2.14.tgz",
+    "integrity": "sha512-u371GbXoVXrEgP20PwzoGNOdAOqAMhzo19JzzY+V4YmmnC+DTOoqdbMu+O+54emM59Mik/UdrtWgcuEDKWRPKA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-linux-arm-gnueabihf",
+    "location": "node_modules/@rolldown/binding-linux-arm-gnueabihf",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.2.14.tgz",
+    "integrity": "sha512-BqwKsdZQf6EqVWr8fv2MrDYzAvOZ7+NYFSJESRGs87fkseEhs0TU9TXgRJTkZoRRkxTizyEg1LKUXfU3/78uqg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-linux-arm64-gnu",
+    "location": "node_modules/@rolldown/binding-linux-arm64-gnu",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.2.14.tgz",
+    "integrity": "sha512-SD9kY8M009x/7s57Z1dgUVlP5+uYBgKQK0Tkr1WIWngrtUJmRCW1RJFMY7QDla2khXhmg2i5Io7MUjcmZNZ/KQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-linux-arm64-musl",
+    "location": "node_modules/@rolldown/binding-linux-arm64-musl",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.2.14.tgz",
+    "integrity": "sha512-BJ2CL19M6uuWesMgnqJzgxoI+N+eV7b0A9O9vLV42y+gitC41fNa8KElau1tHVzuLWX5GzEuxMPhAO0tQXQMkg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-linux-ppc64-gnu",
+    "location": "node_modules/@rolldown/binding-linux-ppc64-gnu",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.2.14.tgz",
+    "integrity": "sha512-4+Kl8daPV8NDHaD7mfCcc1pRM+Qg7ab8DyMm5FG5WoZgv4h2i3KFN1CybYBNbQqmuYm7ftJLvmMI1eHYJ22S/Q==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-linux-s390x-gnu",
+    "location": "node_modules/@rolldown/binding-linux-s390x-gnu",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.2.14.tgz",
+    "integrity": "sha512-V/h8ePq1fKDrmtFMz6xcCN3DKvuvMRrwwD1q0PkBeeo4DpK64biaKvqWGVxqCeYKqeRk7gE7/iKPxLCn08O97A==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-linux-x64-gnu",
+    "location": "node_modules/@rolldown/binding-linux-x64-gnu",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.2.14.tgz",
+    "integrity": "sha512-WxalXzgrLVpKC93xfpaJ3gCXUWzeCr+FRCbDVD2mUAy4L6Vo3lNVz0epUEUpxPWJkLNYUwM4OSIikv36OJ9mLg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-linux-x64-musl",
+    "location": "node_modules/@rolldown/binding-linux-x64-musl",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.2.14.tgz",
+    "integrity": "sha512-3G3tnAmTpdk9jO3GQtyHXqeFD2SlecfTws/Y3M2mmj9nMBwwuLT4kur8sZKeu7ENUHSpVO3cIsm5A52LEWWwlg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-openharmony-arm64",
+    "location": "node_modules/@rolldown/binding-openharmony-arm64",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.2.14.tgz",
+    "integrity": "sha512-qyr5XiNGxm2ytx17vvtcJ9nXn6v1gENETi503bJx3OGwZ1tSonj7BosxbMa/xeAfSl5iS9X6KjEWYXLu6v1L7Q==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-win32-arm64-msvc",
+    "location": "node_modules/@rolldown/binding-win32-arm64-msvc",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.2.14.tgz",
+    "integrity": "sha512-oA4o5o0S2yB199YyYXDzKUv1Z56Rc+mgOjwm7Z/vJ9Z8igiDPYvoOuDyo6g7AK/ZaF09nPhDKVnGBcYHO11GXA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@rolldown/binding-win32-x64-msvc",
+    "location": "node_modules/@rolldown/binding-win32-x64-msvc",
+    "version": "1.2.14",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.2.14.tgz",
+    "integrity": "sha512-9mE94bf2GZUaR/fUSXCMpBoWkctu421Mi0ORpm4zqfbkjKep7RxzPFa5etcGs5h+2KApoWBOA/hAJa/7saGgEQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "23ecfff35a5a2e80d92142f75228912c3b1abc4b5a8337a821ff4397e2f9f734",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE"
+      },
+      {
+        "file": "THIRD-PARTY-LICENSE",
+        "sha256": "a877291d800ed43692f3f9ae09d8e01cc6f7293ad39d43896059c188ffbb8b7c",
+        "source": "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@rolldown/binding-",
+      "version": "1.2.14",
+      "license": "MIT",
+      "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+      "sources": [
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+        "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+      ],
+      "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@tybys/wasm-util",
+    "location": "node_modules/@tybys/wasm-util",
+    "version": "0.10.3",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@tybys/wasm-util/-/wasm-util-0.10.3.tgz",
+    "integrity": "sha512-F3fo1MYrRJYL3zER0OUOmkutjr1Vp23m7OsSgp7nq4SP6OqX6C/56XFIPAl5bt3zaBRjmW7SGz3u/6LwFpYcOg==",
+    "files": [
+      {
+        "file": "package.json",
+        "sha256": "25f12211a053d9b47c9c4604191a8367317898a25445c8455f329a90741c5b61",
+        "source": "https://raw.githubusercontent.com/toyobayashi/wasm-util/efb17cc128a30fb16b58127738f09c8871a3f7d1/package.json",
+        "kind": "license-declaration"
+      }
+    ],
+    "upstreamReview": {
+      "name": "@tybys/wasm-util",
+      "version": "0.10.3",
+      "license": "MIT",
+      "kind": "license-declaration",
+      "releaseEvidence": "https://registry.npmjs.org/@tybys/wasm-util/0.10.3",
+      "sources": [
+        "https://raw.githubusercontent.com/toyobayashi/wasm-util/efb17cc128a30fb16b58127738f09c8871a3f7d1/package.json"
+      ],
+      "reason": "The upstream package.json at the published npm gitHead explicitly declares @tybys/wasm-util 0.10.3 as MIT, matching the published archive and lockfile. Reviewed as license-declaration evidence for this exact package/version, not a standalone MIT license text. It is an optional ESLint resolver development dependency. The maintainer confirmed its MIT licensing in this review.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-android-arm-eabi",
+    "location": "node_modules/@unrs/resolver-binding-android-arm-eabi",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-android-arm-eabi/-/resolver-binding-android-arm-eabi-1.11.1.tgz",
+    "integrity": "sha512-ppLRUgHVaGRWUx0R0Ut06Mjo9gBaBkg3v/8AxusGLhsIotbBLuRk51rAzqLC8gq6NyyAojEXglNjzf6R948DNw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-android-arm64",
+    "location": "node_modules/@unrs/resolver-binding-android-arm64",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-android-arm64/-/resolver-binding-android-arm64-1.11.1.tgz",
+    "integrity": "sha512-lCxkVtb4wp1v+EoN+HjIG9cIIzPkX5OtM03pQYkG+U5O/wL53LC4QbIeazgiKqluGeVEeBlZahHalCaBvU1a2g==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-darwin-arm64",
+    "location": "node_modules/@unrs/resolver-binding-darwin-arm64",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-darwin-arm64/-/resolver-binding-darwin-arm64-1.11.1.tgz",
+    "integrity": "sha512-gPVA1UjRu1Y/IsB/dQEsp2V1pm44Of6+LWvbLc9SDk1c2KhhDRDBUkQCYVWe6f26uJb3fOK8saWMgtX8IrMk3g==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-darwin-x64",
+    "location": "node_modules/@unrs/resolver-binding-darwin-x64",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-darwin-x64/-/resolver-binding-darwin-x64-1.11.1.tgz",
+    "integrity": "sha512-cFzP7rWKd3lZaCsDze07QX1SC24lO8mPty9vdP+YVa3MGdVgPmFc59317b2ioXtgCMKGiCLxJ4HQs62oz6GfRQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-freebsd-x64",
+    "location": "node_modules/@unrs/resolver-binding-freebsd-x64",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-freebsd-x64/-/resolver-binding-freebsd-x64-1.11.1.tgz",
+    "integrity": "sha512-fqtGgak3zX4DCB6PFpsH5+Kmt/8CIi4Bry4rb1ho6Av2QHTREM+47y282Uqiu3ZRF5IQioJQ5qWRV6jduA+iGw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-arm-gnueabihf",
+    "location": "node_modules/@unrs/resolver-binding-linux-arm-gnueabihf",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-arm-gnueabihf/-/resolver-binding-linux-arm-gnueabihf-1.11.1.tgz",
+    "integrity": "sha512-u92mvlcYtp9MRKmP+ZvMmtPN34+/3lMHlyMj7wXJDeXxuM0Vgzz0+PPJNsro1m3IZPYChIkn944wW8TYgGKFHw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-arm-musleabihf",
+    "location": "node_modules/@unrs/resolver-binding-linux-arm-musleabihf",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-arm-musleabihf/-/resolver-binding-linux-arm-musleabihf-1.11.1.tgz",
+    "integrity": "sha512-cINaoY2z7LVCrfHkIcmvj7osTOtm6VVT16b5oQdS4beibX2SYBwgYLmqhBjA1t51CarSaBuX5YNsWLjsqfW5Cw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-arm64-gnu",
+    "location": "node_modules/@unrs/resolver-binding-linux-arm64-gnu",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-arm64-gnu/-/resolver-binding-linux-arm64-gnu-1.11.1.tgz",
+    "integrity": "sha512-34gw7PjDGB9JgePJEmhEqBhWvCiiWCuXsL9hYphDF7crW7UgI05gyBAi6MF58uGcMOiOqSJ2ybEeCvHcq0BCmQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-arm64-musl",
+    "location": "node_modules/@unrs/resolver-binding-linux-arm64-musl",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-arm64-musl/-/resolver-binding-linux-arm64-musl-1.11.1.tgz",
+    "integrity": "sha512-RyMIx6Uf53hhOtJDIamSbTskA99sPHS96wxVE/bJtePJJtpdKGXO1wY90oRdXuYOGOTuqjT8ACccMc4K6QmT3w==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-ppc64-gnu",
+    "location": "node_modules/@unrs/resolver-binding-linux-ppc64-gnu",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-ppc64-gnu/-/resolver-binding-linux-ppc64-gnu-1.11.1.tgz",
+    "integrity": "sha512-D8Vae74A4/a+mZH0FbOkFJL9DSK2R6TFPC9M+jCWYia/q2einCubX10pecpDiTmkJVUH+y8K3BZClycD8nCShA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-riscv64-gnu",
+    "location": "node_modules/@unrs/resolver-binding-linux-riscv64-gnu",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-riscv64-gnu/-/resolver-binding-linux-riscv64-gnu-1.11.1.tgz",
+    "integrity": "sha512-frxL4OrzOWVVsOc96+V3aqTIQl1O2TjgExV4EKgRY09AJ9leZpEg8Ak9phadbuX0BA4k8U5qtvMSQQGGmaJqcQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-riscv64-musl",
+    "location": "node_modules/@unrs/resolver-binding-linux-riscv64-musl",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-riscv64-musl/-/resolver-binding-linux-riscv64-musl-1.11.1.tgz",
+    "integrity": "sha512-mJ5vuDaIZ+l/acv01sHoXfpnyrNKOk/3aDoEdLO/Xtn9HuZlDD6jKxHlkN8ZhWyLJsRBxfv9GYM2utQ1SChKew==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-s390x-gnu",
+    "location": "node_modules/@unrs/resolver-binding-linux-s390x-gnu",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-s390x-gnu/-/resolver-binding-linux-s390x-gnu-1.11.1.tgz",
+    "integrity": "sha512-kELo8ebBVtb9sA7rMe1Cph4QHreByhaZ2QEADd9NzIQsYNQpt9UkM9iqr2lhGr5afh885d/cB5QeTXSbZHTYPg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-x64-gnu",
+    "location": "node_modules/@unrs/resolver-binding-linux-x64-gnu",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-x64-gnu/-/resolver-binding-linux-x64-gnu-1.11.1.tgz",
+    "integrity": "sha512-C3ZAHugKgovV5YvAMsxhq0gtXuwESUKc5MhEtjBpLoHPLYM+iuwSj3lflFwK3DPm68660rZ7G8BMcwSro7hD5w==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-linux-x64-musl",
+    "location": "node_modules/@unrs/resolver-binding-linux-x64-musl",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-linux-x64-musl/-/resolver-binding-linux-x64-musl-1.11.1.tgz",
+    "integrity": "sha512-rV0YSoyhK2nZ4vEswT/QwqzqQXw5I6CjoaYMOX0TqBlWhojUf8P94mvI7nuJTeaCkkds3QE4+zS8Ko+GdXuZtA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-wasm32-wasi",
+    "location": "node_modules/@unrs/resolver-binding-wasm32-wasi",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-wasm32-wasi/-/resolver-binding-wasm32-wasi-1.11.1.tgz",
+    "integrity": "sha512-5u4RkfxJm+Ng7IWgkzi3qrFOvLvQYnPBmjmZQ8+szTK/b31fQCnleNl1GgEt7nIsZRIf5PLhPwT0WM+q45x/UQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-win32-arm64-msvc",
+    "location": "node_modules/@unrs/resolver-binding-win32-arm64-msvc",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-win32-arm64-msvc/-/resolver-binding-win32-arm64-msvc-1.11.1.tgz",
+    "integrity": "sha512-nRcz5Il4ln0kMhfL8S3hLkxI85BXs3o8EYoattsJNdsX4YUU89iOkVn7g0VHSRxFuVMdM4Q1jEpIId1Ihim/Uw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-win32-ia32-msvc",
+    "location": "node_modules/@unrs/resolver-binding-win32-ia32-msvc",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-win32-ia32-msvc/-/resolver-binding-win32-ia32-msvc-1.11.1.tgz",
+    "integrity": "sha512-DCEI6t5i1NmAZp6pFonpD5m7i6aFrpofcp4LA2i8IIq60Jyo28hamKBxNrZcyOwVOZkgsRp9O2sXWBWP8MnvIQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "@unrs/resolver-binding-win32-x64-msvc",
+    "location": "node_modules/@unrs/resolver-binding-win32-x64-msvc",
+    "version": "1.11.1",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/@unrs/resolver-binding-win32-x64-msvc/-/resolver-binding-win32-x64-msvc-1.11.1.tgz",
+    "integrity": "sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "a9e35996693bd619302922c731fa2f620ad12d5f50b19a37c8a3e0e078c9bd2f",
+        "source": "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      }
+    ],
+    "upstreamReview": {
+      "namePrefix": "@unrs/resolver-binding-",
+      "version": "1.11.1",
+      "license": "MIT",
+      "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+      "sources": [
+        "https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"
+      ],
+      "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+      "reviewedBy": "Codex",
+      "reviewedAt": "2026-11-14"
+    }
+  },
+  {
+    "name": "fsevents",
+    "location": "node_modules/fsevents",
+    "version": "2.3.3",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz",
+    "integrity": "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "2a8a5d6197bb97a018b8a190dd3ed853d750ca87c8e80c17aad41d6c6ff448e1"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-android-arm64",
+    "location": "node_modules/lightningcss-android-arm64",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-android-arm64/-/lightningcss-android-arm64-1.33.0.tgz",
+    "integrity": "sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-darwin-arm64",
+    "location": "node_modules/lightningcss-darwin-arm64",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-darwin-arm64/-/lightningcss-darwin-arm64-1.33.0.tgz",
+    "integrity": "sha512-Sciaz8eenNTKn9b3t7+xr0ipTp9YxKQY4npwQ3mrRuL0BAVHBLyZxofhaKBAVtzmtRZ/zTyo0/to4B1uWG/Djg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-darwin-x64",
+    "location": "node_modules/lightningcss-darwin-x64",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-darwin-x64/-/lightningcss-darwin-x64-1.33.0.tgz",
+    "integrity": "sha512-Z5UPAxzrjlWNNyGy6i65cJzzvgJ5D3T6wMvs+gWpY9d7qRhANrxqAp6LhxIgZhWEw18RfJTGcRxjuLIBr+m8XQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-freebsd-x64",
+    "location": "node_modules/lightningcss-freebsd-x64",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-freebsd-x64/-/lightningcss-freebsd-x64-1.33.0.tgz",
+    "integrity": "sha512-QQM/Ti/hQajJwCY+RiWuCZ9sdtI/XQk7nDK5vC8kkdwixezOlDgvDx7+RT+QjK6FcFT4MpsuoBnHIo/O3StRRg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-linux-arm-gnueabihf",
+    "location": "node_modules/lightningcss-linux-arm-gnueabihf",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf/-/lightningcss-linux-arm-gnueabihf-1.33.0.tgz",
+    "integrity": "sha512-N7FVBe6iS24MlM6R/4RBTxGhQheZGs7tiQ9U32UtF75NzP5Q7xWPRqLBCKxlRQRk3rY1jCIPLzx7WzOhuUIRLQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-linux-arm64-gnu",
+    "location": "node_modules/lightningcss-linux-arm64-gnu",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-gnu/-/lightningcss-linux-arm64-gnu-1.33.0.tgz",
+    "integrity": "sha512-j2v/itmy4HlNxlc6voKXYgBqNi0Ng2LShg4z7GufpEgs05P+2suBVyi9I6YHq5uoVFx9ETin3eCEhLVyXGQnKg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-linux-arm64-musl",
+    "location": "node_modules/lightningcss-linux-arm64-musl",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-linux-arm64-musl/-/lightningcss-linux-arm64-musl-1.33.0.tgz",
+    "integrity": "sha512-yiO5ROMuYQgXbC60yjZU5CYSFZGKXL0HFATXt9mHJn1+zW55oCtMI9NfcVhYLMFDL7gV7oBPon/EmMMGg2OvtQ==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-linux-x64-gnu",
+    "location": "node_modules/lightningcss-linux-x64-gnu",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-gnu/-/lightningcss-linux-x64-gnu-1.33.0.tgz",
+    "integrity": "sha512-ar+Ju7LmcN0Jo4FpL4hpFybwNG9/3A/Br5KW2n2jyODg3MEZXaDYADdemoNS+BDNfMgKvylJLj4S5tyRActuAg==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-linux-x64-musl",
+    "location": "node_modules/lightningcss-linux-x64-musl",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-linux-x64-musl/-/lightningcss-linux-x64-musl-1.33.0.tgz",
+    "integrity": "sha512-RYiYbkokw0trfKqqzfF55lginwEPrD3OJDfTuJzFs1MK6iFnDenaz1fqLLtX4ITG3OktJQXOeTaw1awrBAlZPw==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-win32-arm64-msvc",
+    "location": "node_modules/lightningcss-win32-arm64-msvc",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-win32-arm64-msvc/-/lightningcss-win32-arm64-msvc-1.33.0.tgz",
+    "integrity": "sha512-1K+MPfLSFVpphzpdbfkhlWk6wBrTObBzS2T6db10PNOZgR9GoVsAWzwNyuhUYYbTp23j+4RrncfujZ4uAzXvwA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "lightningcss-win32-x64-msvc",
+    "location": "node_modules/lightningcss-win32-x64-msvc",
+    "version": "1.33.0",
+    "license": "MPL-2.0",
+    "resolved": "https://registry.npmjs.org/lightningcss-win32-x64-msvc/-/lightningcss-win32-x64-msvc-1.33.0.tgz",
+    "integrity": "sha512-OlEICDx/Xl0FqSp4bry8zFnCvGpig3Gl4gCquvYwHuqJKEC1+n9NgDniFvqHGmMv1ZkqDJrDqKKSykTDX+ehuA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "5eba353fe5076ac3432177f8ab1cf75e3afcd0584251e37c3bfead5f447d040e"
+      }
+    ]
+  },
+  {
+    "name": "fsevents",
+    "location": "node_modules/playwright/node_modules/fsevents",
+    "version": "2.3.2",
+    "license": "MIT",
+    "resolved": "https://registry.npmjs.org/fsevents/-/fsevents-2.3.2.tgz",
+    "integrity": "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "2a8a5d6197bb97a018b8a190dd3ed853d750ca87c8e80c17aad41d6c6ff448e1"
+      }
+    ]
+  },
+  {
+    "name": "sharp",
+    "location": "node_modules/sharp",
+    "version": "0.35.5",
+    "license": "Apache-2.0",
+    "resolved": "https://registry.npmjs.org/sharp/-/sharp-0.35.5.tgz",
+    "integrity": "sha512-Ywn4OnzGukp7CDMrp08RQ50YKmuwG47brZgIVPTvBaaAfQlRlygrRqSrxdCiL9M+LlzLBiJ68IR1QqvzHyjC7g==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      }
+    ]
+  },
+  {
+    "name": "semver",
+    "location": "node_modules/sharp/node_modules/semver",
+    "version": "7.8.5",
+    "license": "ISC",
+    "resolved": "https://registry.npmjs.org/semver/-/semver-7.8.5.tgz",
+    "integrity": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
+    "files": [
+      {
+        "file": "LICENSE",
+        "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+      }
+    ]
+  }
+]
