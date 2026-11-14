@@ -1,5 +1,7 @@
 "use client";
 
+import { trackDiagnosticOperation } from "../lib/diagnostic-activity";
+
 import { useCallback, useEffect, useState } from "react";
 import {
   getPinLockoutRemainingSeconds,
@@ -79,7 +81,7 @@ export function useVaultPin({
 
     let unlocked: boolean;
     try {
-      unlocked = await unlockVaultWithPin(pinInput.trim());
+      unlocked = await trackDiagnosticOperation("pin.unlock", () => unlockVaultWithPin(pinInput.trim()));
     } catch (error) {
       setPinError(formatPinError(error, language));
       return;
@@ -97,7 +99,7 @@ export function useVaultPin({
 
   const handleSavePinSetup = async (pin: string) => {
     try {
-      await setupPinLock(pin);
+      await trackDiagnosticOperation("pin.setup", () => setupPinLock(pin));
       setIsPinConfigured(true);
       showToast(
         language === "ko"
@@ -122,7 +124,7 @@ export function useVaultPin({
 
     let removed: boolean;
     try {
-      removed = await removePinLock(pin.trim());
+      removed = await trackDiagnosticOperation("pin.remove", () => removePinLock(pin.trim()));
     } catch (error) {
       throw new Error(formatPinError(error, language));
     }

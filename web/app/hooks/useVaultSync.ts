@@ -1,5 +1,7 @@
 "use client";
 
+import { trackDiagnosticOperation, setDiagnosticSyncStatus } from "../lib/diagnostic-activity";
+
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   cleanupExpiredTombstones,
@@ -72,7 +74,7 @@ export function useVaultSync({
       do {
         syncAgain.current = false;
         setSyncStatus("syncing");
-        const result = await synchronizeJournal(identity.id);
+        const result = await trackDiagnosticOperation("sync.run", () => synchronizeJournal(identity.id));
         if (started !== generation.current) return;
         setConflictEntryIds((await getSyncSnapshot()).conflictEntryIds);
         await cleanupExpiredTombstones().catch(() => 0);
@@ -182,7 +184,7 @@ export function useVaultSync({
   const handleResolveConflictUseLocal = useCallback(
     async (entryId: string) => {
       try {
-        await resolveConflictUseLocal(entryId, { reload: false });
+        await trackDiagnosticOperation("sync.use-local", () => resolveConflictUseLocal(entryId, { reload: false }));
         await refreshEntries();
         showToast(
           language === "ko"
@@ -201,7 +203,7 @@ export function useVaultSync({
   const handleResolveConflictKeepBoth = useCallback(
     async (entryId: string) => {
       try {
-        await resolveConflictKeepBoth(entryId, { reload: false });
+        await trackDiagnosticOperation("sync.keep-both", () => resolveConflictKeepBoth(entryId, { reload: false }));
         await refreshEntries();
         showToast(
           language === "ko"
@@ -232,6 +234,8 @@ export function useVaultSync({
     : !identity || !online
       ? "ready"
       : syncStatus;
+
+  useEffect(() => { setDiagnosticSyncStatus(effectiveSyncStatus); }, [effectiveSyncStatus]);
 
   return {
     conflictEntryIds,

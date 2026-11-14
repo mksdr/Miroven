@@ -1,3 +1,4 @@
+import { clearDiagnosticActivity } from "../diagnostic-activity";
 import { bufferToBase64 } from "./codec";
 import type { PinLockEnvelope } from "./types";
 
@@ -62,6 +63,7 @@ export function readKeySession(pin: PinLockEnvelope): CryptoKey | null {
 
 export function revokeKeySession(options: { broadcast?: boolean; notify?: boolean } = {}): void {
   startBrowserEvents();
+  clearDiagnosticActivity();
   sessions.delete(indexedDB);
   generations.set(indexedDB, (generations.get(indexedDB) ?? 0) + 1);
   if (options.notify !== false) {

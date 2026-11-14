@@ -1,5 +1,7 @@
 "use client";
 
+import { trackDiagnosticOperation, clearDiagnosticActivity } from "../lib/diagnostic-activity";
+
 import {
   useCallback,
   useEffect,
@@ -109,6 +111,7 @@ export function useJournalEntries({
     (locked: boolean) => {
       vaultLockedRef.current = locked;
       if (locked) {
+        clearDiagnosticActivity();
         setPendingDeleteId(null);
         entryReadRef.current?.abort();
         journalReader.clear();
@@ -128,7 +131,7 @@ export function useJournalEntries({
     const controller = new AbortController();
     entryReadRef.current = controller;
     try {
-      const loaded = await journalReader.list({ signal: controller.signal });
+      const loaded = await trackDiagnosticOperation("entry.list", () => journalReader.list({ signal: controller.signal }));
       if (!controller.signal.aborted && !vaultLockedRef.current) {
         setEntries((previous) =>
           previous.length === loaded.length &&
@@ -352,7 +355,7 @@ export function useJournalEntries({
           attachmentVersion: 2,
         };
         entryReadRef.current?.abort();
-        await saveEntry(updatedEntry);
+        await trackDiagnosticOperation("entry.save", () => saveEntry(updatedEntry));
         const updatedSummary = await journalReader.summary(updatedEntry.id);
         if (vaultLockedRef.current) return;
         setEntries((current) =>
@@ -374,7 +377,7 @@ export function useJournalEntries({
           attachmentVersion: 2,
         };
         entryReadRef.current?.abort();
-        await saveEntry(entry);
+        await trackDiagnosticOperation("entry.save", () => saveEntry(entry));
         if (entries.length === 0) setFirstEntrySaved(true);
         const summary = await journalReader.summary(entry.id, undefined, entry);
         if (vaultLockedRef.current) return;
@@ -461,7 +464,7 @@ export function useJournalEntries({
       pinInFlightRef.current = true;
       setPinning(true);
       try {
-        await setEntryPinned(entry.id, !entry.pinnedAt);
+        await trackDiagnosticOperation("entry.pin", () => setEntryPinned(entry.id, !entry.pinnedAt));
         await refreshEntries();
         setPendingSyncCount((await getSyncSnapshot()).pending);
         showToast(
@@ -510,7 +513,7 @@ export function useJournalEntries({
     deleteInFlightRef.current = true;
     setDeleting(true);
     try {
-      await deleteEntry(id);
+      await trackDiagnosticOperation("entry.delete", () => deleteEntry(id));
       setPendingDeleteId(null);
       entryReadRef.current?.abort();
       setPendingSyncCount((await getSyncSnapshot()).pending);
@@ -530,6 +533,7 @@ export function useJournalEntries({
   }, [pendingDeleteId, language, runSync, setPendingSyncCount, showToast]);
 
   const resetEntriesAfterPurge = useCallback(() => {
+    clearDiagnosticActivity();
     setPendingDeleteId(null);
     entryReadRef.current?.abort();
     journalReader.clear();

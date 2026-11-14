@@ -44,4 +44,30 @@ describe("Miroven HTTP session contract", () => {
     await auth.verifyOtpCode("owner@example.com", "123456");
     expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ email: "owner@example.com", code: "123456" });
   });
+  it("records failed API categories and status without request or response secrets", async () => {
+    const secret = "synthetic-email@example.com-cookie-token-cursor-blob-id";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: secret, message: secret }), { status: 503 })));
+    const client = await import("../app/lib/remote/client");
+    const activity = await import("../app/lib/diagnostic-activity");
+    await expect(client.apiRequest("/sync/changes?cursor=" + secret, { headers: { Authorization: secret } })).rejects.toMatchObject({ status: 503 });
+    expect(activity.diagnosticActivity().events.at(-1)).toMatchObject({ operation: "api.sync.changes", outcome: "failed", httpStatus: 503, errorCode: "unknown" });
+    expect(JSON.stringify(activity.diagnosticActivity())).not.toContain(secret);
+  });
+  it("clears history on account changes and logout, fencing pending requests", async () => {
+    let release!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => new Promise((resolve) => { release = resolve; })));
+    const client = await import("../app/lib/remote/client");
+    const activity = await import("../app/lib/diagnostic-activity");
+    client.publishSession({ user_id: "owner", email: "owner@example.com", csrf_token: "csrf" });
+    const pending = client.apiRequest("/sync/changes");
+    client.publishSession({ user_id: "other", email: "other@example.com", csrf_token: "other-csrf" });
+    release(new Response("{}", { headers: { "Content-Type": "application/json" } }));
+    await pending;
+    expect(activity.diagnosticActivity().events).toEqual([]);
+    activity.recordDiagnosticEvent("entry.save");
+    client.publishSession(null);
+    expect(activity.diagnosticActivity().events).toEqual([]);
+    expect(activity.diagnosticContext().authenticated).toBe(false);
+  });
+
 });

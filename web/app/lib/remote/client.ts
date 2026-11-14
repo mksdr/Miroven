@@ -1,3 +1,4 @@
+import { beginDiagnosticOperation, clearDiagnosticActivity, diagnosticApiOperation, setDiagnosticAuthenticated } from "../diagnostic-activity";
 import type { components } from "./api.types";
 
 type Session = components["schemas"]["SessionResponse"];
@@ -30,33 +31,47 @@ export function remoteScope(userId: string): string { return `${apiUrl("")}|${us
 export function publishSession(session: Session | null) {
   sessionGeneration++;
   const changed = currentSession?.user_id !== session?.user_id || currentSession?.email !== session?.email;
+  if (currentSession?.user_id !== session?.user_id) clearDiagnosticActivity();
+  setDiagnosticAuthenticated(Boolean(session));
   currentSession = session;
   const identity = session ? { id: session.user_id, email: session.email } : null;
   if (changed) for (const listener of listeners) listener(identity);
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}, userId?: string): Promise<T> {
-  const method = init.method ?? "GET";
-  if (userId && !currentSession) await refreshSession();
-  if (userId && currentSession?.user_id !== userId) {
-    throw new ApiError(409, "auth_scope_changed", "로그인 계정이 변경되었습니다. 다시 확인해 주세요.");
+  const finish = beginDiagnosticOperation(diagnosticApiOperation(path));
+  let status: number | undefined;
+  try {
+    const method = init.method ?? "GET";
+    if (userId && !currentSession) await refreshSession();
+    if (userId && currentSession?.user_id !== userId) {
+      throw new ApiError(409, "auth_scope_changed", "로그인 계정이 변경되었습니다. 다시 확인해 주세요.");
+    }
+    const headers = new Headers(init.headers);
+    if (userId) headers.set("X-Miroven-User-ID", userId);
+    if (method !== "GET" && currentSession) headers.set("X-CSRF-Token", currentSession.csrf_token);
+    const requestSession = currentSession;
+    const response = await fetch(apiUrl(path), { ...init, headers, credentials: "include", cache: "no-store" });
+    status = response.status;
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      if (response.status === 401 && error.code !== "invalid_code" && path !== "/account/deletion"
+        && path !== "/auth/code/verify" && currentSession === requestSession) publishSession(null);
+      throw new ApiError(response.status, error.code ?? "http_error", error.message ?? "서버 요청을 처리하지 못했습니다.");
+    }
+    if (response.status === 204) { finish("succeeded", undefined, status); return undefined as T; }
+    if (response.headers.get("content-type")?.includes("application/octet-stream")) {
+      const value = await response.arrayBuffer() as T;
+      finish("succeeded", undefined, status);
+      return value;
+    }
+    const value = await response.json() as T;
+    finish("succeeded", undefined, status);
+    return value;
+  } catch (error) {
+    finish(init.signal?.aborted ? "cancelled" : "failed", error, status);
+    throw error;
   }
-  const headers = new Headers(init.headers);
-  if (userId) headers.set("X-Miroven-User-ID", userId);
-  if (method !== "GET" && currentSession) headers.set("X-CSRF-Token", currentSession.csrf_token);
-  const requestSession = currentSession;
-  const response = await fetch(apiUrl(path), { ...init, headers, credentials: "include", cache: "no-store" });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    if (response.status === 401 && error.code !== "invalid_code" && path !== "/account/deletion"
-      && path !== "/auth/code/verify" && currentSession === requestSession) publishSession(null);
-    throw new ApiError(response.status, error.code ?? "http_error", error.message ?? "서버 요청을 처리하지 못했습니다.");
-  }
-  if (response.status === 204) return undefined as T;
-  if (response.headers.get("content-type")?.includes("application/octet-stream")) {
-    return await response.arrayBuffer() as T;
-  }
-  return await response.json() as T;
 }
 
 export async function refreshSession(): Promise<AuthIdentity | null> {

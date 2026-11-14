@@ -1,5 +1,7 @@
 "use client";
 
+import { trackDiagnosticOperation, diagnosticGeneration } from "../lib/diagnostic-activity";
+
 import { useCallback, useState } from "react";
 import {
   createEncryptedBackup,
@@ -86,7 +88,7 @@ export function useVaultBackupRecovery({
           );
         }
       }
-      const created = await createRecoveryKit();
+      const created = await trackDiagnosticOperation("recovery.create", () => createRecoveryKit());
       setLocalEnvelope(created.envelope);
       setRecoveryCode(created.recoveryCode);
       setPendingSyncCount((await getSyncSnapshot()).pending);
@@ -135,7 +137,7 @@ export function useVaultBackupRecovery({
     if (!remoteEnvelope || !recoveryInput.trim() || vaultBusy) return;
     setVaultBusy(true);
     try {
-      await recoverVault(remoteEnvelope, recoveryInput);
+      await trackDiagnosticOperation("recovery.restore", () => recoverVault(remoteEnvelope, recoveryInput));
       setLocalEnvelope(remoteEnvelope);
       setRemoteEnvelope(null);
       setRecoveryInput("");
@@ -184,7 +186,7 @@ export function useVaultBackupRecovery({
     if (backupBusy) return;
     setBackupBusy(true);
     try {
-      const backup = await createEncryptedBackup();
+      const backup = await trackDiagnosticOperation("backup.export", () => createEncryptedBackup());
       const url = URL.createObjectURL(
         new Blob([backup.json], { type: "application/json" }),
       );
@@ -233,10 +235,7 @@ export function useVaultBackupRecovery({
       }
       setBackupBusy(true);
       try {
-        const result = await importEncryptedBackup(
-          await file.text(),
-          backupRecoveryInput,
-        );
+        const result = await trackDiagnosticOperation("backup.import", async () => importEncryptedBackup(await file.text(), backupRecoveryInput));
         const [envelope, snapshot] = await Promise.all([
           getLocalVaultEnvelope(),
           getSyncSnapshot(),
@@ -275,13 +274,14 @@ export function useVaultBackupRecovery({
   );
 
   const handleExportDiagnostics = useCallback(async () => {
+    const generation = diagnosticGeneration();
     try {
       const { downloadDiagnosticReport } = await import("../lib/diagnostics");
-      await downloadDiagnosticReport({ language, theme, isVaultLocked });
+      await downloadDiagnosticReport({ language, theme, isVaultLocked }, generation);
       showToast(
         language === "ko"
-          ? "개인정보가 미포함된 진단 정보 리포트를 내려받았습니다."
-          : "Downloaded privacy-safe diagnostic report.",
+          ? "진단 리포트를 내려받았습니다. 공유 전에 내용을 확인해 주세요."
+          : "Downloaded diagnostic report. Review it before sharing.",
       );
     } catch {
       showToast(
