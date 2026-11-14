@@ -132,6 +132,7 @@ describe("license collection and findings", () => {
     const root = await fixture();
     const entries = await collectLicenses(root);
     const other = entries.find((entry: { name: string }) => entry.name === "other-platform");
+    if (!other) throw new Error("Fixture is missing the optional other-platform dependency");
     const review = { name: other.name, location: other.location, version: other.version, license: other.license, status: "pass", reason: "Synthetic approval", source: "https://example.org/license", reviewedBy: "test", reviewedAt: "2026-11-14" };
     expect(checkEntries(entries, [review]).find((entry: { name: string }) => entry.name === "other-platform")).toMatchObject({ status: "review", evidence: [] });
   });
