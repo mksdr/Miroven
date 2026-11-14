@@ -2,6 +2,13 @@
 
 Future releases are generated from Conventional Commits.
 
+## [1.3.0](https://github.com/mksdr/Miroven/compare/v1.2.5...v1.3.0) (2026-11-14)
+
+
+### Features
+
+* **diagnostics:** capture privacy-safe reproduction activity ([#35](https://github.com/mksdr/Miroven/issues/35)) ([f37a7eb](https://github.com/mksdr/Miroven/commit/f37a7ebed544957c4193a70bf8965f9c2d0ca23a))
+
 ## [1.2.5](https://github.com/mksdr/Miroven/compare/v1.2.4...v1.2.5) (2026-11-08)
 
 
