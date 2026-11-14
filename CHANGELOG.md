@@ -2,6 +2,14 @@
 
 Future releases are generated from Conventional Commits.
 
+## [1.3.1](https://github.com/mksdr/Miroven/compare/v1.3.0...v1.3.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **licenses:** verify optional dependency license evidence ([#39](https://github.com/mksdr/Miroven/issues/39)) ([9d3278e](https://github.com/mksdr/Miroven/commit/9d3278e97e3e99727f42288f8aa1ad7487128877))
+* Missing origin verification in `postMessage` handler ([#37](https://github.com/mksdr/Miroven/issues/37)) ([95dd71b](https://github.com/mksdr/Miroven/commit/95dd71ba3b11b5457deaac66239c7ff16ef34b90))
+
 ## [1.3.0](https://github.com/mksdr/Miroven/compare/v1.2.5...v1.3.0) (2026-11-14)
 
 
