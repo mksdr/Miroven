@@ -252,8 +252,8 @@ export function AccountSettingsModal({
         <div className="settings-section-row font-13">
           <p className="settings-section-desc">
             {language === "ko"
-              ? "일기 본문, 사진, 복구 코드가 완전히 배제된 기술 상태 정보만 포함된 JSON 리포트를 내보냅니다."
-              : "Export a JSON report containing system metrics with zero entry text, photos, or secret keys."}
+              ? "최근 기술 작업 이력과 실행 환경을 JSON으로 내보냅니다. 본문·사진·입력값은 제외하며, 이력은 이 탭 메모리에만 남고 새로고침·잠금·로그아웃 시 삭제됩니다. 공유 전에 내용을 확인해 주세요."
+              : "Export recent technical activity and environment as JSON, excluding entry text, photos, and input values. History stays in this tab’s memory and clears on reload, lock, or sign-out. Review before sharing."}
           </p>
           <button
             type="button"

@@ -71,11 +71,18 @@ it("ignores a legacy persisted key and removes it after PIN verification without
 
 it("only persists the key when the correct PIN removes its envelope", async () => {
   const vault = await import("../app/lib/local-vault");
+  const activity = await import("../app/lib/diagnostic-activity");
   await vault.saveEntry(entry); await vault.setupPinLock("654321");
-  expect(await vault.removePinLock("000000")).toBe(false);
+  expect(await activity.trackDiagnosticOperation("pin.unlock", () => vault.unlockVaultWithPin("654321"))).toBe(true);
+  expect(await activity.trackDiagnosticOperation("pin.remove", () => vault.removePinLock("000000"))).toBe(false);
   expect(await rawKey()).toBeUndefined();
   expect(await vault.hasPinLock()).toBe(true);
-  expect(await vault.removePinLock("654321")).toBe(true);
+  expect(await activity.trackDiagnosticOperation("pin.remove", () => vault.removePinLock("654321"))).toBe(true);
+  expect(activity.diagnosticActivity().events.map((event) => [event.operation, event.outcome])).toEqual([
+    ["pin.unlock", "started"], ["pin.unlock", "succeeded"],
+    ["pin.remove", "started"], ["pin.remove", "failed"],
+    ["pin.remove", "started"], ["pin.remove", "succeeded"],
+  ]);
   expect(await rawKey()).toBeInstanceOf(CryptoKey);
   expect(await vault.hasPinLock()).toBe(false);
   vi.resetModules();
@@ -129,9 +136,11 @@ it("backup import and recovery do not persist a new key underneath an existing P
 
 it("revokes memory sessions when local data is purged", async () => {
   const vault = await import("../app/lib/local-vault");
+  const activity = await import("../app/lib/diagnostic-activity");
   await vault.saveEntry(entry); await vault.setupPinLock("654321");
-  expect(await vault.unlockVaultWithPin("654321")).toBe(true);
+  expect(await activity.trackDiagnosticOperation("pin.unlock", () => vault.unlockVaultWithPin("654321"))).toBe(true);
   await vault.purgeLocalVaultData();
+  expect(activity.diagnosticActivity().events).toEqual([]);
   expect(await vault.listEntries()).toEqual([]);
   expect(await vault.hasPinLock()).toBe(false);
 });

@@ -1,5 +1,7 @@
 "use client";
 
+import { clearDiagnosticActivity } from "../lib/diagnostic-activity";
+
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePersona } from "../hooks/usePersona";
@@ -312,6 +314,7 @@ export function JournalApp() {
 
   useLayoutEffect(() => {
     signedOutRef.current = () => {
+      clearDiagnosticActivity();
       setPersonaOpen(false);
       journalReader.clear();
       setRemoteEnvelope(null);

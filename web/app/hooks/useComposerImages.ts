@@ -1,5 +1,7 @@
 "use client";
 
+import { trackDiagnosticOperation } from "../lib/diagnostic-activity";
+
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 import {
   blobToDataUrl,
@@ -76,7 +78,7 @@ export function useComposerImages({
       setEditingImageState("loading");
       try {
         const summary = await journalReader.summary(id);
-        const loaded = await journalReader.images(summary);
+        const loaded = await trackDiagnosticOperation("image.load", () => journalReader.images(summary));
         if (request !== imageRequestRef.current || vaultLockedRef.current) return;
         setImages(
           loaded.map((image) => ({
@@ -129,7 +131,7 @@ export function useComposerImages({
       try {
         for (const file of files) {
           try {
-            const processed = await processJournalImage(file, lowSpecMode);
+            const processed = await trackDiagnosticOperation("image.process", () => processJournalImage(file, lowSpecMode));
             if (request !== imageRequestRef.current || vaultLockedRef.current) {
               URL.revokeObjectURL(processed.previewUrl);
               return;
