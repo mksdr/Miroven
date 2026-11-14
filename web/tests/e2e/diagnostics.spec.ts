@@ -92,9 +92,22 @@ test("a lock during storage collection cancels the download", async ({ page }) =
   await ready(page);
   await openAccount(page);
   await page.evaluate(() => {
-    Object.defineProperty(navigator.storage, "estimate", { configurable: true, value: () => new Promise((resolve) => {
-      (window as unknown as { finishEstimate: () => void }).finishEstimate = () => resolve({ usage: 0, quota: 0 });
-    }) });
+    const pending: ((estimate: StorageEstimate) => void)[] = [];
+    const estimate = { usage: 0, quota: 0 };
+    let released = false;
+    const finishEstimate = () => {
+      released = true;
+      for (const resolve of pending.splice(0)) resolve(estimate);
+    };
+    // StorageManager is optional (including in WebKit's HTTP context).
+    // Release every overlapping query, including startup storage-health reads.
+    Object.defineProperty(navigator, "storage", { configurable: true, value: {
+      estimate: () => {
+        (window as unknown as { finishEstimate: () => void }).finishEstimate = finishEstimate;
+        return released ? Promise.resolve(estimate) : new Promise<StorageEstimate>((resolve) => pending.push(resolve));
+      },
+      persisted: async () => false,
+    } });
   });
   const downloads: string[] = [];
   page.on("download", (download) => downloads.push(download.suggestedFilename()));
@@ -109,6 +122,20 @@ test("a lock during storage collection cancels the download", async ({ page }) =
   await page.locator(".lock-card button").click();
   await expect(page.getByText("진단 정보를 생성하지 못했습니다.", { exact: true })).toBeVisible();
   expect(downloads).toEqual([]);
+});
+
+test("exports diagnostics when the storage API is unavailable", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "storage", { configurable: true, value: undefined });
+  });
+  await ready(page);
+  await openAccount(page);
+  const report = await exportReport(page);
+  expect(report.schemaVersion).toBe(2);
+  expect(report.collectionStatus).toMatchObject({
+    entries: "ok", storageEstimate: "unsupported", storagePersistence: "unsupported",
+  });
+  expect(report.storage).toEqual({ isPersistent: false, usageMB: null, quotaMB: null });
 });
 
 
