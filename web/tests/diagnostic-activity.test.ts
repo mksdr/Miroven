@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { JournalImageError, type JournalImageErrorCode } from "../app/lib/image";
 import {
   beginDiagnosticOperation, clearDiagnosticActivity, diagnosticActivity, diagnosticApiOperation,
   diagnosticContext, diagnosticGeneration, recordDiagnosticEvent, setDiagnosticSyncStatus, trackDiagnosticOperation,
@@ -82,4 +83,16 @@ describe("memory-only diagnostic activity", () => {
     expect(diagnosticActivity().events.at(-1)).toMatchObject({ outcome: "failed", errorType: "unknown", errorCode: "unknown" });
     expect(await trackDiagnosticOperation("entry.save", async () => "ok")).toBe("ok");
   });
+  it.each<JournalImageErrorCode>(["source-too-large", "too-large", "dimensions", "unsupported", "decode", "encoding", "processing"])(
+    "retains the fixed image error code %s without private payloads", async (code) => {
+      const secret = "synthetic private filename.png email@example.com";
+      const error = new JournalImageError(code);
+      error.message = secret;
+      error.stack = secret;
+      await expect(trackDiagnosticOperation("image.process", async () => { throw error; })).rejects.toBe(error);
+      expect(diagnosticActivity().events.at(-1)).toMatchObject({ outcome: "failed", errorType: "JournalImageError", errorCode: code });
+      expect(JSON.stringify(diagnosticActivity())).not.toContain(secret);
+    },
+  );
+
 });

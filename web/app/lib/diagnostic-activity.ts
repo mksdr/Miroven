@@ -1,3 +1,5 @@
+import type { JournalImageErrorCode } from "./image";
+
 /** Bounded, memory-only breadcrumbs. Never accept arbitrary payloads or error text. */
 const operations = [
   "entry.list", "entry.save", "entry.delete", "entry.pin", "image.process", "image.load",
@@ -13,9 +15,15 @@ const operations = [
 export type DiagnosticOperation = typeof operations[number];
 type Outcome = "started" | "succeeded" | "failed" | "cancelled";
 const errorTypes = ["AbortError", "QuotaExceededError", "NotAllowedError", "NotFoundError",
-  "InvalidStateError", "OperationError", "DataError", "SecurityError", "TypeError", "RangeError", "SyntaxError"] as const;
+  "InvalidStateError", "OperationError", "DataError", "SecurityError", "TypeError", "RangeError", "SyntaxError", "JournalImageError"] as const;
+// Compile-time completeness without loading image processing into the recorder.
+const imageErrorCodes = {
+  "source-too-large": true, "too-large": true, dimensions: true, unsupported: true,
+  decode: true, encoding: true, processing: true,
+} satisfies Record<JournalImageErrorCode, true>;
 const errorCodes = ["http_error", "invalid_code", "auth_scope_changed", "cursor_expired", "invalid_cursor",
-  "rate_limited", "quota_exceeded", "unauthorized", "forbidden", "revision_conflict", "PIN_LOCK_CONFIGURED"] as const;
+  "rate_limited", "quota_exceeded", "unauthorized", "forbidden", "revision_conflict", "PIN_LOCK_CONFIGURED",
+  "vault_not_found", "unauthenticated", ...Object.keys(imageErrorCodes)] as const;
 export type DiagnosticEvent = {
   sequence: number; elapsedMs: number; operationId: number; operation: DiagnosticOperation;
   outcome: Outcome; durationMs?: number; errorType?: string; errorCode?: string; httpStatus?: number;

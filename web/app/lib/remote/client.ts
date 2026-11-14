@@ -6,6 +6,7 @@ export type AuthIdentity = { id: string; email: string | null };
 export const apiBase = process.env.NEXT_PUBLIC_MIROVEN_API_URL?.replace(/\/$/, "") ?? "";
 export const isApiConfigured = Boolean(apiBase);
 let currentSession: Session | null = null;
+let sessionResolved = false;
 let sessionGeneration = 0;
 const listeners = new Set<(identity: AuthIdentity | null) => void>();
 
@@ -28,14 +29,23 @@ export function apiUrl(path: string): string {
 }
 
 export function remoteScope(userId: string): string { return `${apiUrl("")}|${userId}`; }
-export function publishSession(session: Session | null) {
+/** Discovery is not an account change until this document has resolved a session. */
+function applySession(session: Session | null, source: "discovery" | "transition") {
   sessionGeneration++;
   const changed = currentSession?.user_id !== session?.user_id || currentSession?.email !== session?.email;
-  if (currentSession?.user_id !== session?.user_id) clearDiagnosticActivity();
+  if (source === "transition" || (sessionResolved && currentSession?.user_id !== session?.user_id)) {
+    clearDiagnosticActivity();
+  }
+  sessionResolved = true;
   setDiagnosticAuthenticated(Boolean(session));
   currentSession = session;
   const identity = session ? { id: session.user_id, email: session.email } : null;
   if (changed) for (const listener of listeners) listener(identity);
+}
+
+/** Successful explicit authentication actions always start a new diagnostic generation. */
+export function publishSession(session: Session | null) {
+  applySession(session, "transition");
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}, userId?: string): Promise<T> {
@@ -56,7 +66,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, userId
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       if (response.status === 401 && error.code !== "invalid_code" && path !== "/account/deletion"
-        && path !== "/auth/code/verify" && currentSession === requestSession) publishSession(null);
+        && path !== "/auth/code/verify" && currentSession === requestSession) applySession(null, "discovery");
       throw new ApiError(response.status, error.code ?? "http_error", error.message ?? "서버 요청을 처리하지 못했습니다.");
     }
     if (response.status === 204) { finish("succeeded", undefined, status); return undefined as T; }
@@ -79,7 +89,7 @@ export async function refreshSession(): Promise<AuthIdentity | null> {
   const generation = sessionGeneration;
   try {
     const value = await apiRequest<Session>("/auth/session");
-    if (generation === sessionGeneration) publishSession(value);
+    if (generation === sessionGeneration) applySession(value, "discovery");
     return currentSession ? { id: currentSession.user_id, email: currentSession.email } : null;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {

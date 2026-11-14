@@ -70,4 +70,17 @@ describe("Miroven HTTP session contract", () => {
     expect(activity.diagnosticContext().authenticated).toBe(false);
   });
 
+  it.each([
+    { path: "/vault", status: 404, code: "vault_not_found" },
+    { path: "/auth/session", status: 401, code: "unauthenticated" },
+  ])("classifies expected API states without changing HTTP failures: $code", async ({ path, status, code }) => {
+    const secret = "synthetic private response email@example.com";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ code, message: secret }), { status })));
+    const client = await import("../app/lib/remote/client");
+    const activity = await import("../app/lib/diagnostic-activity");
+    await expect(client.apiRequest(path)).rejects.toMatchObject({ status, code });
+    expect(activity.diagnosticActivity().events.at(-1)).toMatchObject({ outcome: "failed", httpStatus: status, errorCode: code });
+    expect(JSON.stringify(activity.diagnosticActivity())).not.toContain(secret);
+  });
+
 });

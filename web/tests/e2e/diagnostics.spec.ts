@@ -58,6 +58,8 @@ test("captures failed writes and image conversion without filenames or error tex
   const report = await exportReport(page);
   expect(completed(report, "entry.save", "failed")).toBe(true);
   expect(completed(report, "image.process", "failed")).toBe(true);
+  expect(report.activity.events.find((event) => event.operation === "image.process" && event.outcome === "failed"))
+    .toMatchObject({ errorType: "JournalImageError", errorCode: "decode" });
   expect(report.activity.events.find((event) => event.operation === "entry.save" && event.outcome === "failed")?.errorType).toBe("QuotaExceededError");
   const serialized = JSON.stringify(report);
   for (const secret of ["synthetic unsaved private content", "synthetic-private-storage-message", "synthetic-private-photo.png"]) {
@@ -149,6 +151,46 @@ test("exports diagnostics when the storage API is unavailable", async ({ page })
 test.describe("configured API diagnostics", () => {
   test.skip(({ browserName }) => !process.env.MIROVEN_DIAGNOSTICS_API_UI_TEST || browserName !== "chromium",
     "Requires an API-configured diagnostics UI test build in Chromium");
+  test("initial session discovery preserves boot activity and the session request", async ({ page }) => {
+    const session = { user_id: "synthetic-boot-owner", email: "boot@example.com", csrf_token: "synthetic-boot-csrf" };
+    const privateError = "synthetic private startup error";
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    await page.route("**/api/v1/**", async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path.endsWith("/auth/session")) {
+        await gate;
+        return route.fulfill({ json: session });
+      }
+      if (path.endsWith("/auth/policy")) return route.fulfill({ json: {
+        domain_groups: { DEFAULT: ["example.com"], KR: [], JP: [] },
+        default_email_locale: "en", existing_accounts_allowed: true,
+      } });
+      if (path.endsWith("/account/usage")) return route.fulfill({ json: {
+        storage_bytes: 0, storage_limit_bytes: 100000000, entries: 0, entry_limit: 10000, blob_max_bytes: 4000000,
+      } });
+      return route.fulfill({ status: 404, json: { code: "vault_not_found" } });
+    });
+    try {
+      await ready(page);
+      await openAccount(page);
+      await page.evaluate((message) => {
+        window.dispatchEvent(new ErrorEvent("error", { error: new TypeError(message) }));
+      }, privateError);
+      const before = await exportReport(page);
+      expect(before.runtime.authenticated).toBeNull();
+      expect(completed(before, "entry.list", "succeeded")).toBe(true);
+      expect(completed(before, "runtime.error", "failed")).toBe(true);
+      release();
+      await expect(page.getByRole("button", { name: "이 기기에서 로그아웃", exact: true })).toBeVisible();
+      const after = await exportReport(page);
+      expect(after.runtime.authenticated).toBe(true);
+      expect(after.activity.events).toEqual(expect.arrayContaining(before.activity.events));
+      expect(completed(after, "api.auth.session", "succeeded")).toBe(true);
+      for (const secret of [...Object.values(session), privateError]) expect(JSON.stringify(after)).not.toContain(secret);
+    } finally { release(); }
+  });
+
   test("configured API failures export only safe request categories", async ({ page }) => {
     const secret = "synthetic-private-response-email@example.com-token";
     await page.route("**/api/v1/**", (route) => {
