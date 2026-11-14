@@ -1,6 +1,11 @@
 import encode from "@jsquash/webp/encode.js";
 
 self.onmessage = async (event: MessageEvent<{ pixels: ImageData; quality: number }>) => {
+  const trustedOrigin = self.location.origin;
+  if (event.origin && event.origin !== trustedOrigin) {
+    return;
+  }
+
   try {
     const output = await encode(event.data.pixels, { quality: event.data.quality * 100 });
     self.postMessage(output, { transfer: [output] });
