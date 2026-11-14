@@ -3,3 +3,5 @@ tools/heic/** text eol=lf
 web/vendor/heic/** text eol=lf
 web/vendor/heic/sources/*.tar.gz -text
 web/scripts/notice-sources/*.txt text eol=lf
+# Preserve the exact upstream bytes used by optional-license evidence hashes.
+web/scripts/optional-license-sources/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

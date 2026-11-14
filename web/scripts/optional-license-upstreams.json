@@ -1,0 +1,46 @@
+[
+  {
+    "namePrefix": "@next/swc-",
+    "version": "16.4.2",
+    "license": "MIT",
+    "releaseEvidence": "https://api.github.com/repos/vercel/next.js/git/ref/tags/v16.4.2",
+    "sources": ["https://raw.githubusercontent.com/vercel/next.js/2864b1772c37242a9b40ab4d366eb7d368c2a070/license.md"],
+    "reason": "Platform binaries identify vercel/next.js as their source repository. The v16.4.2 tag resolves to this commit; the project's original MIT grant matches the package declaration. These binaries are build tools for the static export, not browser assets.",
+    "reviewedBy": "Codex",
+    "reviewedAt": "2026-11-14"
+  },
+  {
+    "namePrefix": "@rolldown/binding-",
+    "version": "1.2.14",
+    "license": "MIT",
+    "releaseEvidence": "https://api.github.com/repos/rolldown/rolldown/git/ref/tags/v1.2.14",
+    "sources": [
+      "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/LICENSE",
+      "https://raw.githubusercontent.com/rolldown/rolldown/c9a8cda42bc0fdd84c7b4b4e6d7f95ae83e8b5f7/THIRD-PARTY-LICENSE"
+    ],
+    "reason": "Platform bindings belong to rolldown/rolldown at the v1.2.14 release commit. Preserve both its MIT original and the referenced third-party notice. These are Vitest/Vite development dependencies.",
+    "reviewedBy": "Codex",
+    "reviewedAt": "2026-11-14"
+  },
+  {
+    "namePrefix": "@unrs/resolver-binding-",
+    "version": "1.11.1",
+    "license": "MIT",
+    "releaseEvidence": "https://registry.npmjs.org/unrs-resolver/1.11.1",
+    "sources": ["https://raw.githubusercontent.com/unrs/unrs-resolver/9480a90b081f2afcaeb6ca0e882d191c138dd7a3/LICENSE"],
+    "reason": "Platform bindings identify unrs/unrs-resolver as their source repository. The parent release's npm gitHead pins this source commit and its original MIT grant. These bindings are ESLint resolution tools, not browser assets.",
+    "reviewedBy": "Codex",
+    "reviewedAt": "2026-11-14"
+  },
+  {
+    "name": "@tybys/wasm-util",
+    "version": "0.10.3",
+    "license": "MIT",
+    "kind": "license-declaration",
+    "releaseEvidence": "https://registry.npmjs.org/@tybys/wasm-util/0.10.3",
+    "sources": ["https://raw.githubusercontent.com/toyobayashi/wasm-util/efb17cc128a30fb16b58127738f09c8871a3f7d1/package.json"],
+    "reason": "The upstream package.json at the published npm gitHead explicitly declares @tybys/wasm-util 0.10.3 as MIT, matching the published archive and lockfile. Reviewed as license-declaration evidence for this exact package/version, not a standalone MIT license text. It is an optional ESLint resolver development dependency. The maintainer confirmed its MIT licensing in this review.",
+    "reviewedBy": "Codex",
+    "reviewedAt": "2026-11-14"
+  }
+]
