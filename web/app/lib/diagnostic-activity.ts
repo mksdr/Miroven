@@ -45,12 +45,11 @@ export function clearDiagnosticActivity(): void {
   droppedEvents = 0;
   sequence = 0;
   operationId = 0;
-  syncStatus = null;
 }
 export function diagnosticContext() { return { authenticated, syncStatus }; }
 export function setDiagnosticAuthenticated(value: boolean): void { authenticated = value === true; }
-export function setDiagnosticSyncStatus(value: DiagnosticSyncState): void {
-  syncStatus = syncStates.includes(value) ? value : null;
+export function setDiagnosticSyncStatus(value: DiagnosticSyncState | null): void {
+  syncStatus = value !== null && syncStates.includes(value) ? value : null;
 }
 export function diagnosticActivity() {
   return { limit: DIAGNOSTIC_EVENT_LIMIT, droppedEvents, events: events.map((event) => ({ ...event })) };

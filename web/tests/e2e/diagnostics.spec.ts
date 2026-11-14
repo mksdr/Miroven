@@ -82,9 +82,16 @@ test("reload and lock erase prior activity without deleting journal data", async
   await page.getByRole("button", { name: "PIN으로 잠금 해제", exact: true }).click();
   await expect(page.locator(".entry-content > .entry-text")).toHaveText("Synthetic preserved journal");
   await openAccount(page);
+  await page.getByRole("button", { name: "PIN 잠금 해제", exact: true }).click();
+  await page.locator("#remove-pin-input").fill("654321");
+  await page.locator("#remove-pin-input").press("Enter");
+  await expect(page.getByRole("button", { name: "PIN 잠금 설정", exact: true })).toBeVisible();
   const report = await exportReport(page);
   expect(completed(report, "pin.setup", "succeeded")).toBe(false);
   expect(completed(report, "pin.unlock", "succeeded")).toBe(true);
+  expect(completed(report, "pin.remove", "succeeded")).toBe(true);
+  expect(report.runtime.syncStatus).toBe("local");
+  expect(report.securityAndVault.hasPinLock).toBe(false);
   expect(report.metrics.totalEntriesCount).toBe(1);
 });
 

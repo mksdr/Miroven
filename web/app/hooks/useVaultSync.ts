@@ -236,6 +236,7 @@ export function useVaultSync({
       : syncStatus;
 
   useEffect(() => { setDiagnosticSyncStatus(effectiveSyncStatus); }, [effectiveSyncStatus]);
+  useEffect(() => () => setDiagnosticSyncStatus(null), []);
 
   return {
     conflictEntryIds,

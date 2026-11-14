@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   beginDiagnosticOperation, clearDiagnosticActivity, diagnosticActivity, diagnosticApiOperation,
-  diagnosticGeneration, recordDiagnosticEvent, trackDiagnosticOperation,
+  diagnosticContext, diagnosticGeneration, recordDiagnosticEvent, setDiagnosticSyncStatus, trackDiagnosticOperation,
 } from "../app/lib/diagnostic-activity";
 
-afterEach(() => { clearDiagnosticActivity(); vi.restoreAllMocks(); });
+afterEach(() => { clearDiagnosticActivity(); setDiagnosticSyncStatus(null); vi.restoreAllMocks(); });
 
 describe("memory-only diagnostic activity", () => {
   it("links concurrent operations and records monotonic timing and outcomes", async () => {
@@ -37,10 +37,12 @@ describe("memory-only diagnostic activity", () => {
   });
 
   it("discards old completions after a boundary, even when operation IDs repeat", () => {
+    setDiagnosticSyncStatus("local");
     const old = beginDiagnosticOperation("entry.save");
     const generation = diagnosticGeneration();
     clearDiagnosticActivity();
     expect(diagnosticGeneration()).toBeGreaterThan(generation);
+    expect(diagnosticContext().syncStatus).toBe("local");
     const current = beginDiagnosticOperation("entry.list");
     old("failed", new Error("private content")); current();
     expect(diagnosticActivity().events.map((event) => event.operation)).toEqual(["entry.list", "entry.list"]);

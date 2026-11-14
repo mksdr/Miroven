@@ -28,6 +28,7 @@ import {
   saveDraft,
 } from "./vault/drafts";
 import { getDeviceKey } from "./vault/device-key";
+import { clearDiagnosticActivity } from "./diagnostic-activity";
 import { revokeKeySession } from "./vault/key-session";
 import { clearPinFailures } from "./vault/pin-lock";
 import { mapWithBudget, performancePolicy, prefersLowSpecMode } from "./performance-policy";
@@ -346,6 +347,7 @@ export async function purgeAccountVaultData(expectedScope: string): Promise<bool
 }
 
 async function purgeLocalVaultDataUnlocked(): Promise<void> {
+  clearDiagnosticActivity();
   revokeKeySession({ broadcast: true, notify: false });
   if (typeof window !== "undefined") {
     try {
