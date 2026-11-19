@@ -358,6 +358,7 @@ export function JournalApp() {
     handleRecoverVault,
     recoveryCode,
     recoveryInput,
+    resetRecoveryInputs,
     setBackupRecoveryInput,
     setRecoveryCode,
     setRecoveryInput,
@@ -376,12 +377,8 @@ export function JournalApp() {
   });
 
   useLayoutEffect(() => {
-    recoveryResetRef.current = () => {
-      setRecoveryCode("");
-      setRecoveryInput("");
-      setBackupRecoveryInput("");
-    };
-  }, [setRecoveryCode, setRecoveryInput, setBackupRecoveryInput]);
+    recoveryResetRef.current = resetRecoveryInputs;
+  }, [resetRecoveryInputs]);
 
   const lockVault = useCallback((dropKey = true) => {
     setPersonaOpen(false);

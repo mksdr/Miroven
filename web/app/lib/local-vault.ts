@@ -15,6 +15,7 @@ import {
   SYNC_META_STORE,
   STAGE_STORE,
   VAULT_ENVELOPE_ID,
+  VAULT_RESET_TOKEN_ID,
   VAULT_STORE,
 } from "./vault/contracts";
 import {
@@ -30,6 +31,7 @@ import {
 import { getDeviceKey } from "./vault/device-key";
 import { clearDiagnosticActivity } from "./diagnostic-activity";
 import { revokeKeySession } from "./vault/key-session";
+import { getOrCreateVaultResetToken } from "./vault/reset-token";
 import { clearPinFailures } from "./vault/pin-lock";
 import { mapWithBudget, performancePolicy, prefersLowSpecMode } from "./performance-policy";
 import { createJournalReader as createReader } from "./vault/journal-reader";
@@ -120,8 +122,17 @@ export async function createEncryptedBackup() {
   return (await import("./vault/backup")).createEncryptedBackup();
 }
 
-export async function importEncryptedBackup(json: string, recoveryCode: string) {
-  return (await import("./vault/backup")).importEncryptedBackup(json, recoveryCode);
+export async function importEncryptedBackup(
+  source: string | Blob,
+  recoveryCode: string,
+  signal?: AbortSignal,
+) {
+  signal?.throwIfAborted();
+  const resetToken = await getOrCreateVaultResetToken();
+  signal?.throwIfAborted();
+  const json = typeof source === "string" ? source : await source.text();
+  signal?.throwIfAborted();
+  return (await import("./vault/backup")).importEncryptedBackup(json, recoveryCode, { resetToken, signal });
 }
 
 export {
@@ -368,10 +379,12 @@ async function purgeLocalVaultDataUnlocked(): Promise<void> {
       SYNC_META_STORE,
       STAGE_STORE,
     ];
+    const resetToken = crypto.randomUUID();
     const transaction = database.transaction(stores, "readwrite");
     for (const storeName of stores) {
       transaction.objectStore(storeName).clear();
     }
+    transaction.objectStore(KEY_STORE).put(resetToken, VAULT_RESET_TOKEN_ID);
     await transactionDone(transaction);
     if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
       try {

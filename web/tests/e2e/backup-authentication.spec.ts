@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { VAULT_DATABASE_CONTRACT } from "../../app/lib/vault/contracts";
 import legacyBackup from "../fixtures/legacy-backup-v1.json" with { type: "json" };
 import authenticatedBackup from "../fixtures/backup-v2.json" with { type: "json" };
 
@@ -38,3 +39,85 @@ for (const locale of ["ko-KR", "en-US"]) {
     });
   });
 }
+
+test("cancels a pending backup import after another tab clears the vault", async ({ page, context }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "BroadcastChannel", { value: undefined });
+    Object.defineProperty(navigator, "locks", { value: undefined });
+
+    const originalText = File.prototype.text;
+    let releaseRead!: () => void;
+    const readGate = new Promise<void>((resolve) => { releaseRead = resolve; });
+    const testState = { reading: false, releaseRead };
+    Object.assign(window, { backupImportTest: testState });
+    File.prototype.text = async function () {
+      if (this.name === "pending-import.miroven-backup.json") {
+        testState.reading = true;
+        await readGate;
+      }
+      return originalText.call(this);
+    };
+  });
+
+  const resetTab = await context.newPage();
+  await resetTab.addInitScript(() => {
+    Object.defineProperty(navigator, "locks", { value: undefined });
+  });
+  await page.goto("/");
+  await resetTab.goto("/");
+  const marker = "Miroven backup v1 compatibility fixture";
+  await page.getByRole("button", { name: "계정", exact: true }).click();
+  const group = page.getByRole("group", { name: "암호화 백업", exact: true });
+  const codeInput = group.locator('input[type="text"], input:not([type])');
+  const fileInput = group.locator('input[type="file"]');
+  const backup = { mimeType: "application/json", buffer: Buffer.from(JSON.stringify(authenticatedBackup)) };
+  await codeInput.fill(recoveryCode);
+  await fileInput.setInputFiles({ ...backup, name: "pending-import.miroven-backup.json" });
+  type BackupImportTestWindow = typeof window & {
+    backupImportTest: { reading: boolean; releaseRead: () => void };
+  };
+  await page.waitForFunction(() => (window as BackupImportTestWindow).backupImportTest.reading);
+
+  await resetTab.getByRole("button", { name: "계정", exact: true }).click();
+  await resetTab.getByRole("button", { name: "이 기기의 로컬 금고 초기화", exact: true }).click();
+  await resetTab.locator("#delete-confirm-input").fill("로컬 금고 삭제");
+  await resetTab.getByRole("button", { name: "로컬 금고 삭제", exact: true }).click();
+  await expect(resetTab.getByText("이 기기의 로컬 금고를 초기화했습니다.", { exact: true })).toBeVisible();
+
+  await page.evaluate(() => (window as BackupImportTestWindow).backupImportTest.releaseRead());
+  await expect(page.getByText("로컬 금고가 초기화되어 백업 가져오기를 취소했습니다. 복구 코드를 다시 입력해 주세요.", { exact: true })).toBeVisible();
+  await expect(codeInput).toHaveValue("");
+
+  // A fresh app load can generate a new key for the empty vault.
+  // Inspect storage first so this assertion is specific to the cancelled import.
+  const storedKeys = await resetTab.evaluate(async (name) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(name);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      const stores = [...database.objectStoreNames];
+      const transaction = database.transaction(stores);
+      return await Promise.all(stores.map((store) => new Promise<[string, IDBValidKey[]]>((resolve, reject) => {
+        const request = transaction.objectStore(store).getAllKeys();
+        request.onsuccess = () => resolve([store, request.result]);
+        request.onerror = () => reject(request.error);
+      })));
+    } finally {
+      database.close();
+    }
+  }, VAULT_DATABASE_CONTRACT.name);
+  for (const [store, keys] of storedKeys) {
+    expect(keys).toEqual(store === VAULT_DATABASE_CONTRACT.stores.deviceKeys ? [VAULT_DATABASE_CONTRACT.keys.resetToken] : []);
+  }
+  await resetTab.reload();
+  await expect(resetTab.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" })).toBeEnabled();
+  await expect(resetTab.getByText(marker, { exact: true })).toHaveCount(0);
+
+  await codeInput.fill(recoveryCode);
+  await fileInput.setInputFiles({ ...backup, name: "new-import.miroven-backup.json" });
+  await expect(page.getByText("1개 기록을 암호화 상태로 복구했습니다.", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByText(marker, { exact: true })).toBeVisible();
+});

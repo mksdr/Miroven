@@ -2,7 +2,8 @@
 
 import { trackDiagnosticOperation, diagnosticGeneration } from "../lib/diagnostic-activity";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BackupImportResetError } from "../lib/vault/operation-errors";
 import {
   createEncryptedBackup,
   createRecoveryKit,
@@ -72,6 +73,21 @@ export function useVaultBackupRecovery({
   const [backupRecoveryInput, setBackupRecoveryInput] = useState("");
   const [backupBusy, setBackupBusy] = useState(false);
   const [vaultBusy, setVaultBusy] = useState(false);
+  const importControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => importControllerRef.current?.abort(), []);
+
+  const resetRecoveryInputs = useCallback(() => {
+    const controller = importControllerRef.current;
+    if (controller) {
+      controller.abort();
+      importControllerRef.current = null;
+      setBackupBusy(false);
+    }
+    setRecoveryCode(null);
+    setRecoveryInput("");
+    setBackupRecoveryInput("");
+  }, []);
 
   const handleCreateRecoveryKit = useCallback(async () => {
     if (vaultBusy) return;
@@ -183,7 +199,7 @@ export function useVaultBackupRecovery({
   }, [language, recoveryCode, showToast]);
 
   const handleExportBackup = useCallback(async () => {
-    if (backupBusy) return;
+    if (backupBusy || importControllerRef.current) return;
     setBackupBusy(true);
     try {
       const backup = await trackDiagnosticOperation("backup.export", () => createEncryptedBackup());
@@ -216,7 +232,7 @@ export function useVaultBackupRecovery({
 
   const handleImportBackup = useCallback(
     async (file?: File) => {
-      if (!file || backupBusy) return;
+      if (!file || backupBusy || importControllerRef.current) return;
       if (!backupRecoveryInput.trim()) {
         showToast(
           language === "ko"
@@ -233,23 +249,40 @@ export function useVaultBackupRecovery({
         );
         return;
       }
+      const controller = new AbortController();
+      const { signal } = controller;
+      importControllerRef.current = controller;
       setBackupBusy(true);
       try {
-        const result = await trackDiagnosticOperation("backup.import", async () => importEncryptedBackup(await file.text(), backupRecoveryInput));
+        const result = await trackDiagnosticOperation(
+          "backup.import",
+          () => importEncryptedBackup(file, backupRecoveryInput, signal),
+        );
+        if (signal.aborted) return;
         const [envelope, snapshot] = await Promise.all([
           getLocalVaultEnvelope(),
           getSyncSnapshot(),
         ]);
+        if (signal.aborted) return;
         setLocalEnvelope(envelope);
         setPendingSyncCount(snapshot.pending);
         setBackupRecoveryInput("");
         await refreshEntries();
+        if (signal.aborted) return;
         showToast(
           language === "ko"
             ? `${result.entries}개 기록을 암호화 상태로 복구했습니다.`
             : `Restored ${result.entries} encrypted ${result.entries === 1 ? "entry" : "entries"}.`,
         );
       } catch (error) {
+        if (signal.aborted) return;
+        if (error instanceof BackupImportResetError) {
+          setBackupRecoveryInput("");
+          showToast(language === "ko"
+            ? error.message
+            : "The local vault was cleared. Enter the recovery code again to import the backup.");
+          return;
+        }
         showToast(
           localizedError(
             error,
@@ -259,7 +292,10 @@ export function useVaultBackupRecovery({
           ),
         );
       } finally {
-        setBackupBusy(false);
+        if (importControllerRef.current === controller) {
+          importControllerRef.current = null;
+          if (!signal.aborted) setBackupBusy(false);
+        }
       }
     },
     [
@@ -303,6 +339,7 @@ export function useVaultBackupRecovery({
     handleRecoverVault,
     recoveryCode,
     recoveryInput,
+    resetRecoveryInputs,
     setBackupRecoveryInput,
     setRecoveryCode,
     setRecoveryInput,
