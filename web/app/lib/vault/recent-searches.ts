@@ -2,10 +2,13 @@ import {
   KEY_STORE,
   RECENT_SEARCHES_KEY_ID,
   VAULT_FORMAT_CONTRACT,
+  VAULT_RESET_TOKEN_ID,
 } from "./contracts";
 import { expectBufferLength, toArrayBuffer } from "./codec";
-import { getDeviceKey } from "./device-key";
-import { openVaultDatabase, requestToPromise, transactionDone } from "./idb";
+import { getDeviceKey, getStoredDeviceKey } from "./device-key";
+import { requestToPromise, transactionDone, withVaultDatabase } from "./idb";
+import { withVaultLock } from "./mutation-lock";
+import { getOrCreateVaultResetToken } from "./reset-token";
 import type { StoredRecentSearches } from "./types";
 
 const LEGACY_STORAGE_KEY = "miroven:recent_searches";
@@ -46,21 +49,21 @@ function readLegacyLocalStorage(): string[] | null {
   }
 }
 
-function cleanupLegacyLocalStorage(): void {
+function cleanupLegacyLocalStorage(): boolean {
   const storage = getLocalStorage();
-  if (!storage) return;
+  if (!storage) return true;
   try {
     storage.removeItem(LEGACY_STORAGE_KEY);
+    return true;
   } catch {
-    // Ignore localStorage failures
+    return false;
   }
 }
 
-async function saveEncryptedRecentSearches(
-  database: IDBDatabase,
+async function encryptRecentSearches(
   key: CryptoKey,
   queries: string[],
-): Promise<void> {
+): Promise<StoredRecentSearches> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(JSON.stringify(queries));
   const ciphertext = await crypto.subtle.encrypt(
@@ -72,164 +75,135 @@ async function saveEncryptedRecentSearches(
     key,
     toArrayBuffer(encoded),
   );
-  const record: StoredRecentSearches = {
+  return {
     iv: toArrayBuffer(iv),
     ciphertext,
-    cryptoVersion: 1,
+    cryptoVersion: VAULT_FORMAT_CONTRACT.recentSearchesCryptoVersion,
     updatedAt: new Date().toISOString(),
   };
+}
+
+async function decryptRecentSearches(record: StoredRecentSearches, key: CryptoKey): Promise<string[]> {
+  if (record.cryptoVersion !== VAULT_FORMAT_CONTRACT.recentSearchesCryptoVersion) {
+    throw new Error("지원하지 않는 최근 검색어 형식입니다.");
+  }
+  expectBufferLength(record.iv, 12, "최근 검색어 nonce");
+  const decrypted = await crypto.subtle.decrypt(
+    {
+      name: "AES-GCM",
+      iv: record.iv,
+      additionalData: toArrayBuffer(RECENT_SEARCHES_AAD),
+    },
+    key,
+    record.ciphertext,
+  );
+  const parsed = JSON.parse(new TextDecoder().decode(decrypted));
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
+    .slice(0, MAX_RECENT_SEARCHES);
+}
+
+function readKeyRecord(database: IDBDatabase, id: string): Promise<unknown> {
+  const store = database.transaction(KEY_STORE, "readonly").objectStore(KEY_STORE);
+  return requestToPromise(store.get(id));
+}
+
+async function commitRecentSearches(
+  database: IDBDatabase,
+  resetToken: string,
+  record: StoredRecentSearches | null,
+): Promise<boolean> {
   const transaction = database.transaction(KEY_STORE, "readwrite");
-  transaction.objectStore(KEY_STORE).put(record, RECENT_SEARCHES_KEY_ID);
-  await transactionDone(transaction);
+  const done = transactionDone(transaction);
+  const store = transaction.objectStore(KEY_STORE);
+  try {
+    // Purge changes the token in this same store, even when tabs lack Web Locks.
+    const isCurrent = await requestToPromise(store.get(VAULT_RESET_TOKEN_ID)) === resetToken;
+    if (isCurrent) {
+      if (record) store.put(record, RECENT_SEARCHES_KEY_ID);
+      else store.delete(RECENT_SEARCHES_KEY_ID);
+    }
+    await done;
+    return isCurrent;
+  } catch (error) {
+    await done.catch(() => undefined);
+    throw error;
+  }
+}
+
+async function withRecentSearchOperation<T>(
+  fallback: T,
+  operation: (database: IDBDatabase, resetToken: string) => Promise<T>,
+): Promise<T> {
+  if (typeof indexedDB === "undefined") return fallback;
+  try {
+    const resetToken = await getOrCreateVaultResetToken();
+    return await withVaultLock("mutation", () => withVaultDatabase(async (database) => {
+      if (await readKeyRecord(database, VAULT_RESET_TOKEN_ID) !== resetToken) return fallback;
+      return operation(database, resetToken);
+    }));
+  } catch {
+    return fallback;
+  }
 }
 
 export async function getRecentSearches(): Promise<string[]> {
-  if (typeof indexedDB === "undefined") {
-    return readLegacyLocalStorage() ?? [];
-  }
+  if (typeof indexedDB === "undefined") return readLegacyLocalStorage() ?? [];
 
-  let database: IDBDatabase;
-  try {
-    database = await openVaultDatabase();
-  } catch {
-    return [];
-  }
-
-  try {
-    let key: CryptoKey;
-    try {
-      key = await getDeviceKey(database);
-    } catch {
-      // Vault is locked or device key cannot be accessed
-      return [];
-    }
-
-    const transaction = database.transaction(KEY_STORE, "readonly");
-    const rawRecord = (await requestToPromise(
-      transaction.objectStore(KEY_STORE).get(RECENT_SEARCHES_KEY_ID),
-    )) as StoredRecentSearches | undefined;
-
-    if (rawRecord) {
-      if (rawRecord.cryptoVersion !== 1) return [];
-      expectBufferLength(rawRecord.iv, 12, "최근 검색어 nonce");
-      const decrypted = await crypto.subtle.decrypt(
-        {
-          name: "AES-GCM",
-          iv: rawRecord.iv,
-          additionalData: toArrayBuffer(RECENT_SEARCHES_AAD),
-        },
-        key,
-        rawRecord.ciphertext,
-      );
-      const text = new TextDecoder().decode(decrypted);
-      const parsed = JSON.parse(text);
+  return withRecentSearchOperation<string[]>([], async (database, resetToken) => {
+    const record = await readKeyRecord(database, RECENT_SEARCHES_KEY_ID) as StoredRecentSearches | undefined;
+    if (record) {
+      const key = await getStoredDeviceKey(database);
+      if (!key) return [];
+      const queries = await decryptRecentSearches(record, key);
+      if (await readKeyRecord(database, VAULT_RESET_TOKEN_ID) !== resetToken) return [];
       cleanupLegacyLocalStorage();
-      if (!Array.isArray(parsed)) return [];
-      return parsed
-        .filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
-        .slice(0, MAX_RECENT_SEARCHES);
+      return queries;
     }
 
-    // Check if legacy plaintext exists to migrate
     const legacy = readLegacyLocalStorage();
-    if (legacy && legacy.length > 0) {
-      await saveEncryptedRecentSearches(database, key, legacy);
-      cleanupLegacyLocalStorage();
-      return legacy;
-    }
-
-    return [];
-  } catch {
-    return [];
-  } finally {
-    database.close();
-  }
+    if (!legacy?.length) return [];
+    const key = await getDeviceKey(database, resetToken);
+    const encrypted = await encryptRecentSearches(key, legacy);
+    if (!await commitRecentSearches(database, resetToken, encrypted)) return [];
+    cleanupLegacyLocalStorage();
+    return legacy;
+  });
 }
 
-export async function addRecentSearch(query: string): Promise<string[]> {
+function updateRecentSearches(update: (current: string[]) => string[]): Promise<string[] | null> {
+  return withRecentSearchOperation<string[] | null>(null, async (database, resetToken) => {
+    const key = await getDeviceKey(database, resetToken);
+    const record = await readKeyRecord(database, RECENT_SEARCHES_KEY_ID) as StoredRecentSearches | undefined;
+    const current = record
+      ? await decryptRecentSearches(record, key).catch(() => [])
+      : readLegacyLocalStorage() ?? [];
+    const updated = update(current);
+    const encrypted = updated.length ? await encryptRecentSearches(key, updated) : null;
+    if (!await commitRecentSearches(database, resetToken, encrypted)) return null;
+    cleanupLegacyLocalStorage();
+    return updated;
+  });
+}
+
+export async function addRecentSearch(query: string): Promise<string[] | null> {
   const trimmed = query.trim();
-  if (!trimmed) {
-    return await getRecentSearches();
-  }
-
-  const current = await getRecentSearches();
-  const filtered = current.filter((q) => q !== trimmed);
-  const updated = [trimmed, ...filtered].slice(0, MAX_RECENT_SEARCHES);
-
-  if (typeof indexedDB === "undefined") {
-    return updated;
-  }
-
-  let database: IDBDatabase;
-  try {
-    database = await openVaultDatabase();
-  } catch {
-    return updated;
-  }
-
-  try {
-    const key = await getDeviceKey(database);
-    await saveEncryptedRecentSearches(database, key, updated);
-    cleanupLegacyLocalStorage();
-    return updated;
-  } catch {
-    return updated;
-  } finally {
-    database.close();
-  }
+  if (!trimmed) return getRecentSearches();
+  return updateRecentSearches((current) => {
+    const otherQueries = current.filter((item) => item !== trimmed);
+    return [trimmed, ...otherQueries].slice(0, MAX_RECENT_SEARCHES);
+  });
 }
 
-export async function removeRecentSearch(query: string): Promise<string[]> {
-  const current = await getRecentSearches();
-  const updated = current.filter((q) => q !== query);
-
-  if (typeof indexedDB === "undefined") {
-    return updated;
-  }
-
-  let database: IDBDatabase;
-  try {
-    database = await openVaultDatabase();
-  } catch {
-    return updated;
-  }
-
-  try {
-    const key = await getDeviceKey(database);
-    if (updated.length === 0) {
-      const transaction = database.transaction(KEY_STORE, "readwrite");
-      transaction.objectStore(KEY_STORE).delete(RECENT_SEARCHES_KEY_ID);
-      await transactionDone(transaction);
-    } else {
-      await saveEncryptedRecentSearches(database, key, updated);
-    }
-    cleanupLegacyLocalStorage();
-    return updated;
-  } catch {
-    return updated;
-  } finally {
-    database.close();
-  }
+export function removeRecentSearch(query: string): Promise<string[] | null> {
+  return updateRecentSearches((current) => current.filter((q) => q !== query));
 }
 
-export async function clearRecentSearches(): Promise<void> {
-  cleanupLegacyLocalStorage();
-  if (typeof indexedDB === "undefined") return;
-
-  let database: IDBDatabase;
-  try {
-    database = await openVaultDatabase();
-  } catch {
-    return;
-  }
-
-  try {
-    const transaction = database.transaction(KEY_STORE, "readwrite");
-    transaction.objectStore(KEY_STORE).delete(RECENT_SEARCHES_KEY_ID);
-    await transactionDone(transaction);
-  } catch {
-    // Ignore deletion failures
-  } finally {
-    database.close();
-  }
+export async function clearRecentSearches(): Promise<boolean> {
+  if (typeof indexedDB === "undefined") return cleanupLegacyLocalStorage();
+  return withRecentSearchOperation(false, async (database, resetToken) => {
+    const cleared = await commitRecentSearches(database, resetToken, null);
+    return cleared && cleanupLegacyLocalStorage();
+  });
 }

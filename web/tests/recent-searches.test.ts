@@ -9,6 +9,7 @@ import {
   getRecentSearches,
   isVaultLocked,
   lockDeviceKey,
+  purgeAccountVaultData,
   purgeLocalVaultData,
   removeRecentSearch,
   saveEntry,
@@ -16,10 +17,13 @@ import {
   unlockVaultWithPin,
 } from "../app/lib/local-vault";
 import {
+  DEVICE_KEY_ID,
   KEY_STORE,
   RECENT_SEARCHES_KEY_ID,
+  SYNC_META_STORE,
   VAULT_DATABASE_CONTRACT,
 } from "../app/lib/vault/contracts";
+import { requestToPromise, transactionDone, withVaultDatabase } from "../app/lib/vault/idb";
 import type { StoredRecentSearches } from "../app/lib/vault/types";
 
 class MemoryStorage implements Storage {
@@ -53,6 +57,35 @@ function deleteTestDatabase(): Promise<void> {
   });
 }
 
+function allowCrossTabInterleaving() {
+  // Each real tab has its own fallback lock queue. Keep one IndexedDB here and
+  // let the two test operations reach it independently as they would across tabs.
+  const request = vi.fn((_name: string, action: () => Promise<unknown>) => action());
+  vi.stubGlobal("navigator", { locks: { request } });
+  return request;
+}
+
+function pauseOperation() {
+  const paused = Promise.withResolvers<void>();
+  const released = Promise.withResolvers<void>();
+  return {
+    paused: paused.promise,
+    release: released.resolve,
+    async hold<T>(result: T): Promise<T> {
+      paused.resolve();
+      await released.promise;
+      return result;
+    },
+  };
+}
+
+function pauseRecentDecrypt() {
+  const gate = pauseOperation();
+  const decrypt = crypto.subtle.decrypt.bind(crypto.subtle);
+  vi.spyOn(crypto.subtle, "decrypt").mockImplementationOnce(async (...args) => gate.hold(await decrypt(...args)));
+  return gate;
+}
+
 describe("encrypted recent searches unit tests", () => {
   let memoryStorage: MemoryStorage;
 
@@ -67,6 +100,7 @@ describe("encrypted recent searches unit tests", () => {
 
   afterEach(async () => {
     memoryStorage.clear();
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
     await deleteTestDatabase();
   });
@@ -128,8 +162,8 @@ describe("encrypted recent searches unit tests", () => {
 
     // Re-adding an existing query moves it to the top
     const updated = await addRecentSearch("검색어5");
-    expect(updated[0]).toBe("검색어5");
-    expect(updated.filter((q) => q === "검색어5")).toHaveLength(1);
+    expect(updated?.[0]).toBe("검색어5");
+    expect(updated?.filter((q) => q === "검색어5")).toHaveLength(1);
     expect(updated).toHaveLength(10);
   });
 
@@ -149,7 +183,7 @@ describe("encrypted recent searches unit tests", () => {
     await addRecentSearch("검색어A");
     await addRecentSearch("검색어B");
 
-    await clearRecentSearches();
+    expect(await clearRecentSearches()).toBe(true);
 
     const list = await getRecentSearches();
     expect(list).toEqual([]);
@@ -232,5 +266,115 @@ describe("encrypted recent searches unit tests", () => {
 
     expect(await getRecentSearches()).toEqual([]);
     expect(localStorage.getItem("miroven:recent_searches")).toBeNull();
+  });
+
+  it.each(["updating", "deleting"])("cancels a removal that would be %s the record after reset", async (operation) => {
+    allowCrossTabInterleaving();
+    if (operation === "updating") await addRecentSearch("이전 검색어 유지");
+    await addRecentSearch("이전 검색어 삭제");
+    const gate = pauseRecentDecrypt();
+    const removing = removeRecentSearch("이전 검색어 삭제");
+    try {
+      await Promise.race([gate.paused, removing]);
+      await purgeLocalVaultData();
+      expect(await addRecentSearch("새 검색어")).toEqual(["새 검색어"]);
+    } finally {
+      gate.release();
+    }
+    await expect(removing).resolves.toBeNull();
+    expect(await getRecentSearches()).toEqual(["새 검색어"]);
+  });
+
+  it("cancels a queued clear without deleting searches created after reset", async () => {
+    const request = allowCrossTabInterleaving();
+    await addRecentSearch("이전 검색어");
+    const gate = pauseOperation();
+    request.mockImplementationOnce(async (_name, action) => (await gate.hold(action))());
+    const clearing = clearRecentSearches();
+    try {
+      await Promise.race([gate.paused, clearing]);
+      await purgeLocalVaultData();
+      expect(await addRecentSearch("새 검색어")).toEqual(["새 검색어"]);
+    } finally {
+      gate.release();
+    }
+    await expect(clearing).resolves.toBe(false);
+    expect(await getRecentSearches()).toEqual(["새 검색어"]);
+  });
+
+  it("discards legacy migration when a reset completes during encryption", async () => {
+    allowCrossTabInterleaving();
+    localStorage.setItem("miroven:recent_searches", JSON.stringify(["이전 평문 검색어"]));
+    const gate = pauseOperation();
+    const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "encrypt").mockImplementationOnce(async (...args) => gate.hold(await encrypt(...args)));
+    const migrating = getRecentSearches();
+    try {
+      await Promise.race([gate.paused, migrating]);
+      await purgeLocalVaultData();
+      expect(await addRecentSearch("새 검색어")).toEqual(["새 검색어"]);
+    } finally {
+      gate.release();
+    }
+    await expect(migrating).resolves.toEqual([]);
+    expect(localStorage.getItem("miroven:recent_searches")).toBeNull();
+    expect(await getRecentSearches()).toEqual(["새 검색어"]);
+  });
+
+  it("does not install a first device key if the initiating search was reset", async () => {
+    allowCrossTabInterleaving();
+    const gate = pauseOperation();
+    const generateKey = crypto.subtle.generateKey.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "generateKey").mockImplementationOnce(async (...args) => gate.hold(await generateKey(...args)));
+    const adding = addRecentSearch("이전 검색어");
+    try {
+      await Promise.race([gate.paused, adding]);
+      await purgeLocalVaultData();
+    } finally {
+      gate.release();
+    }
+    await expect(adding).resolves.toBeNull();
+    await withVaultDatabase(async (database) => {
+      const keys = database.transaction(KEY_STORE).objectStore(KEY_STORE);
+      const stored = await Promise.all([DEVICE_KEY_ID, RECENT_SEARCHES_KEY_ID].map((id) => requestToPromise(keys.getKey(id))));
+      expect(stored).toEqual([undefined, undefined]);
+    });
+    expect(await addRecentSearch("새 검색어")).toEqual(["새 검색어"]);
+  });
+
+  it.each([true, false])("checks account purge scope before a pending submission commits (matching=%s)", async (matching) => {
+    allowCrossTabInterleaving();
+    const scope = "test-api|owner";
+    await withVaultDatabase(async (database) => {
+      const transaction = database.transaction(SYNC_META_STORE, "readwrite");
+      transaction.objectStore(SYNC_META_STORE).put(scope, "remote-scope");
+      await transactionDone(transaction);
+    });
+    await addRecentSearch("이전 검색어");
+    const gate = pauseRecentDecrypt();
+    const adding = addRecentSearch("진행 중인 검색어");
+    try {
+      await Promise.race([gate.paused, adding]);
+      expect(await purgeAccountVaultData(matching ? scope : "test-api|other")).toBe(matching);
+    } finally {
+      gate.release();
+    }
+    const expected = matching ? [] : ["진행 중인 검색어", "이전 검색어"];
+    await expect(adding).resolves.toEqual(matching ? null : expected);
+    expect(await getRecentSearches()).toEqual(expected);
+  });
+
+  it("does not return a decrypted list when a reset completes during the read", async () => {
+    allowCrossTabInterleaving();
+    await addRecentSearch("이전 검색어");
+    const gate = pauseRecentDecrypt();
+    const reading = getRecentSearches();
+    try {
+      await Promise.race([gate.paused, reading]);
+      await purgeLocalVaultData();
+    } finally {
+      gate.release();
+    }
+    await expect(reading).resolves.toEqual([]);
   });
 });

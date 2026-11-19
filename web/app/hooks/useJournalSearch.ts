@@ -89,19 +89,19 @@ export function useJournalSearch(
     if (!query) return;
     const generation = recentSearchGeneration.current;
     const updated = await addRecentSearch(query);
-    if (generation === recentSearchGeneration.current) setRecentSearches(updated);
+    if (updated !== null && generation === recentSearchGeneration.current) setRecentSearches(updated);
   };
 
   const removeRecent = async (query: string) => {
     const generation = recentSearchGeneration.current;
     const updated = await removeRecentSearch(query);
-    if (generation === recentSearchGeneration.current) setRecentSearches(updated);
+    if (updated !== null && generation === recentSearchGeneration.current) setRecentSearches(updated);
   };
 
   const clearRecents = async () => {
     const generation = recentSearchGeneration.current;
-    await clearRecentSearches();
-    if (generation === recentSearchGeneration.current) setRecentSearches([]);
+    const cleared = await clearRecentSearches();
+    if (cleared && generation === recentSearchGeneration.current) setRecentSearches([]);
   };
 
   const refreshRecentSearches = async () => {
