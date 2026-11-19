@@ -77,17 +77,21 @@ export function useVaultBackupRecovery({
 
   useEffect(() => () => importControllerRef.current?.abort(), []);
 
-  const resetRecoveryInputs = useCallback(() => {
+  const clearRecoveryInputs = useCallback(() => {
+    setRecoveryCode(null);
+    setRecoveryInput("");
+    setBackupRecoveryInput("");
+  }, []);
+
+  const resetRecoveryAfterPurge = useCallback(() => {
     const controller = importControllerRef.current;
     if (controller) {
       controller.abort();
       importControllerRef.current = null;
       setBackupBusy(false);
     }
-    setRecoveryCode(null);
-    setRecoveryInput("");
-    setBackupRecoveryInput("");
-  }, []);
+    clearRecoveryInputs();
+  }, [clearRecoveryInputs]);
 
   const handleCreateRecoveryKit = useCallback(async () => {
     if (vaultBusy) return;
@@ -331,6 +335,7 @@ export function useVaultBackupRecovery({
   return {
     backupBusy,
     backupRecoveryInput,
+    clearRecoveryInputs,
     handleCopyRecoveryCode,
     handleCreateRecoveryKit,
     handleExportBackup,
@@ -339,7 +344,7 @@ export function useVaultBackupRecovery({
     handleRecoverVault,
     recoveryCode,
     recoveryInput,
-    resetRecoveryInputs,
+    resetRecoveryAfterPurge,
     setBackupRecoveryInput,
     setRecoveryCode,
     setRecoveryInput,

@@ -40,6 +40,43 @@ for (const locale of ["ko-KR", "en-US"]) {
   });
 }
 
+test("keeps a committed backup available after locking and unlocking", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "계정", exact: true }).click();
+  const group = page.getByRole("group", { name: "암호화 백업", exact: true });
+  await group.locator('input[type="text"], input:not([type])').fill(recoveryCode);
+
+  await page.evaluate(({ vaultEnvelopes, syncOutbox }) => {
+    const transaction = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function (...args) {
+      const result = transaction.apply(this, args);
+      const [stores, mode] = args;
+      if (mode === "readwrite" && Array.isArray(stores) &&
+        stores.includes(vaultEnvelopes) && stores.includes(syncOutbox)) {
+        result.addEventListener("complete", () => {
+          IDBDatabase.prototype.transaction = transaction;
+          // Revoke the session after commit, before the import handler reads vault state.
+          window.dispatchEvent(new PageTransitionEvent("pagehide"));
+        }, { once: true });
+      }
+      return result;
+    };
+  }, VAULT_DATABASE_CONTRACT.stores);
+
+  await group.locator('input[type="file"]').setInputFiles({
+    name: "synthetic-v2.miroven-backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(authenticatedBackup)),
+  });
+  const marker = page.getByText("Miroven backup v1 compatibility fixture", { exact: true });
+  await expect(page.getByRole("heading", { name: "금고가 잠겨 있습니다" })).toBeVisible();
+  await expect(marker).toHaveCount(0);
+  await page.getByRole("button", { name: "금고 잠금 해제", exact: true }).click();
+  await expect(marker).toBeVisible();
+  await page.getByRole("button", { name: "계정", exact: true }).click();
+  await expect(group.getByRole("button", { name: "암호화 백업 내려받기", exact: true })).toBeEnabled();
+});
+
 test("cancels a pending backup import after another tab clears the vault", async ({ page, context }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "BroadcastChannel", { value: undefined });
