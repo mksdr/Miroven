@@ -50,6 +50,46 @@ test("local vault deletion clears stored records and another open tab", async ({
   await peer.close();
 });
 
+test("local vault reset clears recent searches across open tabs", async ({ page, context }) => {
+  const previousSearch = "초기화 전 합성 검색어";
+  const newSearch = "초기화 후 합성 검색어";
+  const searchInput = page.getByRole("textbox", { name: "검색", exact: true });
+  const submitSearch = async (query: string) => {
+    await searchInput.fill(query);
+    await searchInput.press("Enter");
+    await searchInput.fill("");
+    await expect(page.getByRole("button", { name: query, exact: true })).toBeVisible();
+  };
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "검색", exact: true }).click();
+  await submitSearch(previousSearch);
+
+  const peer = await context.newPage();
+  await peer.goto("/");
+  await peer.getByRole("button", { name: "검색", exact: true }).click();
+  for (const tab of [page, peer]) {
+    await expect(tab.getByRole("button", { name: previousSearch, exact: true })).toBeVisible();
+    await expect(tab.getByRole("button", { name: `지우기: ${previousSearch}`, exact: true })).toBeVisible();
+  }
+
+  await page.getByRole("button", { name: "계정", exact: true }).click();
+  await page.getByRole("button", { name: "이 기기의 로컬 금고 초기화", exact: true }).click();
+  await page.locator("#delete-confirm-input").fill("로컬 금고 삭제");
+  await page.getByRole("button", { name: "로컬 금고 삭제", exact: true }).click();
+  await expect(page.getByText("이 기기의 로컬 금고를 초기화했습니다.", { exact: true })).toBeVisible();
+  await page.getByRole("dialog", { name: "계정", exact: true })
+    .getByRole("button", { name: "완료", exact: true }).click();
+
+  for (const tab of [page, peer]) {
+    await expect(tab.getByRole("textbox", { name: "검색", exact: true })).toBeVisible();
+    await expect(tab.getByRole("button", { name: previousSearch, exact: true })).toHaveCount(0);
+    await expect(tab.getByRole("button", { name: `지우기: ${previousSearch}`, exact: true })).toHaveCount(0);
+  }
+  await submitSearch(newSearch);
+  await peer.close();
+});
+
 test("typing does not repeat timeline date formatting and shortcuts save the latest text", async ({ page }) => {
   await page.addInitScript(() => {
     const Original = Intl.DateTimeFormat;
