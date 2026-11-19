@@ -1,18 +1,19 @@
 import { PERSONA_DOCUMENT_ID } from "../persona";
 import type { JournalEntry, JournalImage, StoredEntry } from "./types";
 import { orderJournalEntries } from "../entry-pins";
-import { ENTRY_STORE, SYNC_META_STORE } from "./contracts";
+import { ENTRY_STORE, KEY_STORE, SYNC_META_STORE } from "./contracts";
 import { openVaultDatabase, requestToPromise } from "./idb";
 import { getDeviceKey } from "./device-key";
 import { JournalReadCache, readKeyIdentity, type JournalEntrySummary } from "./read-cache";
 import { mapWithBudget, performancePolicy, prefersLowSpecMode } from "../performance-policy";
+import { assertVaultResetToken } from "./reset-token";
 
 /** Per-screen plaintext caches; callers must clear them when locking or unmounting. */
 export function createJournalReader(decryptEntry: (key: CryptoKey, record: StoredEntry) => Promise<JournalEntry>, lowSpecMode = prefersLowSpecMode()) {
   const cache = new JournalReadCache(lowSpecMode);
   let generation = 0;
   let mode = lowSpecMode;
-  type ReadOptions = { signal?: AbortSignal };
+  type ReadOptions = { signal?: AbortSignal; expectedResetToken?: string };
 
   async function read<T>(options: ReadOptions, action: (
     database: IDBDatabase,
@@ -27,11 +28,20 @@ export function createJournalReader(decryptEntry: (key: CryptoKey, record: Store
     const database = await openVaultDatabase();
     try {
       check();
+      const { expectedResetToken } = options;
+      if (expectedResetToken !== undefined) {
+        await assertVaultResetToken(database.transaction(KEY_STORE).objectStore(KEY_STORE), expectedResetToken);
+      }
       // Always check current key availability, including on cache hits.
-      const key = await getDeviceKey(database);
+      const key = await getDeviceKey(database, expectedResetToken);
       const keyIdentity = includeKeyIdentity ? await readKeyIdentity(key) : "";
       check();
-      return await action(database, { keyIdentity, decrypt: (record) => decryptEntry(key, record), check });
+      const result = action(database, { keyIdentity, decrypt: (record) => decryptEntry(key, record), check });
+      if (expectedResetToken === undefined) return await result;
+      return await result.finally(async () => {
+        await assertVaultResetToken(database.transaction(KEY_STORE).objectStore(KEY_STORE), expectedResetToken);
+        check();
+      });
     } finally { database.close(); }
   }
 

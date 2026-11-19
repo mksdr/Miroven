@@ -36,7 +36,7 @@ import {
   unlockVaultWithPin,
   type JournalEntry,
 } from "../app/lib/local-vault";
-import { DEVICE_KEY_ID, DRAFT_STORE_KEY, KEY_STORE } from "../app/lib/vault/contracts";
+import { DEVICE_KEY_ID, DRAFT_STORE_KEY, ENTRY_STORE, KEY_STORE, OUTBOX_STORE, SYNC_META_STORE } from "../app/lib/vault/contracts";
 import { requestToPromise, withVaultDatabase } from "../app/lib/vault/idb";
 import { VaultResetError } from "../app/lib/vault/operation-errors";
 import { getOrCreateVaultResetToken } from "../app/lib/vault/reset-token";
@@ -110,6 +110,7 @@ describe("encrypted local vault", () => {
   beforeEach(deleteTestDatabase);
   afterEach(async () => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     await deleteTestDatabase();
   });
 
@@ -453,6 +454,52 @@ describe("encrypted local vault", () => {
     await expect(clearStoredDraft(token)).rejects.toBeInstanceOf(VaultResetError);
     await expect(getStoredDraft(token)).rejects.toBeInstanceOf(VaultResetError);
     await expect(getStoredDraft()).resolves.toEqual(next);
+  });
+
+  it("rejects an earlier entry save before creating a device key", async () => {
+    const token = await getOrCreateVaultResetToken();
+    await purgeLocalVaultData();
+    await expect(saveEntry(SAMPLE_ENTRY, token)).rejects.toBeInstanceOf(VaultResetError);
+    const key = await withVaultDatabase((database) => requestToPromise(
+      database.transaction(KEY_STORE).objectStore(KEY_STORE).get(DEVICE_KEY_ID),
+    ));
+    expect(key).toBeUndefined();
+  });
+
+  it("checks the reset token in the transaction that would write the entry, revision and Outbox", async () => {
+    // Independent browser tabs without Web Locks use separate runtime queues.
+    vi.stubGlobal("navigator", { locks: { request: (_name: string, action: () => Promise<unknown>) => action() } });
+    await createRecoveryKit();
+    const token = await getOrCreateVaultResetToken();
+    const encrypting = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "encrypt").mockImplementationOnce(async (...args) => {
+      encrypting.resolve();
+      await release.promise;
+      return encrypt(...args);
+    });
+
+    const write = saveEntry(SAMPLE_ENTRY, token);
+    const rejected = expect(write).rejects.toBeInstanceOf(VaultResetError);
+    await encrypting.promise;
+    try {
+      await purgeLocalVaultData();
+    } finally {
+      release.resolve();
+    }
+    await rejected;
+    const counts = await withVaultDatabase((database) => {
+      const stores = [ENTRY_STORE, OUTBOX_STORE, SYNC_META_STORE];
+      const transaction = database.transaction(stores);
+      return Promise.all(stores.map((store) => requestToPromise(transaction.objectStore(store).count())));
+    });
+    expect(counts).toEqual([0, 0, 0]);
+
+    await createRecoveryKit();
+    await saveEntry(SAMPLE_ENTRY, await getOrCreateVaultResetToken());
+    expect(await listEntries()).toMatchObject([{ id: SAMPLE_ENTRY.id, text: SAMPLE_ENTRY.text }]);
+    expect(await getSyncSnapshot()).toMatchObject({ pending: 1 });
   });
 
   it.each(["save", "legacy migration"] as const)("checks the draft token again when %s encryption completes", async (mode) => {
