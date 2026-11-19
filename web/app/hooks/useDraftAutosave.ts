@@ -47,6 +47,7 @@ export function useDraftAutosave({
   const autosaveTimerRef = useRef<number | undefined>(undefined);
   const draftWriteRef = useRef<Promise<void>>(Promise.resolve());
   const autosaveGenerationRef = useRef(0);
+  const mountedRef = useRef(false);
   const needsDraftClearRef = useRef(false);
   const isRestoredRef = useRef(false);
   const [draftRestored, setDraftRestored] = useState(false);
@@ -63,7 +64,14 @@ export function useDraftAutosave({
     draftWriteRef.current = Promise.resolve();
   }, [cancelAutosave]);
 
-  useEffect(() => invalidateAutosave, [invalidateAutosave]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      // Writes already queued keep their original vault token across navigation.
+      cancelAutosave();
+    };
+  }, [cancelAutosave]);
 
   const resetAutosave = useCallback(() => {
     invalidateAutosave();
@@ -86,7 +94,7 @@ export function useDraftAutosave({
       })
       .catch((error: unknown) => {
         if (generation !== autosaveGenerationRef.current) return;
-        if (error instanceof VaultResetError) onVaultReset();
+        if (error instanceof VaultResetError && mountedRef.current) onVaultReset();
         throw error;
       });
     return draftWriteRef.current;
@@ -199,7 +207,7 @@ export function useDraftAutosave({
             : clearStoredDraft(token),
         )
           .catch((error: unknown) => {
-            if (generation !== autosaveGenerationRef.current || error instanceof VaultResetError) return;
+            if (!mountedRef.current || generation !== autosaveGenerationRef.current || error instanceof VaultResetError) return;
             showToast(
               language === "ko"
                 ? "임시 저장하지 못했습니다."
