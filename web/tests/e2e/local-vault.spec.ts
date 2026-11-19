@@ -20,6 +20,7 @@ async function resetLocalVault(page: Page) {
 }
 
 type PendingDraftWindow = Window & { releaseDraftWrite?: () => void };
+type PendingDraftClearWindow = Window & { releaseDraftClear?: () => void };
 type PendingEntryWindow = Window & { releasePhotoRead?: () => void };
 
 async function createTextEntry(page: import("@playwright/test").Page, text: string) {
@@ -61,10 +62,7 @@ test("local vault deletion clears stored records and another open tab", async ({
   const peer = await context.newPage();
   await peer.goto("/");
   await expect(peer.getByText(text, { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "계정", exact: true }).click();
-  await page.getByRole("button", { name: "이 기기의 로컬 금고 초기화", exact: true }).click();
-  await page.locator("#delete-confirm-input").fill("로컬 금고 삭제");
-  await page.getByRole("button", { name: "로컬 금고 삭제", exact: true }).click();
+  await resetLocalVault(page);
   await expect(page.getByText(text, { exact: true })).toHaveCount(0);
   await expect(peer.getByText(text, { exact: true })).toHaveCount(0);
   await peer.reload();
@@ -95,13 +93,7 @@ test("local vault reset clears recent searches across open tabs", async ({ page,
     await expect(tab.getByRole("button", { name: `지우기: ${previousSearch}`, exact: true })).toBeVisible();
   }
 
-  await page.getByRole("button", { name: "계정", exact: true }).click();
-  await page.getByRole("button", { name: "이 기기의 로컬 금고 초기화", exact: true }).click();
-  await page.locator("#delete-confirm-input").fill("로컬 금고 삭제");
-  await page.getByRole("button", { name: "로컬 금고 삭제", exact: true }).click();
-  await expect(page.getByText("이 기기의 로컬 금고를 초기화했습니다.", { exact: true })).toBeVisible();
-  await page.getByRole("dialog", { name: "계정", exact: true })
-    .getByRole("button", { name: "완료", exact: true }).click();
+  await resetLocalVault(page);
 
   for (const tab of [page, peer]) {
     await expect(tab.getByRole("textbox", { name: "검색", exact: true })).toBeVisible();
@@ -178,11 +170,7 @@ test("a pending recent search cannot write after a reset in another tab without 
 
   const resetTab = await context.newPage();
   await resetTab.goto("/");
-  await resetTab.getByRole("button", { name: "계정", exact: true }).click();
-  await resetTab.getByRole("button", { name: "이 기기의 로컬 금고 초기화", exact: true }).click();
-  await resetTab.locator("#delete-confirm-input").fill("로컬 금고 삭제");
-  await resetTab.getByRole("button", { name: "로컬 금고 삭제", exact: true }).click();
-  await expect(resetTab.getByText("이 기기의 로컬 금고를 초기화했습니다.", { exact: true })).toBeVisible();
+  await resetLocalVault(resetTab);
   await expect(page.getByRole("button", { name: "이전 검색어", exact: true })).toBeVisible();
   await page.evaluate(async () => {
     const mutation = (window as RecentSearchTestWindow).pendingRecentSearch!;
@@ -293,12 +281,7 @@ test("draft survives tab changes and reload; clearing or saving cannot resurrect
   await expect(composer).toHaveValue("");
 });
 
-test("pending draft writes respect a reset in another tab without Web Locks", async ({ page, context }) => {
-  await disableVaultResetNotifications(context);
-  await page.goto("/");
-  const resetTab = await context.newPage();
-  await resetTab.goto("/");
-  const composer = page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
+async function holdDraftEncryption(page: Page) {
   await page.evaluate(() => {
     const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
     const gate = Promise.withResolvers<void>();
@@ -312,6 +295,15 @@ test("pending draft writes respect a reset in another tab without Web Locks", as
       return encrypt(algorithm, key, data);
     };
   });
+}
+
+test("pending draft writes respect a reset in another tab without Web Locks", async ({ page, context }) => {
+  await disableVaultResetNotifications(context);
+  await page.goto("/");
+  const resetTab = await context.newPage();
+  await resetTab.goto("/");
+  const composer = page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
+  await holdDraftEncryption(page);
   await page.clock.install();
   await composer.fill("이전 자동 저장 초안");
   await page.clock.runFor(600);
@@ -346,6 +338,75 @@ test("pending draft writes respect a reset in another tab without Web Locks", as
   const freshTab = await context.newPage();
   await freshTab.goto("/");
   await expect(freshTab.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" })).toHaveValue(newDraft);
+});
+
+test("a queued draft finishes saving after navigating away from the composer", async ({ page, context }) => {
+  await page.goto("/");
+  const composer = page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
+  await holdDraftEncryption(page);
+  await page.clock.install();
+  await composer.fill("먼저 저장할 합성 초안");
+  await page.clock.runFor(600);
+  await page.waitForFunction(() => Boolean((window as PendingDraftWindow).releaseDraftWrite));
+  const latestDraft = "나가기 전에 대기열에 추가한 합성 초안";
+  await composer.fill(latestDraft);
+  await page.clock.runFor(600);
+
+  await page.getByRole("button", { name: "계정", exact: true }).click();
+  await page.getByRole("link", { name: "저작권 및 오픈 소스 라이선스", exact: true }).click();
+  await expect(page).toHaveURL(/\/notice\/?$/);
+  await expect(composer).toHaveCount(0);
+  await page.evaluate(() => (window as PendingDraftWindow).releaseDraftWrite?.());
+
+  const freshTab = await context.newPage();
+  await expect(async () => {
+    await freshTab.goto("/");
+    await expect(freshTab.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" }))
+      .toHaveValue(latestDraft, { timeout: 750 });
+  }).toPass({ timeout: 5000 });
+});
+
+test("a reset during saved-entry draft cleanup clears the composer and feed", async ({ page, context }) => {
+  await disableVaultResetNotifications(context);
+  await page.goto("/");
+  const resetTab = await context.newPage();
+  await resetTab.goto("/");
+  const composer = page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
+  await page.evaluate(() => {
+    const get = IDBObjectStore.prototype.get;
+    IDBObjectStore.prototype.get = function (key) {
+      const request = get.call(this, key);
+      if (this.name !== "entries" || this.transaction.mode !== "readonly" || this.transaction.objectStoreNames.length !== 1) {
+        return request;
+      }
+      IDBObjectStore.prototype.get = get;
+      // Hold the next database connection, which draft cleanup opens after reading the summary.
+      const open = IDBFactory.prototype.open;
+      IDBFactory.prototype.open = function (name, version) {
+        IDBFactory.prototype.open = open;
+        const pending = open.call(this, name, version);
+        pending.addEventListener("success", (event) => {
+          event.stopImmediatePropagation();
+          (window as PendingDraftClearWindow).releaseDraftClear = () => pending.onsuccess?.call(pending, event);
+        }, { once: true });
+        return pending;
+      };
+      return request;
+    };
+    const timers: Window = window;
+    const schedule = timers.setTimeout.bind(timers);
+    timers.setTimeout = (callback, delay, ...args) => schedule(callback, delay === 500 ? 60_000 : delay, ...args);
+  });
+  await composer.fill("초안 정리 중 초기화할 합성 기록");
+  await page.getByRole("button", { name: "기록", exact: true }).click();
+  await page.waitForFunction(() => Boolean((window as PendingDraftClearWindow).releaseDraftClear));
+  await resetLocalVault(resetTab);
+  await page.evaluate(() => (window as PendingDraftClearWindow).releaseDraftClear?.());
+  await expect(composer).toBeEnabled();
+  await expect(composer).toHaveValue("");
+  await expect(page.locator(".entry")).toHaveCount(0);
+  await createTextEntry(page, "초기화 후 정상 저장한 합성 기록");
+  await expect(page.locator(".entry")).toHaveCount(1);
 });
 
 for (const editing of [false, true]) {
