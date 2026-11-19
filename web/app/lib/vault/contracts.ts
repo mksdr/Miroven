@@ -16,6 +16,7 @@ export const VAULT_DATABASE_CONTRACT = {
     pinFailure: "pin-failure-meta",
     recentSearches: "recent-searches",
     draft: "miroven-composer-draft",
+    resetToken: "vault-reset-token",
   },
 } as const;
 
@@ -49,3 +50,4 @@ export const PIN_LOCK_KEY_ID = VAULT_DATABASE_CONTRACT.keys.pinLock;
 export const PIN_FAILURE_META_ID = VAULT_DATABASE_CONTRACT.keys.pinFailure;
 export const RECENT_SEARCHES_KEY_ID = VAULT_DATABASE_CONTRACT.keys.recentSearches;
 export const DRAFT_STORE_KEY = VAULT_DATABASE_CONTRACT.keys.draft;
+export const VAULT_RESET_TOKEN_ID = VAULT_DATABASE_CONTRACT.keys.resetToken;

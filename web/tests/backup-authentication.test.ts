@@ -1,7 +1,9 @@
 import "fake-indexeddb/auto";
-import { afterEach, beforeEach, expect, it } from "vitest";
-import { createEncryptedBackup, createRecoveryKit, deleteEntry, getSyncSnapshot, importEncryptedBackup, listEntries, listPendingSyncOperations, markSyncOperationConflict, saveEntry } from "../app/lib/local-vault";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { createEncryptedBackup, createRecoveryKit, deleteEntry, getSyncSnapshot, importEncryptedBackup, listEntries, listPendingSyncOperations, markSyncOperationConflict, purgeAccountVaultData, purgeLocalVaultData, saveEntry } from "../app/lib/local-vault";
 import { serializeOperation } from "../app/lib/vault/backup";
+import { KEY_STORE, VAULT_RESET_TOKEN_ID } from "../app/lib/vault/contracts";
+import { bindRemoteScope } from "../app/lib/vault/remote-state";
 import type { EncryptedBackupV2 as Backup } from "../app/lib/vault/types";
 import legacyBackupV1 from "./fixtures/legacy-backup-v1.json";
 import backupV2 from "./fixtures/backup-v2.json";
@@ -23,22 +25,26 @@ async function fixture() {
   await reset();
   return { recoveryCode, backup };
 }
-async function expectEmptyStores() {
+async function expectOnlyResetToken() {
   const db = await openVaultDatabase();
   try {
     for (const name of db.objectStoreNames) {
-      expect(await requestToPromise(db.transaction(name).objectStore(name).count())).toBe(0);
+      const keys = await requestToPromise(db.transaction(name).objectStore(name).getAllKeys());
+      expect(keys).toEqual(name === KEY_STORE ? [VAULT_RESET_TOKEN_ID] : []);
     }
   } finally { db.close(); }
 }
 beforeEach(reset);
-afterEach(reset);
+afterEach(async () => {
+  vi.restoreAllMocks();
+  await reset();
+});
 
 it("rejects a keyless outbox deletion insertion before importing any vault data", async () => {
   const { recoveryCode, backup } = await fixture();
   backup.outbox = [deletion];
   await expect(importEncryptedBackup(JSON.stringify(backup), recoveryCode)).rejects.toThrow("무결성");
-  await expectEmptyStores();
+  await expectOnlyResetToken();
   expect((await getSyncSnapshot()).pending).toBe(0);
 });
 
@@ -48,7 +54,7 @@ it("rejects deletion injection even if the file is downgraded to legacy v1", asy
   delete backup.authentication;
   backup.outbox = [deletion];
   await expect(importEncryptedBackup(JSON.stringify(backup), recoveryCode)).rejects.toThrow("삭제");
-  await expectEmptyStores();
+  await expectOnlyResetToken();
   expect(await listEntries()).toEqual([]);
 });
 
@@ -70,7 +76,7 @@ it.each([
   const { recoveryCode, backup } = await fixture();
   mutate(backup);
   await expect(importEncryptedBackup(JSON.stringify(backup), recoveryCode)).rejects.toThrow("무결성");
-  await expectEmptyStores();
+  await expectOnlyResetToken();
 });
 
 it("accepts JSON whitespace and object key reordering without changing array order", async () => {
@@ -92,7 +98,7 @@ it("authenticates the order of entries and operations", async () => {
     const changed = structuredClone(original);
     changed[field].reverse();
     await expect(importEncryptedBackup(JSON.stringify(changed), recoveryCode)).rejects.toThrow("무결성");
-    await expectEmptyStores();
+    await expectOnlyResetToken();
   }
 });
 
@@ -133,7 +139,7 @@ it("rejects both pending and conflicting deletions in a legacy backup without mo
     const json = JSON.stringify(backup);
     await expect(importEncryptedBackup(json, legacyRecoveryCode)).rejects.toThrow("삭제");
     expect(JSON.stringify(backup)).toBe(json);
-    await expectEmptyStores();
+    await expectOnlyResetToken();
   }
 });
 
@@ -156,7 +162,7 @@ it("retains individual ciphertext validation for legacy backups", async () => {
   const backup = structuredClone(legacyBackupV1);
   backup.entries[0].ciphertext = "B" + backup.entries[0].ciphertext.slice(1);
   await expect(importEncryptedBackup(JSON.stringify(backup), legacyRecoveryCode)).rejects.toThrow("무결성");
-  await expectEmptyStores();
+  await expectOnlyResetToken();
 });
 
 it("authenticates an empty vault backup", async () => {
@@ -164,4 +170,51 @@ it("authenticates an empty vault backup", async () => {
   const backup = await createEncryptedBackup();
   await reset();
   expect(await importEncryptedBackup(backup.json, recoveryCode)).toEqual({ entries: 0, pending: 0, conflicts: 0 });
+});
+
+it.each(["local reset", "matching account purge", "unrelated account purge"] as const)(
+  "checks the destination again when %s completes during backup verification",
+  async (mode) => {
+    const scope = "test-api|owner";
+    if (mode !== "local reset") await bindRemoteScope(scope);
+    const verifying = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const verify = crypto.subtle.verify.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "verify").mockImplementationOnce(async (...args) => {
+      verifying.resolve();
+      await release.promise;
+      return verify(...args);
+    });
+
+    const importing = importEncryptedBackup(JSON.stringify(backupV2), legacyRecoveryCode);
+    try {
+      await Promise.race([verifying.promise, importing]);
+      if (mode === "local reset") {
+        await purgeLocalVaultData();
+      } else {
+        const matching = mode === "matching account purge";
+        expect(await purgeAccountVaultData(matching ? scope : "test-api|other")).toBe(matching);
+      }
+    } finally {
+      release.resolve();
+    }
+    if (mode === "unrelated account purge") {
+      await expect(importing).resolves.toMatchObject({ entries: 1 });
+    } else {
+      await expect(importing).rejects.toMatchObject({ name: "AbortError" });
+      await expectOnlyResetToken();
+    }
+  },
+);
+
+it("commits at most one import into an empty vault", async () => {
+  const json = JSON.stringify(backupV2);
+  const results = await Promise.allSettled([
+    importEncryptedBackup(json, legacyRecoveryCode),
+    importEncryptedBackup(json, legacyRecoveryCode),
+  ]);
+  expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+  const refusal = results.find((result) => result.status === "rejected");
+  expect(refusal?.reason).toMatchObject({ message: expect.stringContaining("덮어쓸 수 없습니다") });
+  expect(await listEntries()).toHaveLength(1);
 });

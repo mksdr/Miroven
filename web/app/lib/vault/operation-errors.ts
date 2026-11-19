@@ -6,6 +6,13 @@ export class LegacyBackupDeletionError extends Error {
   }
 }
 
+export class BackupImportResetError extends Error {
+  constructor() {
+    super("로컬 금고가 초기화되어 백업 가져오기를 취소했습니다. 복구 코드를 다시 입력해 주세요.");
+    this.name = "AbortError";
+  }
+}
+
 export class RecoveryPinLockError extends Error {
   readonly code = "PIN_LOCK_CONFIGURED";
 

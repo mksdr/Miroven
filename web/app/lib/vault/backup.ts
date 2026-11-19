@@ -1,4 +1,4 @@
-import { LegacyBackupDeletionError } from "./operation-errors";
+import { BackupImportResetError, LegacyBackupDeletionError } from "./operation-errors";
 import { PERSONA_DOCUMENT_ID } from "../persona";
 import { getStoredDeviceKey } from "./device-key";
 import {
@@ -27,6 +27,7 @@ import {
   PIN_LOCK_KEY_ID,
   SYNC_META_STORE,
   VAULT_ENVELOPE_ID,
+  VAULT_RESET_TOKEN_ID,
   VAULT_FORMAT_CONTRACT,
   VAULT_STORE,
 } from "./contracts";
@@ -37,6 +38,8 @@ import {
 import { decryptEntry } from "./entry-crypto";
 import { prepareRemoteRecord } from "./sync-crypto";
 import { authenticateBackup, verifyBackupAuthentication } from "./backup-authentication";
+import { withVaultLock } from "./mutation-lock";
+import { getOrCreateVaultResetToken } from "./reset-token";
 import type {
   EncryptedBackupExport,
   EncryptedBackupImportResult,
@@ -349,7 +352,11 @@ export async function createEncryptedBackup(): Promise<EncryptedBackupExport> {
 export async function importEncryptedBackup(
   json: string,
   recoveryCode: string,
+  attempt?: { resetToken: string; signal?: AbortSignal },
 ): Promise<EncryptedBackupImportResult> {
+  const resetToken = attempt?.resetToken ?? await getOrCreateVaultResetToken();
+  const signal = attempt?.signal;
+  signal?.throwIfAborted();
   if (new Blob([json]).size > ENCRYPTED_BACKUP_MAX_BYTES) {
     throw new Error("100MB 이하의 암호화 백업만 가져올 수 있습니다.");
   }
@@ -391,52 +398,65 @@ export async function importEncryptedBackup(
   expectNonNegativeInteger(parsed.serverCursor, "서버 cursor");
   await validateBackupContents(vaultKey, entries, operations);
 
-  return withVaultDatabase(async (database) => {
-    const checkTransaction = database.transaction(
-      [ENTRY_STORE, VAULT_STORE, OUTBOX_STORE, SYNC_META_STORE],
-      "readonly",
-    );
-    const entryCountRequest = checkTransaction.objectStore(ENTRY_STORE).count();
-    const envelopeRequest = checkTransaction.objectStore(VAULT_STORE).get(VAULT_ENVELOPE_ID);
-    const outboxCountRequest = checkTransaction.objectStore(OUTBOX_STORE).count();
-    const cursorRequest = checkTransaction.objectStore(SYNC_META_STORE).get("server-cursor");
-    const [entryCount, existingEnvelope, outboxCount, existingCursor] = await Promise.all([
-      requestToPromise(entryCountRequest),
-      requestToPromise(envelopeRequest),
-      requestToPromise(outboxCountRequest),
-      requestToPromise(cursorRequest),
-    ]);
-    if (entryCount > 0 || existingEnvelope || outboxCount > 0 || existingCursor !== undefined) {
-      throw new Error("이 기기에 기존 금고 데이터가 있어 백업을 덮어쓸 수 없습니다.");
-    }
-
-    const writeTransaction = database.transaction(
+  signal?.throwIfAborted();
+  await withVaultLock("mutation", () => withVaultDatabase(async (database) => {
+    const transaction = database.transaction(
       [ENTRY_STORE, KEY_STORE, VAULT_STORE, OUTBOX_STORE, SYNC_META_STORE],
       "readwrite",
     );
-    const done = transactionDone(writeTransaction);
-    if (await requestToPromise(writeTransaction.objectStore(KEY_STORE).get(PIN_LOCK_KEY_ID))) {
-      await done;
-      throw new Error("PIN 잠금을 먼저 해제한 뒤 빈 금고에 백업을 가져와 주세요.");
-    }
-    const entryStore = writeTransaction.objectStore(ENTRY_STORE);
-    for (const entry of entries) entryStore.put(entry);
-    writeTransaction.objectStore(KEY_STORE).put(vaultKey, DEVICE_KEY_ID);
-    writeTransaction.objectStore(VAULT_STORE).put({
-      id: VAULT_ENVELOPE_ID,
-      ...envelope,
-    } satisfies StoredVaultEnvelope);
-    const outboxStore = writeTransaction.objectStore(OUTBOX_STORE);
-    for (const operation of operations) outboxStore.put(operation);
-    const metaStore = writeTransaction.objectStore(SYNC_META_STORE);
-    metaStore.put(0, "server-cursor");
-    metaStore.put(true, "needs-bootstrap");
-    await done;
+    const done = transactionDone(transaction);
+    const entryStore = transaction.objectStore(ENTRY_STORE);
+    const keyStore = transaction.objectStore(KEY_STORE);
+    const vaultStore = transaction.objectStore(VAULT_STORE);
+    const outboxStore = transaction.objectStore(OUTBOX_STORE);
+    const metaStore = transaction.objectStore(SYNC_META_STORE);
+    try {
+      const [currentResetToken, entryCount, existingEnvelope, outboxCount, existingCursor, pin] =
+        await Promise.all([
+          requestToPromise(keyStore.get(VAULT_RESET_TOKEN_ID)),
+          requestToPromise(entryStore.count()),
+          requestToPromise(vaultStore.get(VAULT_ENVELOPE_ID)),
+          requestToPromise(outboxStore.count()),
+          requestToPromise(metaStore.get("server-cursor")),
+          requestToPromise(keyStore.get(PIN_LOCK_KEY_ID)),
+        ]);
 
-    return {
-      entries: entries.filter((entry) => entry.id !== PERSONA_DOCUMENT_ID).length,
-      pending: operations.filter((operation) => operation.status === "pending").length,
-      conflicts: operations.filter((operation) => operation.status === "conflict").length,
-    };
-  });
+      // This comparison also orders import and purge across tabs without Web Locks.
+      signal?.throwIfAborted();
+      if (currentResetToken !== resetToken) {
+        throw new BackupImportResetError();
+      }
+      if (entryCount > 0 || existingEnvelope || outboxCount > 0 || existingCursor !== undefined) {
+        throw new Error("이 기기에 기존 금고 데이터가 있어 백업을 덮어쓸 수 없습니다.");
+      }
+      if (pin) {
+        throw new Error("PIN 잠금을 먼저 해제한 뒤 빈 금고에 백업을 가져와 주세요.");
+      }
+
+      for (const entry of entries) entryStore.put(entry);
+      keyStore.put(vaultKey, DEVICE_KEY_ID);
+      vaultStore.put({
+        id: VAULT_ENVELOPE_ID,
+        ...envelope,
+      } satisfies StoredVaultEnvelope);
+      for (const operation of operations) outboxStore.put(operation);
+      metaStore.put(0, "server-cursor");
+      metaStore.put(true, "needs-bootstrap");
+      await done;
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // IndexedDB may already have aborted the transaction on a request error.
+      }
+      await done.catch(() => undefined);
+      throw error;
+    }
+  }));
+
+  return {
+    entries: entries.filter((entry) => entry.id !== PERSONA_DOCUMENT_ID).length,
+    pending: operations.filter((operation) => operation.status === "pending").length,
+    conflicts: operations.filter((operation) => operation.status === "conflict").length,
+  };
 }

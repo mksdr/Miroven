@@ -113,7 +113,7 @@ export function JournalApp() {
   const signedOutRef = useRef<() => void>(() => undefined);
   const accountDeletedRef = useRef<() => void>(() => undefined);
   const pinResetRef = useRef<() => void>(() => undefined);
-  const recoveryResetRef = useRef<() => void>(() => undefined);
+  const resetRecoveryAfterPurgeRef = useRef<() => void>(() => undefined);
 
   const showToast = useCallback((message: string) => {
     window.clearTimeout(toastTimer.current);
@@ -323,7 +323,7 @@ export function JournalApp() {
     accountDeletedRef.current = () => {
       setPersonaOpen(false);
       pinResetRef.current();
-      recoveryResetRef.current();
+      resetRecoveryAfterPurgeRef.current();
       setIsVaultLocked(false);
       setSelectedLightboxImage(null);
       setDetailEntryId(null);
@@ -350,6 +350,7 @@ export function JournalApp() {
   const {
     backupBusy,
     backupRecoveryInput,
+    clearRecoveryInputs,
     handleCopyRecoveryCode,
     handleCreateRecoveryKit,
     handleExportBackup,
@@ -358,6 +359,7 @@ export function JournalApp() {
     handleRecoverVault,
     recoveryCode,
     recoveryInput,
+    resetRecoveryAfterPurge,
     setBackupRecoveryInput,
     setRecoveryCode,
     setRecoveryInput,
@@ -376,12 +378,8 @@ export function JournalApp() {
   });
 
   useLayoutEffect(() => {
-    recoveryResetRef.current = () => {
-      setRecoveryCode("");
-      setRecoveryInput("");
-      setBackupRecoveryInput("");
-    };
-  }, [setRecoveryCode, setRecoveryInput, setBackupRecoveryInput]);
+    resetRecoveryAfterPurgeRef.current = resetRecoveryAfterPurge;
+  }, [resetRecoveryAfterPurge]);
 
   const lockVault = useCallback((dropKey = true) => {
     setPersonaOpen(false);
@@ -389,11 +387,11 @@ export function JournalApp() {
     setSettingsOpen(false);
     setShortcutsModalOpen(false);
     lockEntries(dropKey);
-    recoveryResetRef.current();
+    clearRecoveryInputs();
     setSelectedLightboxImage(null);
     setDetailEntryId(null);
     handleClearAllSearchFilters();
-  }, [handleClearAllSearchFilters, lockEntries]);
+  }, [clearRecoveryInputs, handleClearAllSearchFilters, lockEntries]);
 
   const {
     handleConfirmRemovePin,
