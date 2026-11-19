@@ -25,6 +25,7 @@ import {
 import type { Language } from "./useAppearance";
 import { EntryPinLimitError, orderJournalEntries } from "../lib/entry-pins";
 import { EntryQuoteError } from "../lib/entry-quotes";
+import { getOrCreateVaultResetToken } from "../lib/vault/reset-token";
 import { useComposerImages, type ComposerImage } from "./useComposerImages";
 import { useDraftAutosave } from "./useDraftAutosave";
 
@@ -35,6 +36,7 @@ type UseJournalEntriesOptions = {
   language: Language;
   localEnvelope: VaultEnvelope | null;
   lowSpecMode: boolean;
+  onVaultReset: () => void;
   refreshStorageInfo: () => Promise<void>;
   refreshSyncState: () => Promise<void>;
   runSync: () => Promise<void>;
@@ -49,6 +51,7 @@ export function useJournalEntries({
   language,
   localEnvelope,
   lowSpecMode,
+  onVaultReset,
   refreshStorageInfo,
   refreshSyncState,
   runSync,
@@ -78,7 +81,19 @@ export function useJournalEntries({
   const entryReadRef = useRef<AbortController | null>(null);
   const saveInFlightRef = useRef<Promise<void> | null>(null);
   const vaultLockedRef = useRef(false);
+  const composerResetTokenRef = useRef<Promise<string> | null>(null);
   const setDraft = composerDraft.set;
+
+  const getComposerResetToken = useCallback(() => {
+    // Keep this token with the displayed draft until its vault is cleared.
+    if (composerResetTokenRef.current) return composerResetTokenRef.current;
+    const token = getOrCreateVaultResetToken();
+    composerResetTokenRef.current = token;
+    void token.catch(() => {
+      if (composerResetTokenRef.current === token) composerResetTokenRef.current = null;
+    });
+    return token;
+  }, []);
 
   const {
     cancelImageRequests,
@@ -170,14 +185,16 @@ export function useJournalEntries({
     imageProcessing ||
     quotedEntryId !== editingEntry?.quotedEntryId;
 
-  const { cancelAutosave, clearComposerDraft } = useDraftAutosave({
+  const { cancelAutosave, clearComposerDraft, resetAutosave } = useDraftAutosave({
     changeQuote,
     composerDraft,
     editingEntryId,
+    getComposerResetToken,
     hasUnsavedChanges,
     isVaultLocked,
     language,
     loadEditingImages,
+    onVaultReset,
     quotedEntryId,
     quotedEntryIdRef,
     setEditingEntryId,
@@ -187,7 +204,7 @@ export function useJournalEntries({
 
   const cancelEditing = useCallback(() => {
     cancelImageRequests();
-    void clearComposerDraft();
+    void clearComposerDraft().catch(() => undefined);
     setEditingEntryId(null);
     changeQuote(undefined);
     setDraft("");
@@ -203,7 +220,8 @@ export function useJournalEntries({
           scheduleIdleRefresh();
           return;
         }
-        return refreshEntries()
+        return getComposerResetToken()
+          .then(refreshEntries)
           .catch(() =>
             showToast(
               language === "ko"
@@ -231,6 +249,7 @@ export function useJournalEntries({
 
     return () => window.clearTimeout(initialLoadTimer);
   }, [
+    getComposerResetToken,
     language,
     refreshEntries,
     refreshStorageInfo,
@@ -302,6 +321,7 @@ export function useJournalEntries({
     setIsVaultLocked(false);
     setLoading(true);
     try {
+      await getComposerResetToken();
       await refreshEntries();
     } catch {
       showToast(
@@ -312,7 +332,7 @@ export function useJournalEntries({
     } finally {
       setLoading(false);
     }
-  }, [language, refreshEntries, setIsVaultLocked, showToast]);
+  }, [getComposerResetToken, language, refreshEntries, setIsVaultLocked, showToast]);
 
   const handleSubmit = useCallback(async () => {
     const text = composerDraft.getSnapshot().trim();
@@ -537,19 +557,22 @@ export function useJournalEntries({
     setPendingDeleteId(null);
     entryReadRef.current?.abort();
     journalReader.clear();
-    cancelAutosave();
     cancelImageRequests();
     clearImages();
+    changeQuote(undefined);
     setDraft("");
     setEditingEntryId(null);
-    changeQuote(undefined);
+    resetAutosave();
+    composerResetTokenRef.current = null;
+    void getComposerResetToken();
     setEntries([]);
   }, [
-    cancelAutosave,
     cancelImageRequests,
     changeQuote,
     clearImages,
+    getComposerResetToken,
     journalReader,
+    resetAutosave,
     setDraft,
   ]);
 

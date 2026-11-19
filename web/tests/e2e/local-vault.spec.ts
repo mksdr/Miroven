@@ -1,4 +1,25 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+
+async function disableVaultResetNotifications(context: BrowserContext) {
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, "locks", { value: undefined });
+    Object.defineProperty(window, "BroadcastChannel", { value: undefined });
+    window.addEventListener("storage", (event) => {
+      if (event.key === "miroven:vault-lock") event.stopImmediatePropagation();
+    }, { capture: true });
+  });
+}
+
+async function resetLocalVault(page: Page) {
+  await page.getByRole("button", { name: "계정", exact: true }).click();
+  await page.getByRole("button", { name: "이 기기의 로컬 금고 초기화", exact: true }).click();
+  await page.locator("#delete-confirm-input").fill("로컬 금고 삭제");
+  await page.getByRole("button", { name: "로컬 금고 삭제", exact: true }).click();
+  await expect(page.getByText("이 기기의 로컬 금고를 초기화했습니다.", { exact: true })).toBeVisible();
+  await page.getByRole("dialog", { name: "계정", exact: true }).getByRole("button", { name: "완료", exact: true }).click();
+}
+
+type PendingDraftWindow = Window & { releaseDraftWrite?: () => void };
 
 async function createTextEntry(page: import("@playwright/test").Page, text: string) {
   await page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" }).fill(text);
@@ -269,6 +290,61 @@ test("draft survives tab changes and reload; clearing or saving cannot resurrect
   await expect.poll(readDraft).toBeNull();
   await page.reload();
   await expect(composer).toHaveValue("");
+});
+
+test("pending draft writes respect a reset in another tab without Web Locks", async ({ page, context }) => {
+  await disableVaultResetNotifications(context);
+  await page.goto("/");
+  const resetTab = await context.newPage();
+  await resetTab.goto("/");
+  const composer = page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
+  await page.evaluate(() => {
+    const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
+    const gate = Promise.withResolvers<void>();
+    crypto.subtle.encrypt = async (algorithm, key, data) => {
+      const aad = (algorithm as AesGcmParams).additionalData;
+      if (aad && new TextDecoder().decode(aad) === "private-journal:composer-draft:v1") {
+        crypto.subtle.encrypt = encrypt;
+        (window as PendingDraftWindow).releaseDraftWrite = gate.resolve;
+        await gate.promise;
+      }
+      return encrypt(algorithm, key, data);
+    };
+  });
+  await page.clock.install();
+  await composer.fill("이전 자동 저장 초안");
+  await page.clock.runFor(600);
+  await page.waitForFunction(() => Boolean((window as PendingDraftWindow).releaseDraftWrite));
+  await composer.fill("대기 중인 자동 저장 초안");
+  await page.clock.runFor(600);
+
+  await resetLocalVault(resetTab);
+  const newComposer = resetTab.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
+  const newDraft = "초기화 후 새 초안";
+  await newComposer.fill(newDraft);
+  await expect.poll(() => resetTab.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("private-journal");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      return await new Promise<boolean>((resolve, reject) => {
+        const request = database.transaction("device-keys").objectStore("device-keys").getKey("miroven-composer-draft");
+        request.onsuccess = () => resolve(request.result !== undefined);
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      database.close();
+    }
+  })).toBe(true);
+
+  await page.evaluate(() => (window as PendingDraftWindow).releaseDraftWrite?.());
+  await expect(composer).toHaveValue("");
+  await page.clock.runFor(600);
+  const freshTab = await context.newPage();
+  await freshTab.goto("/");
+  await expect(freshTab.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" })).toHaveValue(newDraft);
 });
 
 test("low-spec effects are disabled without OS reduced motion and editing scrolls instantly", async ({ page }) => {

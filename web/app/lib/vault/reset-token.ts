@@ -1,5 +1,12 @@
 import { KEY_STORE, VAULT_RESET_TOKEN_ID } from "./contracts";
 import { requestToPromise, transactionDone, withVaultDatabase } from "./idb";
+import { VaultResetError } from "./operation-errors";
+
+export async function assertVaultResetToken(keys: IDBObjectStore, expected: string): Promise<void> {
+  if (await requestToPromise(keys.get(VAULT_RESET_TOKEN_ID)) !== expected) {
+    throw new VaultResetError();
+  }
+}
 
 export async function getOrCreateVaultResetToken(): Promise<string> {
   return withVaultDatabase(async (database) => {
