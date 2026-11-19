@@ -31,7 +31,7 @@ import {
 import { getDeviceKey } from "./vault/device-key";
 import { clearDiagnosticActivity } from "./diagnostic-activity";
 import { revokeKeySession } from "./vault/key-session";
-import { getOrCreateVaultResetToken } from "./vault/reset-token";
+import { assertVaultResetToken, getOrCreateVaultResetToken } from "./vault/reset-token";
 import { clearPinFailures } from "./vault/pin-lock";
 import { mapWithBudget, performancePolicy, prefersLowSpecMode } from "./performance-policy";
 import { createJournalReader as createReader } from "./vault/journal-reader";
@@ -166,8 +166,8 @@ export function savePersona(persona: Persona, expected: Persona | null): Promise
   });
 }
 
-export function saveEntry(entry: JournalEntry): Promise<void> {
-  return withVaultLock("mutation", () => saveEntryUnlocked(entry));
+export function saveEntry(entry: JournalEntry, expectedResetToken?: string): Promise<void> {
+  return withVaultLock("mutation", () => saveEntryUnlocked(entry, { expectedResetToken }));
 }
 
 export function setEntryPinned(id: string, pinned: boolean): Promise<void> {
@@ -192,14 +192,20 @@ export function setEntryPinned(id: string, pinned: boolean): Promise<void> {
     }
     await saveEntryUnlocked(
       { ...target, pinnedAt: pinned ? new Date().toISOString() : undefined },
-      false,
+      { preservePin: false },
     );
   });
 }
 
-async function saveEntryUnlocked(entry: JournalEntry, preservePin = true): Promise<void> {
+async function saveEntryUnlocked(
+  entry: JournalEntry,
+  { preservePin = true, expectedResetToken }: { preservePin?: boolean; expectedResetToken?: string } = {},
+): Promise<void> {
   await withVaultDatabase(async (database) => {
-    const key = await getDeviceKey(database);
+    if (expectedResetToken !== undefined) {
+      await assertVaultResetToken(database.transaction(KEY_STORE).objectStore(KEY_STORE), expectedResetToken);
+    }
+    const key = await getDeviceKey(database, expectedResetToken);
     const readTx = database.transaction([ENTRY_STORE, VAULT_STORE, SYNC_META_STORE], "readonly");
     const existingRequest = readTx.objectStore(ENTRY_STORE).get(entry.id);
     const envelopeRequest = readTx.objectStore(VAULT_STORE).get(VAULT_ENVELOPE_ID);
@@ -242,14 +248,25 @@ async function saveEntryUnlocked(entry: JournalEntry, preservePin = true): Promi
       : null;
     storedEntry.revision = nextRev;
     storedEntry.syncState = operation ? "pending" : "local";
-    const transaction = database.transaction(
-      operation ? [ENTRY_STORE, OUTBOX_STORE, SYNC_META_STORE] : [ENTRY_STORE, SYNC_META_STORE],
-      "readwrite",
-    );
-    transaction.objectStore(ENTRY_STORE).put(storedEntry);
-    transaction.objectStore(SYNC_META_STORE).put(nextRev, `revision:${entry.id}`);
-    if (operation) transaction.objectStore(OUTBOX_STORE).put(operation);
-    await transactionDone(transaction);
+    const stores: string[] = [ENTRY_STORE, SYNC_META_STORE];
+    if (operation) stores.push(OUTBOX_STORE);
+    if (expectedResetToken !== undefined) stores.push(KEY_STORE);
+    const transaction = database.transaction(stores, "readwrite");
+    const done = transactionDone(transaction);
+    try {
+      if (expectedResetToken !== undefined) {
+        await assertVaultResetToken(transaction.objectStore(KEY_STORE), expectedResetToken);
+      }
+      transaction.objectStore(ENTRY_STORE).put(storedEntry);
+      transaction.objectStore(SYNC_META_STORE).put(nextRev, `revision:${entry.id}`);
+      if (operation) transaction.objectStore(OUTBOX_STORE).put(operation);
+      await done;
+    } catch (error) {
+      // A synchronous write error can leave earlier requests queued.
+      try { transaction.abort(); } catch { /* The transaction already ended. */ }
+      await done.catch(() => undefined);
+      throw error;
+    }
   });
 }
 

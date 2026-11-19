@@ -21,6 +21,7 @@ async function resetLocalVault(page: Page) {
 
 type PendingDraftWindow = Window & { releaseDraftWrite?: () => void };
 type PendingDraftClearWindow = Window & { releaseDraftClear?: () => void };
+type PendingEntryWindow = Window & { releasePhotoRead?: () => void };
 
 async function createTextEntry(page: import("@playwright/test").Page, text: string) {
   await page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" }).fill(text);
@@ -407,6 +408,88 @@ test("a reset during saved-entry draft cleanup clears the composer and feed", as
   await createTextEntry(page, "초기화 후 정상 저장한 합성 기록");
   await expect(page.locator(".entry")).toHaveCount(1);
 });
+
+for (const editing of [false, true]) {
+  test(`pending photo ${editing ? "edit" : "entry"} respects a reset in another tab without Web Locks`, async ({ page, context }) => {
+    await disableVaultResetNotifications(context);
+    await page.goto("/");
+    const resetTab = await context.newPage();
+    await resetTab.goto("/");
+    if (editing) {
+      await createTextEntry(page, "수정할 합성 기록");
+      await page.getByRole("button", { name: "기록 수정", exact: true }).click();
+    }
+    const encoded = await page.evaluate(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 16;
+      canvas.getContext("2d")!.fillRect(0, 0, 16, 16);
+      return canvas.toDataURL("image/png").split(",")[1];
+    });
+    const photoInput = page.locator('.photo-button input[type="file"]');
+    await expect(photoInput).toBeEnabled();
+    await photoInput.setInputFiles({
+      name: "synthetic.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(encoded, "base64"),
+    });
+    await expect(page.locator(".image-preview img")).toBeVisible();
+
+    await page.evaluate(() => {
+      const read = FileReader.prototype.readAsDataURL;
+      FileReader.prototype.readAsDataURL = function (blob) {
+        if (blob.type !== "image/webp") return read.call(this, blob);
+        FileReader.prototype.readAsDataURL = read;
+        (window as PendingEntryWindow).releasePhotoRead = () => read.call(this, blob);
+      };
+      // Exercise submission's own reset check independently of draft autosave.
+      const timers: Window = window;
+      const schedule = timers.setTimeout.bind(timers);
+      timers.setTimeout = (callback, delay, ...args) => schedule(callback, delay === 500 ? 60_000 : delay, ...args);
+    });
+    const composer = page.getByRole("textbox", { name: "무슨 생각을 하고 있나요?" });
+    const text = "초기화 전에 제출한 합성 기록";
+    await composer.fill(text);
+    await page.getByRole("button", { name: editing ? "수정 저장" : "기록", exact: true }).click();
+    await page.waitForFunction(() => Boolean((window as PendingEntryWindow).releasePhotoRead));
+
+    await resetLocalVault(resetTab);
+    await expect(composer).toHaveValue(text);
+    await page.evaluate(() => (window as PendingEntryWindow).releasePhotoRead?.());
+    await expect(composer).toHaveValue("");
+    await expect(composer).toBeEnabled();
+    await expect(page.locator(".entry")).toHaveCount(0);
+    await expect(page.locator(".image-preview img")).toHaveCount(0);
+
+    const storage = await resetTab.evaluate(async () => {
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("private-journal");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      try {
+        const transaction = database.transaction(["entries", "device-keys", "sync-outbox"]);
+        const requests = [
+          transaction.objectStore("entries").count(),
+          transaction.objectStore("sync-outbox").count(),
+          transaction.objectStore("device-keys").getKey("primary"),
+        ];
+        return await Promise.all(requests.map((request) => new Promise((resolve, reject) => {
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        })));
+      } finally {
+        database.close();
+      }
+    });
+    expect(storage).toEqual([0, 0, undefined]);
+    await createTextEntry(page, "초기화 후 새로 저장한 기록");
+    const freshTab = await context.newPage();
+    await freshTab.goto("/");
+    await expect(freshTab.getByText("초기화 후 새로 저장한 기록", { exact: true })).toBeVisible();
+    await expect(freshTab.locator(".entry")).toHaveCount(1);
+    await expect(freshTab.locator(".entry-image")).toHaveCount(0);
+  });
+}
 
 test("low-spec effects are disabled without OS reduced motion and editing scrolls instantly", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });

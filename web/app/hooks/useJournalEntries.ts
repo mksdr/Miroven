@@ -25,7 +25,8 @@ import {
 import type { Language } from "./useAppearance";
 import { EntryPinLimitError, orderJournalEntries } from "../lib/entry-pins";
 import { EntryQuoteError } from "../lib/entry-quotes";
-import { getOrCreateVaultResetToken } from "../lib/vault/reset-token";
+import { VaultResetError } from "../lib/vault/operation-errors";
+import { assertCurrentVaultResetToken, getOrCreateVaultResetToken } from "../lib/vault/reset-token";
 import { useComposerImages, type ComposerImage } from "./useComposerImages";
 import { useDraftAutosave } from "./useDraftAutosave";
 
@@ -99,6 +100,8 @@ export function useJournalEntries({
     saveInFlightRef.current?.release();
     saveInFlightRef.current = null;
   }, []);
+
+  useEffect(() => invalidateSave, [invalidateSave]);
 
   const {
     cancelImageRequests,
@@ -207,14 +210,18 @@ export function useJournalEntries({
     vaultLockedRef,
   });
 
-  const cancelEditing = useCallback(() => {
+  const resetComposer = useCallback(() => {
     cancelImageRequests();
-    void clearComposerDraft().catch(() => undefined);
     setEditingEntryId(null);
     changeQuote(undefined);
     setDraft("");
     clearImages();
-  }, [cancelImageRequests, changeQuote, clearComposerDraft, clearImages, setDraft]);
+  }, [cancelImageRequests, changeQuote, clearImages, setDraft]);
+
+  const cancelEditing = useCallback(() => {
+    void clearComposerDraft().catch(() => undefined);
+    resetComposer();
+  }, [clearComposerDraft, resetComposer]);
 
   useEffect(() => {
     const initialLoadTimer = window.setTimeout(() => {
@@ -365,8 +372,11 @@ export function useJournalEntries({
     setSaving(true);
     const isCurrentSave = () => saveInFlightRef.current === save && !vaultLockedRef.current;
     try {
+      const expectedResetToken = await getComposerResetToken();
+      if (!isCurrentSave()) return;
+      const readOptions = { expectedResetToken };
       if (isEditing && existingEntry) {
-        const currentSummary = await journalReader.summary(existingEntry.id);
+        const currentSummary = await journalReader.summary(existingEntry.id, readOptions);
         if (!isCurrentSave()) return;
         if (currentSummary.contentVersion !== editingContentVersionRef.current) {
           throw new EditingEntryChangedError();
@@ -383,9 +393,11 @@ export function useJournalEntries({
           attachmentVersion: 2,
         };
         entryReadRef.current?.abort();
-        await trackDiagnosticOperation("entry.save", () => saveEntry(updatedEntry));
+        await trackDiagnosticOperation("entry.save", () => saveEntry(updatedEntry, expectedResetToken));
         if (!isCurrentSave()) return;
-        const updatedSummary = await journalReader.summary(updatedEntry.id);
+        const updatedSummary = await journalReader.summary(updatedEntry.id, readOptions);
+        if (!isCurrentSave()) return;
+        await clearComposerDraft(expectedResetToken).catch(() => undefined);
         if (!isCurrentSave()) return;
         setEntries((current) =>
           orderJournalEntries(
@@ -395,7 +407,7 @@ export function useJournalEntries({
           ),
         );
         showToast(language === "ko" ? "기록을 수정했습니다." : "Entry updated.");
-        cancelEditing();
+        resetComposer();
       } else {
         const entry: JournalEntry = {
           id: crypto.randomUUID(),
@@ -407,18 +419,16 @@ export function useJournalEntries({
         };
         if (!isCurrentSave()) return;
         entryReadRef.current?.abort();
-        await trackDiagnosticOperation("entry.save", () => saveEntry(entry));
+        await trackDiagnosticOperation("entry.save", () => saveEntry(entry, expectedResetToken));
         if (!isCurrentSave()) return;
-        const summary = await journalReader.summary(entry.id, undefined, entry);
+        const summary = await journalReader.summary(entry.id, readOptions, entry);
         if (!isCurrentSave()) return;
         // Finish deleting the old draft before publishing the saved entry: the
         // user may reload as soon as it appears in the feed.
-        const draftCleared = await clearComposerDraft().then(() => true, () => false);
+        const draftCleared = await clearComposerDraft(expectedResetToken).then(() => true, () => false);
         if (!isCurrentSave()) return;
         if (entries.length === 0) setFirstEntrySaved(true);
-        setDraft("");
-        changeQuote(undefined);
-        clearImages();
+        resetComposer();
         setEntries((current) =>
           orderJournalEntries([
             summary,
@@ -426,6 +436,8 @@ export function useJournalEntries({
           ]),
         );
         const { pending } = await getSyncSnapshot();
+        if (!isCurrentSave()) return;
+        await assertCurrentVaultResetToken(expectedResetToken);
         if (!isCurrentSave()) return;
         setPendingSyncCount(pending);
         showToast(
@@ -446,6 +458,10 @@ export function useJournalEntries({
       void refreshStorageInfo();
     } catch (error) {
       if (!isCurrentSave()) return;
+      if (error instanceof VaultResetError) {
+        onVaultReset();
+        return;
+      }
       showToast(
         error instanceof EntryQuoteError
           ? language === "ko"
@@ -467,15 +483,13 @@ export function useJournalEntries({
       }
     }
   }, [
-    cancelEditing,
-    changeQuote,
     clearComposerDraft,
-    clearImages,
     composerDraft,
     editingContentVersionRef,
     editingEntryId,
     editingImageState,
     entries,
+    getComposerResetToken,
     hydrated,
     imageBusyRef,
     images.length,
@@ -483,11 +497,12 @@ export function useJournalEntries({
     language,
     loading,
     localEnvelope,
+    onVaultReset,
     quotedEntryId,
     refreshStorageInfo,
+    resetComposer,
     runSync,
     serializeComposerImages,
-    setDraft,
     setPendingSyncCount,
     showToast,
   ]);
@@ -574,24 +589,17 @@ export function useJournalEntries({
     invalidateSave();
     setSaving(false);
     setFirstEntrySaved(false);
-    cancelImageRequests();
-    clearImages();
-    changeQuote(undefined);
-    setDraft("");
-    setEditingEntryId(null);
+    resetComposer();
     resetAutosave();
     composerResetTokenRef.current = null;
     void getComposerResetToken();
     setEntries([]);
   }, [
-    cancelImageRequests,
-    changeQuote,
-    clearImages,
     getComposerResetToken,
     invalidateSave,
     journalReader,
     resetAutosave,
-    setDraft,
+    resetComposer,
   ]);
 
   return {

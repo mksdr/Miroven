@@ -8,6 +8,13 @@ export async function assertVaultResetToken(keys: IDBObjectStore, expected: stri
   }
 }
 
+export function assertCurrentVaultResetToken(expected: string): Promise<void> {
+  return withVaultDatabase((database) => assertVaultResetToken(
+    database.transaction(KEY_STORE).objectStore(KEY_STORE),
+    expected,
+  ));
+}
+
 export async function getOrCreateVaultResetToken(): Promise<string> {
   return withVaultDatabase(async (database) => {
     const transaction = database.transaction(KEY_STORE, "readwrite");
