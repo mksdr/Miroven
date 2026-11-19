@@ -285,6 +285,7 @@ export function JournalApp() {
     isSearchActive,
     recentSearches,
     removeRecent: handleRemoveRecentSearch,
+    resetRecentSearchState,
     searchQuery,
     selectedHashtag,
     setDateFilterType,
@@ -329,12 +330,14 @@ export function JournalApp() {
       resetEntriesAfterPurge();
       setPersonaRevision((value) => value + 1);
       resetVaultSync();
+      resetRecentSearchState();
       setSearchQuery("");
       setSelectedHashtag("");
     };
   }, [
     journalReader,
     resetEntriesAfterPurge,
+    resetRecentSearchState,
     resetVaultSync,
     setRemoteEnvelope,
     setSearchQuery,

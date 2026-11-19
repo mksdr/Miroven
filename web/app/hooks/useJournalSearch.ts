@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   addRecentSearch,
   clearRecentSearches,
@@ -24,13 +24,22 @@ export function useJournalSearch(
   const [endDate, setEndDate] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [displayLimit, setDisplayLimit] = useState(20);
+  const recentSearchGeneration = useRef(0);
   const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  const resetRecentSearchState = useCallback(() => {
+    recentSearchGeneration.current += 1;
+    setRecentSearches([]);
+  }, []);
 
   useEffect(() => {
     if (isVaultLocked) return;
     let cancelled = false;
+    const generation = recentSearchGeneration.current;
     void getRecentSearches().then((recents) => {
-      if (!cancelled) setRecentSearches(recents);
+      if (!cancelled && generation === recentSearchGeneration.current) {
+        setRecentSearches(recents);
+      }
     });
     return () => {
       cancelled = true;
@@ -77,20 +86,22 @@ export function useJournalSearch(
 
   const submitSearch = async (queryToSubmit?: string) => {
     const query = (queryToSubmit ?? searchQuery).trim();
-    if (query) {
-      const updated = await addRecentSearch(query);
-      setRecentSearches(updated);
-    }
+    if (!query) return;
+    const generation = recentSearchGeneration.current;
+    const updated = await addRecentSearch(query);
+    if (generation === recentSearchGeneration.current) setRecentSearches(updated);
   };
 
   const removeRecent = async (query: string) => {
+    const generation = recentSearchGeneration.current;
     const updated = await removeRecentSearch(query);
-    setRecentSearches(updated);
+    if (generation === recentSearchGeneration.current) setRecentSearches(updated);
   };
 
   const clearRecents = async () => {
+    const generation = recentSearchGeneration.current;
     await clearRecentSearches();
-    setRecentSearches([]);
+    if (generation === recentSearchGeneration.current) setRecentSearches([]);
   };
 
   const refreshRecentSearches = async () => {
@@ -98,8 +109,9 @@ export function useJournalSearch(
       setRecentSearches([]);
       return;
     }
+    const generation = recentSearchGeneration.current;
     const recents = await getRecentSearches();
-    setRecentSearches(recents);
+    if (generation === recentSearchGeneration.current) setRecentSearches(recents);
   };
 
   const clearFilters = () => {
@@ -126,6 +138,7 @@ export function useJournalSearch(
     recentSearches: activeRecentSearches,
     refreshRecentSearches,
     removeRecent,
+    resetRecentSearchState,
     searchQuery,
     selectedHashtag,
     setDateFilterType,
