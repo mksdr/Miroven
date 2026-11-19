@@ -2,6 +2,17 @@
 
 Future releases are generated from Conventional Commits.
 
+## [1.3.2](https://github.com/mksdr/Miroven/compare/v1.3.1...v1.3.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* **vault:** cancel pending backup imports on reset ([#42](https://github.com/mksdr/Miroven/issues/42)) ([e5fceda](https://github.com/mksdr/Miroven/commit/e5fceda252eef26928523b0409e5b39b3e32d078))
+* **vault:** clear recent searches on local reset ([#40](https://github.com/mksdr/Miroven/issues/40)) ([ab6fb3e](https://github.com/mksdr/Miroven/commit/ab6fb3e9c8bb0202a33040f892daec307f071c4d))
+* **vault:** guard composer drafts across resets ([#44](https://github.com/mksdr/Miroven/issues/44)) ([1136f8e](https://github.com/mksdr/Miroven/commit/1136f8e4568feb5cfb8522cd647945d430075e14))
+* **vault:** guard composer entry saves across resets ([#45](https://github.com/mksdr/Miroven/issues/45)) ([50e5d82](https://github.com/mksdr/Miroven/commit/50e5d82053484702c8c798a8840e601f68e27dd6))
+* **vault:** guard recent searches across resets ([#43](https://github.com/mksdr/Miroven/issues/43)) ([d0b7cf7](https://github.com/mksdr/Miroven/commit/d0b7cf7175165a0e91b94046a8861f9abccf956b))
+
 ## [1.3.1](https://github.com/mksdr/Miroven/compare/v1.3.0...v1.3.1) (2026-11-14)
 
 
