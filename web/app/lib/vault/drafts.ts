@@ -3,6 +3,8 @@ import { DRAFT_STORE_KEY, KEY_STORE, VAULT_FORMAT_CONTRACT } from "./contracts";
 import { expectBufferLength, toArrayBuffer } from "./codec";
 import { getDeviceKey } from "./device-key";
 import { requestToPromise, transactionDone, withVaultDatabase } from "./idb";
+import { VaultResetError } from "./operation-errors";
+import { assertVaultResetToken, getOrCreateVaultResetToken } from "./reset-token";
 
 const DRAFT_AAD = new TextEncoder().encode(VAULT_FORMAT_CONTRACT.draftAad);
 
@@ -32,17 +34,25 @@ function isStoredDraft(value: unknown): value is StoredDraft {
   );
 }
 
-async function deleteDraftRecord(database: IDBDatabase): Promise<void> {
+async function commitDraftRecord(database: IDBDatabase, resetToken: string, record?: StoredDraft): Promise<void> {
   const transaction = database.transaction(KEY_STORE, "readwrite");
-  transaction.objectStore(KEY_STORE).delete(DRAFT_STORE_KEY);
-  await transactionDone(transaction);
+  const done = transactionDone(transaction);
+  const keys = transaction.objectStore(KEY_STORE);
+  try {
+    await assertVaultResetToken(keys, resetToken);
+    if (record) keys.put(record, DRAFT_STORE_KEY);
+    else keys.delete(DRAFT_STORE_KEY);
+    await done;
+  } catch (error) {
+    await done.catch(() => undefined);
+    throw error;
+  }
 }
 
-async function saveEncryptedDraft(
-  database: IDBDatabase,
+async function encryptDraft(
   key: CryptoKey,
   draft: JournalDraft,
-): Promise<void> {
+): Promise<StoredDraft> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const plaintext = new TextEncoder().encode(JSON.stringify(draft));
   let ciphertext: ArrayBuffer;
@@ -59,52 +69,57 @@ async function saveEncryptedDraft(
   } finally {
     plaintext.fill(0);
   }
-  const record: StoredDraft = {
+  return {
     iv: toArrayBuffer(iv),
     ciphertext,
     cryptoVersion: VAULT_FORMAT_CONTRACT.draftCryptoVersion,
   };
-  const transaction = database.transaction(KEY_STORE, "readwrite");
-  transaction.objectStore(KEY_STORE).put(record, DRAFT_STORE_KEY);
-  await transactionDone(transaction);
 }
 
-export async function saveDraft(draft: JournalDraft): Promise<void> {
+export async function saveDraft(draft: JournalDraft, expectedResetToken?: string): Promise<void> {
+  const resetToken = expectedResetToken ?? await getOrCreateVaultResetToken();
   await withVaultDatabase(async (database) => {
-    const key = await getDeviceKey(database);
-    await saveEncryptedDraft(database, key, draft);
+    await assertVaultResetToken(database.transaction(KEY_STORE).objectStore(KEY_STORE), resetToken);
+    const key = await getDeviceKey(database, resetToken);
+    const record = await encryptDraft(key, draft);
+    await commitDraftRecord(database, resetToken, record);
   });
 }
 
-export async function getStoredDraft(): Promise<JournalDraft | null> {
+export async function getStoredDraft(expectedResetToken?: string): Promise<JournalDraft | null> {
+  const resetToken = expectedResetToken ?? await getOrCreateVaultResetToken();
   return withVaultDatabase(async (database) => {
-    const transaction = database.transaction(KEY_STORE, "readonly");
-    const stored = await requestToPromise(
-      transaction.objectStore(KEY_STORE).get(DRAFT_STORE_KEY),
-    );
+    const keys = database.transaction(KEY_STORE).objectStore(KEY_STORE);
+    const [stored] = await Promise.all([
+      requestToPromise(keys.get(DRAFT_STORE_KEY)),
+      assertVaultResetToken(keys, resetToken),
+    ]);
     if (stored === undefined) return null;
 
     let key: CryptoKey;
     try {
-      key = await getDeviceKey(database);
-    } catch {
+      key = await getDeviceKey(database, resetToken);
+    } catch (error) {
+      if (error instanceof VaultResetError) throw error;
       // Never leave a legacy plaintext draft exposed while the vault is locked.
-      if (isJournalDraft(stored)) await deleteDraftRecord(database);
+      if (isJournalDraft(stored)) await commitDraftRecord(database, resetToken);
       return null;
     }
 
     if (isJournalDraft(stored)) {
       try {
-        await saveEncryptedDraft(database, key, stored);
+        const record = await encryptDraft(key, stored);
+        await commitDraftRecord(database, resetToken, record);
         return stored;
-      } catch {
-        await deleteDraftRecord(database);
+      } catch (error) {
+        if (error instanceof VaultResetError) throw error;
+        await commitDraftRecord(database, resetToken);
         return null;
       }
     }
 
     if (!isStoredDraft(stored)) {
-      await deleteDraftRecord(database);
+      await commitDraftRecord(database, resetToken);
       return null;
     }
 
@@ -119,16 +134,19 @@ export async function getStoredDraft(): Promise<JournalDraft | null> {
         key,
         stored.ciphertext,
       );
-      const parsed = JSON.parse(new TextDecoder().decode(plaintext));
+      const parsed: unknown = JSON.parse(new TextDecoder().decode(plaintext));
       if (!isJournalDraft(parsed)) throw new Error("초안 형식이 올바르지 않습니다.");
+      await assertVaultResetToken(database.transaction(KEY_STORE).objectStore(KEY_STORE), resetToken);
       return parsed;
-    } catch {
-      await deleteDraftRecord(database);
+    } catch (error) {
+      if (error instanceof VaultResetError) throw error;
+      await commitDraftRecord(database, resetToken);
       return null;
     }
   });
 }
 
-export async function clearStoredDraft(): Promise<void> {
-  await withVaultDatabase(deleteDraftRecord);
+export async function clearStoredDraft(expectedResetToken?: string): Promise<void> {
+  const resetToken = expectedResetToken ?? await getOrCreateVaultResetToken();
+  await withVaultDatabase((database) => commitDraftRecord(database, resetToken));
 }

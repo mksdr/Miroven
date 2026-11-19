@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   acknowledgeSyncOperation,
   applyRemoteSyncChange,
@@ -36,7 +36,10 @@ import {
   unlockVaultWithPin,
   type JournalEntry,
 } from "../app/lib/local-vault";
-import { DRAFT_STORE_KEY, KEY_STORE } from "../app/lib/vault/contracts";
+import { DEVICE_KEY_ID, DRAFT_STORE_KEY, KEY_STORE } from "../app/lib/vault/contracts";
+import { requestToPromise, withVaultDatabase } from "../app/lib/vault/idb";
+import { VaultResetError } from "../app/lib/vault/operation-errors";
+import { getOrCreateVaultResetToken } from "../app/lib/vault/reset-token";
 import type { JournalDraft, StoredDraft } from "../app/lib/vault/types";
 
 const DATABASE_NAME = "private-journal";
@@ -105,7 +108,10 @@ async function createBackupFixture() {
 
 describe("encrypted local vault", () => {
   beforeEach(deleteTestDatabase);
-  afterEach(deleteTestDatabase);
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await deleteTestDatabase();
+  });
 
   it("loads all records in date order under the low-spec budget and honours cancellation", async () => {
     for (let i = 0; i < 25; i++) {
@@ -429,6 +435,50 @@ describe("encrypted local vault", () => {
     expect(migrated.cryptoVersion).toBe(1);
     expect(migrated.text).toBeUndefined();
     expect(new TextDecoder().decode(migrated.ciphertext)).not.toContain(legacy.text);
+  });
+
+  it("rejects the old draft generation before creating a key or deleting a new draft", async () => {
+    const previous = { text: "Synthetic earlier draft", updatedAt: SAMPLE_ENTRY.createdAt };
+    const next = { ...previous, text: "Synthetic current draft" };
+    const token = await getOrCreateVaultResetToken();
+    await purgeLocalVaultData();
+
+    await expect(saveDraft(previous, token)).rejects.toBeInstanceOf(VaultResetError);
+    const key = await withVaultDatabase((database) => requestToPromise(
+      database.transaction(KEY_STORE).objectStore(KEY_STORE).get(DEVICE_KEY_ID),
+    ));
+    expect(key).toBeUndefined();
+
+    await saveDraft(next);
+    await expect(clearStoredDraft(token)).rejects.toBeInstanceOf(VaultResetError);
+    await expect(getStoredDraft(token)).rejects.toBeInstanceOf(VaultResetError);
+    await expect(getStoredDraft()).resolves.toEqual(next);
+  });
+
+  it.each(["save", "legacy migration"] as const)("checks the draft token again when %s encryption completes", async (mode) => {
+    const previous = { text: "Synthetic earlier draft", updatedAt: SAMPLE_ENTRY.createdAt };
+    const token = await getOrCreateVaultResetToken();
+    if (mode === "legacy migration") await writeRawDraft(previous);
+
+    const encrypting = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "encrypt").mockImplementationOnce(async (...args) => {
+      encrypting.resolve();
+      await release.promise;
+      return encrypt(...args);
+    });
+    const write = mode === "save" ? saveDraft(previous, token) : getStoredDraft(token);
+    const rejected = expect(write).rejects.toBeInstanceOf(VaultResetError);
+    await encrypting.promise;
+    try {
+      await purgeLocalVaultData();
+      await saveDraft({ ...previous, text: "Synthetic current draft" });
+    } finally {
+      release.resolve();
+    }
+    await rejected;
+    expect((await getStoredDraft())?.text).toBe("Synthetic current draft");
   });
 
   it("keeps encrypted drafts while locked and deletes locked legacy plaintext", async () => {

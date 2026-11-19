@@ -232,6 +232,7 @@ export function JournalApp() {
     language,
     localEnvelope,
     lowSpecMode,
+    onVaultReset: onAccountDeleted,
     refreshStorageInfo,
     refreshSyncState: refreshLocalSyncState,
     runSync,
