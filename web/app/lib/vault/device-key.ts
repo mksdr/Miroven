@@ -1,6 +1,7 @@
-import { DEVICE_KEY_ID, KEY_STORE, PIN_LOCK_KEY_ID } from "./contracts";
+import { DEVICE_KEY_ID, KEY_STORE, PIN_LOCK_KEY_ID, VAULT_RESET_TOKEN_ID } from "./contracts";
 import { requestToPromise, transactionDone } from "./idb";
 import { readKeySession } from "./key-session";
+import { VaultResetError } from "./operation-errors";
 import type { PinLockEnvelope } from "./types";
 
 export async function getStoredDeviceKey(
@@ -20,7 +21,10 @@ export async function getStoredDeviceKey(
   return existing instanceof CryptoKey ? existing : null;
 }
 
-export async function getDeviceKey(database: IDBDatabase): Promise<CryptoKey> {
+export async function getDeviceKey(
+  database: IDBDatabase,
+  expectedResetToken?: string,
+): Promise<CryptoKey> {
   const existing = await getStoredDeviceKey(database);
   if (existing) return existing;
 
@@ -40,15 +44,23 @@ export async function getDeviceKey(database: IDBDatabase): Promise<CryptoKey> {
   const transaction = database.transaction(KEY_STORE, "readwrite");
   const done = transactionDone(transaction);
   const store = transaction.objectStore(KEY_STORE);
-  const [pin, current] = await Promise.all([
-    requestToPromise(store.get(PIN_LOCK_KEY_ID)),
-    requestToPromise(store.get(DEVICE_KEY_ID)),
-  ]);
-  if (pin) {
+  try {
+    const [pin, current, resetToken] = await Promise.all([
+      requestToPromise(store.get(PIN_LOCK_KEY_ID)),
+      requestToPromise(store.get(DEVICE_KEY_ID)),
+      expectedResetToken === undefined ? undefined : requestToPromise(store.get(VAULT_RESET_TOKEN_ID)),
+    ]);
+    if (expectedResetToken !== undefined && resetToken !== expectedResetToken) {
+      throw new VaultResetError();
+    }
+    if (pin) {
+      throw new Error("로컬 금고가 잠겨 있습니다. PIN을 입력해 금고를 해제해 주세요.");
+    }
+    if (!(current instanceof CryptoKey)) store.put(key, DEVICE_KEY_ID);
     await done;
-    throw new Error("로컬 금고가 잠겨 있습니다. PIN을 입력해 금고를 해제해 주세요.");
+    return current instanceof CryptoKey ? current : key;
+  } catch (error) {
+    await done.catch(() => undefined);
+    throw error;
   }
-  if (!(current instanceof CryptoKey)) store.put(key, DEVICE_KEY_ID);
-  await done;
-  return current instanceof CryptoKey ? current : key;
 }

@@ -1,4 +1,11 @@
 /** Lightweight shared error identities; importing these must not load vault operations. */
+export class VaultResetError extends Error {
+  constructor() {
+    super("로컬 금고가 초기화되었습니다.");
+    this.name = "VaultResetError";
+  }
+}
+
 export class LegacyBackupDeletionError extends Error {
   constructor() {
     super("이 백업의 삭제 내역은 안전하게 확인할 수 없습니다. 원래 기기에서 최신 앱으로 새 백업을 만들어 주세요. 기존 파일은 보관해 주세요.");

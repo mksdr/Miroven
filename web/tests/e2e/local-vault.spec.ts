@@ -90,6 +90,117 @@ test("local vault reset clears recent searches across open tabs", async ({ page,
   await peer.close();
 });
 
+type RecentSearchTestWindow = Window & {
+  pendingRecentSearch?: { release: () => void; settled: Promise<void> };
+};
+
+test("a pending recent search cannot write after a reset in another tab without Web Locks", async ({ page, context }) => {
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, "locks", { value: undefined });
+    Object.defineProperty(window, "BroadcastChannel", { value: undefined });
+    // Make the pending operation, rather than the fallback lock event, detect the reset.
+    window.addEventListener("storage", (event) => {
+      if (event.key === "miroven:vault-lock") event.stopImmediatePropagation();
+    }, { capture: true });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "검색", exact: true }).click();
+  const input = page.getByRole("textbox", { name: "검색", exact: true });
+  await input.fill("이전 검색어");
+  await input.press("Enter");
+  await input.fill("");
+  await expect(page.getByRole("button", { name: "이전 검색어", exact: true })).toBeVisible();
+
+  await page.evaluate(() => {
+    const isRecentSearchCrypto = (algorithm: AlgorithmIdentifier) => {
+      const aad = (algorithm as AesGcmParams).additionalData;
+      return aad && new TextDecoder().decode(aad) === "private-journal:recent-searches:v1";
+    };
+    const decrypt = crypto.subtle.decrypt.bind(crypto.subtle);
+    const encrypt = crypto.subtle.encrypt.bind(crypto.subtle);
+    const gate = Promise.withResolvers<void>();
+    const transactionDone = Promise.withResolvers<void>();
+    crypto.subtle.decrypt = async (algorithm, key, data) => {
+      const plaintext = await decrypt(algorithm, key, data);
+      if (isRecentSearchCrypto(algorithm)) {
+        crypto.subtle.decrypt = decrypt;
+        (window as RecentSearchTestWindow).pendingRecentSearch = {
+          release: gate.resolve,
+          settled: transactionDone.promise,
+        };
+        await gate.promise;
+      }
+      return plaintext;
+    };
+    crypto.subtle.encrypt = async (algorithm, key, data) => {
+      const ciphertext = await encrypt(algorithm, key, data);
+      if (!isRecentSearchCrypto(algorithm)) return ciphertext;
+      crypto.subtle.encrypt = encrypt;
+      const transaction = IDBDatabase.prototype.transaction;
+      IDBDatabase.prototype.transaction = function (stores, mode, options) {
+        const result = transaction.call(this, stores, mode, options);
+        if (mode === "readwrite" && result.objectStoreNames.length === 1 && result.objectStoreNames.contains("device-keys")) {
+          IDBDatabase.prototype.transaction = transaction;
+          result.addEventListener("complete", () => transactionDone.resolve(), { once: true });
+          result.addEventListener("abort", () => transactionDone.reject(result.error), { once: true });
+        }
+        return result;
+      };
+      return ciphertext;
+    };
+  });
+  await input.fill("진행 중인 검색어");
+  await input.press("Enter");
+  await page.waitForFunction(() => Boolean((window as RecentSearchTestWindow).pendingRecentSearch));
+  await input.fill("");
+
+  const resetTab = await context.newPage();
+  await resetTab.goto("/");
+  await resetTab.getByRole("button", { name: "계정", exact: true }).click();
+  await resetTab.getByRole("button", { name: "이 기기의 로컬 금고 초기화", exact: true }).click();
+  await resetTab.locator("#delete-confirm-input").fill("로컬 금고 삭제");
+  await resetTab.getByRole("button", { name: "로컬 금고 삭제", exact: true }).click();
+  await expect(resetTab.getByText("이 기기의 로컬 금고를 초기화했습니다.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "이전 검색어", exact: true })).toBeVisible();
+  await page.evaluate(async () => {
+    const mutation = (window as RecentSearchTestWindow).pendingRecentSearch!;
+    mutation.release();
+    await mutation.settled;
+  });
+  await expect(page.locator(".recent-chip")).toHaveCount(0);
+  const storedKey = await resetTab.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("private-journal");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    try {
+      return await new Promise<IDBValidKey | undefined>((resolve, reject) => {
+        const request = database.transaction("device-keys").objectStore("device-keys").getKey("recent-searches");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    } finally {
+      database.close();
+    }
+  });
+  expect.soft(storedKey).toBeUndefined();
+
+  const freshTab = await context.newPage();
+  await freshTab.goto("/");
+  await freshTab.getByRole("button", { name: "검색", exact: true }).click();
+  await expect(freshTab.locator(".recent-chip")).toHaveCount(0);
+  const freshInput = freshTab.getByRole("textbox", { name: "검색", exact: true });
+  await freshInput.fill("초기화 후 새 검색어");
+  await freshInput.press("Enter");
+  await freshInput.fill("");
+  await expect(freshTab.getByRole("button", { name: "초기화 후 새 검색어", exact: true })).toBeVisible();
+  await freshTab.reload();
+  await freshTab.getByRole("button", { name: "검색", exact: true }).click();
+  await expect(freshTab.locator(".recent-chip")).toHaveCount(1);
+  await expect(freshTab.getByRole("button", { name: "초기화 후 새 검색어", exact: true })).toBeVisible();
+});
+
 test("typing does not repeat timeline date formatting and shortcuts save the latest text", async ({ page }) => {
   await page.addInitScript(() => {
     const Original = Intl.DateTimeFormat;
