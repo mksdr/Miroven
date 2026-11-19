@@ -1,6 +1,7 @@
 import { DEVICE_KEY_ID, KEY_STORE, PIN_LOCK_KEY_ID, VAULT_RESET_TOKEN_ID } from "./contracts";
 import { requestToPromise, transactionDone } from "./idb";
 import { readKeySession } from "./key-session";
+import { VaultResetError } from "./operation-errors";
 import type { PinLockEnvelope } from "./types";
 
 export async function getStoredDeviceKey(
@@ -50,7 +51,7 @@ export async function getDeviceKey(
       expectedResetToken === undefined ? undefined : requestToPromise(store.get(VAULT_RESET_TOKEN_ID)),
     ]);
     if (expectedResetToken !== undefined && resetToken !== expectedResetToken) {
-      throw new Error("로컬 금고가 초기화되었습니다.");
+      throw new VaultResetError();
     }
     if (pin) {
       throw new Error("로컬 금고가 잠겨 있습니다. PIN을 입력해 금고를 해제해 주세요.");

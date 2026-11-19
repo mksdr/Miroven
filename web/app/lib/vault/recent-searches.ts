@@ -8,6 +8,7 @@ import { expectBufferLength, toArrayBuffer } from "./codec";
 import { getDeviceKey, getStoredDeviceKey } from "./device-key";
 import { requestToPromise, transactionDone, withVaultDatabase } from "./idb";
 import { withVaultLock } from "./mutation-lock";
+import { VaultResetError } from "./operation-errors";
 import { getOrCreateVaultResetToken } from "./reset-token";
 import type { StoredRecentSearches } from "./types";
 
@@ -113,19 +114,18 @@ async function commitRecentSearches(
   database: IDBDatabase,
   resetToken: string,
   record: StoredRecentSearches | null,
-): Promise<boolean> {
+): Promise<void> {
   const transaction = database.transaction(KEY_STORE, "readwrite");
   const done = transactionDone(transaction);
   const store = transaction.objectStore(KEY_STORE);
   try {
     // Purge changes the token in this same store, even when tabs lack Web Locks.
-    const isCurrent = await requestToPromise(store.get(VAULT_RESET_TOKEN_ID)) === resetToken;
-    if (isCurrent) {
-      if (record) store.put(record, RECENT_SEARCHES_KEY_ID);
-      else store.delete(RECENT_SEARCHES_KEY_ID);
+    if (await requestToPromise(store.get(VAULT_RESET_TOKEN_ID)) !== resetToken) {
+      throw new VaultResetError();
     }
+    if (record) store.put(record, RECENT_SEARCHES_KEY_ID);
+    else store.delete(RECENT_SEARCHES_KEY_ID);
     await done;
-    return isCurrent;
   } catch (error) {
     await done.catch(() => undefined);
     throw error;
@@ -136,14 +136,14 @@ async function withRecentSearchOperation<T>(
   fallback: T,
   operation: (database: IDBDatabase, resetToken: string) => Promise<T>,
 ): Promise<T> {
-  if (typeof indexedDB === "undefined") return fallback;
   try {
     const resetToken = await getOrCreateVaultResetToken();
     return await withVaultLock("mutation", () => withVaultDatabase(async (database) => {
-      if (await readKeyRecord(database, VAULT_RESET_TOKEN_ID) !== resetToken) return fallback;
+      if (await readKeyRecord(database, VAULT_RESET_TOKEN_ID) !== resetToken) throw new VaultResetError();
       return operation(database, resetToken);
     }));
-  } catch {
+  } catch (error) {
+    if (error instanceof VaultResetError) throw error;
     return fallback;
   }
 }
@@ -166,13 +166,15 @@ export async function getRecentSearches(): Promise<string[]> {
     if (!legacy?.length) return [];
     const key = await getDeviceKey(database, resetToken);
     const encrypted = await encryptRecentSearches(key, legacy);
-    if (!await commitRecentSearches(database, resetToken, encrypted)) return [];
+    await commitRecentSearches(database, resetToken, encrypted);
     cleanupLegacyLocalStorage();
     return legacy;
-  });
+  }).catch(() => []);
 }
 
-function updateRecentSearches(update: (current: string[]) => string[]): Promise<string[] | null> {
+async function updateRecentSearches(update: (current: string[]) => string[]): Promise<string[] | null> {
+  if (typeof indexedDB === "undefined") return update(readLegacyLocalStorage() ?? []);
+
   return withRecentSearchOperation<string[] | null>(null, async (database, resetToken) => {
     const key = await getDeviceKey(database, resetToken);
     const record = await readKeyRecord(database, RECENT_SEARCHES_KEY_ID) as StoredRecentSearches | undefined;
@@ -181,7 +183,7 @@ function updateRecentSearches(update: (current: string[]) => string[]): Promise<
       : readLegacyLocalStorage() ?? [];
     const updated = update(current);
     const encrypted = updated.length ? await encryptRecentSearches(key, updated) : null;
-    if (!await commitRecentSearches(database, resetToken, encrypted)) return null;
+    await commitRecentSearches(database, resetToken, encrypted);
     cleanupLegacyLocalStorage();
     return updated;
   });
@@ -203,7 +205,7 @@ export function removeRecentSearch(query: string): Promise<string[] | null> {
 export async function clearRecentSearches(): Promise<boolean> {
   if (typeof indexedDB === "undefined") return cleanupLegacyLocalStorage();
   return withRecentSearchOperation(false, async (database, resetToken) => {
-    const cleared = await commitRecentSearches(database, resetToken, null);
-    return cleared && cleanupLegacyLocalStorage();
+    await commitRecentSearches(database, resetToken, null);
+    return cleanupLegacyLocalStorage();
   });
 }

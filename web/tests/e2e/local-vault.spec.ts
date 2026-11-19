@@ -98,6 +98,10 @@ test("a pending recent search cannot write after a reset in another tab without 
   await context.addInitScript(() => {
     Object.defineProperty(navigator, "locks", { value: undefined });
     Object.defineProperty(window, "BroadcastChannel", { value: undefined });
+    // Make the pending operation, rather than the fallback lock event, detect the reset.
+    window.addEventListener("storage", (event) => {
+      if (event.key === "miroven:vault-lock") event.stopImmediatePropagation();
+    }, { capture: true });
   });
   await page.goto("/");
   await page.getByRole("button", { name: "검색", exact: true }).click();
@@ -148,6 +152,7 @@ test("a pending recent search cannot write after a reset in another tab without 
   await input.fill("진행 중인 검색어");
   await input.press("Enter");
   await page.waitForFunction(() => Boolean((window as RecentSearchTestWindow).pendingRecentSearch));
+  await input.fill("");
 
   const resetTab = await context.newPage();
   await resetTab.goto("/");
@@ -156,11 +161,13 @@ test("a pending recent search cannot write after a reset in another tab without 
   await resetTab.locator("#delete-confirm-input").fill("로컬 금고 삭제");
   await resetTab.getByRole("button", { name: "로컬 금고 삭제", exact: true }).click();
   await expect(resetTab.getByText("이 기기의 로컬 금고를 초기화했습니다.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "이전 검색어", exact: true })).toBeVisible();
   await page.evaluate(async () => {
     const mutation = (window as RecentSearchTestWindow).pendingRecentSearch!;
     mutation.release();
     await mutation.settled;
   });
+  await expect(page.locator(".recent-chip")).toHaveCount(0);
   const storedKey = await resetTab.evaluate(async () => {
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open("private-journal");

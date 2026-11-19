@@ -24,6 +24,7 @@ import {
   VAULT_DATABASE_CONTRACT,
 } from "../app/lib/vault/contracts";
 import { requestToPromise, transactionDone, withVaultDatabase } from "../app/lib/vault/idb";
+import { VaultResetError } from "../app/lib/vault/operation-errors";
 import type { StoredRecentSearches } from "../app/lib/vault/types";
 
 class MemoryStorage implements Storage {
@@ -223,6 +224,29 @@ describe("encrypted recent searches unit tests", () => {
     expect(reloaded).toEqual(["레거시_검색1", "레거시_검색2"]);
   });
 
+  it("returns in-memory updates of legacy searches when IndexedDB is unavailable", async () => {
+    vi.stubGlobal("indexedDB", undefined);
+    const legacy = JSON.stringify(["이전 검색어", "다른 검색어"]);
+    localStorage.setItem("miroven:recent_searches", legacy);
+
+    expect(await addRecentSearch(" 새 검색어 ")).toEqual(["새 검색어", "이전 검색어", "다른 검색어"]);
+    expect(await removeRecentSearch("이전 검색어")).toEqual(["다른 검색어"]);
+    expect(localStorage.getItem("miroven:recent_searches")).toBe(legacy);
+  });
+
+  it("keeps storage errors separate from a confirmed vault reset", async () => {
+    await addRecentSearch("기존 검색어");
+    const open = vi.spyOn(indexedDB, "open").mockImplementation(() => {
+      throw new DOMException("Storage denied", "SecurityError");
+    });
+
+    await expect(addRecentSearch("새 검색어")).resolves.toBeNull();
+    await expect(removeRecentSearch("기존 검색어")).resolves.toBeNull();
+    await expect(clearRecentSearches()).resolves.toBe(false);
+    open.mockRestore();
+    await expect(getRecentSearches()).resolves.toEqual(["기존 검색어"]);
+  });
+
   it("returns empty array gracefully when vault is locked with PIN and restores on unlock", async () => {
     await addRecentSearch("비공개_검색");
     await setupPinLock("1234");
@@ -281,7 +305,7 @@ describe("encrypted recent searches unit tests", () => {
     } finally {
       gate.release();
     }
-    await expect(removing).resolves.toBeNull();
+    await expect(removing).rejects.toBeInstanceOf(VaultResetError);
     expect(await getRecentSearches()).toEqual(["새 검색어"]);
   });
 
@@ -298,7 +322,7 @@ describe("encrypted recent searches unit tests", () => {
     } finally {
       gate.release();
     }
-    await expect(clearing).resolves.toBe(false);
+    await expect(clearing).rejects.toBeInstanceOf(VaultResetError);
     expect(await getRecentSearches()).toEqual(["새 검색어"]);
   });
 
@@ -333,7 +357,7 @@ describe("encrypted recent searches unit tests", () => {
     } finally {
       gate.release();
     }
-    await expect(adding).resolves.toBeNull();
+    await expect(adding).rejects.toBeInstanceOf(VaultResetError);
     await withVaultDatabase(async (database) => {
       const keys = database.transaction(KEY_STORE).objectStore(KEY_STORE);
       const stored = await Promise.all([DEVICE_KEY_ID, RECENT_SEARCHES_KEY_ID].map((id) => requestToPromise(keys.getKey(id))));
@@ -360,7 +384,11 @@ describe("encrypted recent searches unit tests", () => {
       gate.release();
     }
     const expected = matching ? [] : ["진행 중인 검색어", "이전 검색어"];
-    await expect(adding).resolves.toEqual(matching ? null : expected);
+    if (matching) {
+      await expect(adding).rejects.toBeInstanceOf(VaultResetError);
+    } else {
+      await expect(adding).resolves.toEqual(expected);
+    }
     expect(await getRecentSearches()).toEqual(expected);
   });
 

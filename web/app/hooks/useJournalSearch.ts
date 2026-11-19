@@ -11,6 +11,7 @@ import {
   type DateFilterType,
 } from "../lib/search";
 import type { JournalEntrySummary } from "../lib/local-vault";
+import { VaultResetError } from "../lib/vault/operation-errors";
 
 export function useJournalSearch(
   entries: JournalEntrySummary[],
@@ -84,26 +85,6 @@ export function useJournalSearch(
     [filteredEntries, displayLimit],
   );
 
-  const submitSearch = async (queryToSubmit?: string) => {
-    const query = (queryToSubmit ?? searchQuery).trim();
-    if (!query) return;
-    const generation = recentSearchGeneration.current;
-    const updated = await addRecentSearch(query);
-    if (updated !== null && generation === recentSearchGeneration.current) setRecentSearches(updated);
-  };
-
-  const removeRecent = async (query: string) => {
-    const generation = recentSearchGeneration.current;
-    const updated = await removeRecentSearch(query);
-    if (updated !== null && generation === recentSearchGeneration.current) setRecentSearches(updated);
-  };
-
-  const clearRecents = async () => {
-    const generation = recentSearchGeneration.current;
-    const cleared = await clearRecentSearches();
-    if (cleared && generation === recentSearchGeneration.current) setRecentSearches([]);
-  };
-
   const refreshRecentSearches = async () => {
     if (isVaultLocked) {
       setRecentSearches([]);
@@ -113,6 +94,30 @@ export function useJournalSearch(
     const recents = await getRecentSearches();
     if (generation === recentSearchGeneration.current) setRecentSearches(recents);
   };
+
+  const runRecentSearchMutation = async (operation: () => Promise<string[] | null>) => {
+    const generation = recentSearchGeneration.current;
+    try {
+      const updated = await operation();
+      if (updated !== null && generation === recentSearchGeneration.current) setRecentSearches(updated);
+    } catch (error) {
+      if (!(error instanceof VaultResetError)) throw error;
+      if (generation !== recentSearchGeneration.current) return;
+
+      resetRecentSearchState();
+      await refreshRecentSearches();
+    }
+  };
+
+  const submitSearch = async (queryToSubmit?: string) => {
+    const query = (queryToSubmit ?? searchQuery).trim();
+    if (!query) return;
+    return runRecentSearchMutation(() => addRecentSearch(query));
+  };
+
+  const removeRecent = (query: string) => runRecentSearchMutation(() => removeRecentSearch(query));
+
+  const clearRecents = () => runRecentSearchMutation(async () => await clearRecentSearches() ? [] : null);
 
   const clearFilters = () => {
     setSearchQuery("");
